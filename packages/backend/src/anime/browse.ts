@@ -3,7 +3,7 @@ import { and, arrayContains, asc, desc, eq, gte, inArray, lte, sql } from 'drizz
 import type { BrowseFilters } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
 import type { AnimeCard } from '@arc/shared/types';
-import { db, excluded } from '@arc/db';
+import { db } from '@arc/db';
 import {
     animeCatalog,
     animeCatalogRefresh,
@@ -68,23 +68,25 @@ export async function refreshCatalogPage(
                 .onConflictDoUpdate({
                     target: animeCatalog.anilistId,
                     set: {
-                        title: excluded(animeCatalog.title),
-                        searchText: excluded(animeCatalog.searchText),
-                        imageUrl: excluded(animeCatalog.imageUrl),
-                        synopsis: excluded(animeCatalog.synopsis),
-                        genres: excluded(animeCatalog.genres),
-                        tags: excluded(animeCatalog.tags),
-                        format: excluded(animeCatalog.format),
-                        status: excluded(animeCatalog.status),
-                        source: excluded(animeCatalog.source),
-                        season: excluded(animeCatalog.season),
-                        seasonYear: excluded(animeCatalog.seasonYear),
-                        countryOfOrigin: excluded(animeCatalog.countryOfOrigin),
-                        isAdult: excluded(animeCatalog.isAdult),
-                        popularity: excluded(animeCatalog.popularity),
-                        duration: excluded(animeCatalog.duration),
-                        discoveryRevision: excluded(animeCatalog.discoveryRevision),
-                        averageScore: excluded(animeCatalog.averageScore),
+                        title: sql.raw(`excluded."${animeCatalog.title.name}"`),
+                        searchText: sql.raw(`excluded."${animeCatalog.searchText.name}"`),
+                        imageUrl: sql.raw(`excluded."${animeCatalog.imageUrl.name}"`),
+                        synopsis: sql.raw(`excluded."${animeCatalog.synopsis.name}"`),
+                        genres: sql.raw(`excluded."${animeCatalog.genres.name}"`),
+                        tags: sql.raw(`excluded."${animeCatalog.tags.name}"`),
+                        format: sql.raw(`excluded."${animeCatalog.format.name}"`),
+                        status: sql.raw(`excluded."${animeCatalog.status.name}"`),
+                        source: sql.raw(`excluded."${animeCatalog.source.name}"`),
+                        season: sql.raw(`excluded."${animeCatalog.season.name}"`),
+                        seasonYear: sql.raw(`excluded."${animeCatalog.seasonYear.name}"`),
+                        countryOfOrigin: sql.raw(`excluded."${animeCatalog.countryOfOrigin.name}"`),
+                        isAdult: sql.raw(`excluded."${animeCatalog.isAdult.name}"`),
+                        popularity: sql.raw(`excluded."${animeCatalog.popularity.name}"`),
+                        duration: sql.raw(`excluded."${animeCatalog.duration.name}"`),
+                        discoveryRevision: sql.raw(
+                            `excluded."${animeCatalog.discoveryRevision.name}"`
+                        ),
+                        averageScore: sql.raw(`excluded."${animeCatalog.averageScore.name}"`),
                         sourceFetchedAt: fetchedAt,
                         updatedAt: fetchedAt,
                     },

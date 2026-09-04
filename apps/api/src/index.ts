@@ -1,8 +1,12 @@
 import app from './app';
-import { migrateDatabase } from '@arc/db/migrate';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+
+import { db } from '@arc/db';
 
 if (process.env.NODE_ENV === 'production') {
-    await migrateDatabase();
+    await migrate(db, {
+        migrationsFolder: 'packages/db/drizzle',
+    });
 }
 
 Bun.serve({
