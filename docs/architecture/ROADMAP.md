@@ -17,7 +17,7 @@ Arc is replacing `@arc/backend` with a smaller `@arc/core` catalog boundary. The
 - Established `@arc/core` and moved catalog identity and discovery rules.
 - Moved browse pagination, browse transformation, catalog cards, homepage selection, detail shaping, airing normalization, and release-calendar parsing into core.
 - Moved focused tests into `tests/`.
-- Moved the generic nullable-array utility to `@arc/core/utils/array`.
+- Removed the one-use nullable-array helper by inlining its filtering at the catalog call sites.
 - Moved the database client, schema, and migration history into `@arc/shared`.
 - Removed obsolete database SQL and migration runtime helpers.
 
