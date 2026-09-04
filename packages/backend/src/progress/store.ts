@@ -151,77 +151,7 @@ export async function getEpisodePlaybackProgress(userId: string | undefined, ani
     );
 }
 
-export async function dismissPlaybackProgress(userId: string, anilistId: number) {
-    const animeId = await findInternalAnimeId(anilistId);
-    if (!animeId) {
-        return;
-    }
-
-    await db
-        .update(playbackProgress)
-        .set({ dismissedAt: new Date() })
-        .where(and(eq(playbackProgress.userId, userId), eq(playbackProgress.animeId, animeId)));
-}
-
-export async function markAnimePlaybackComplete(userId: string, anilistId: number) {
-    const animeId = await findInternalAnimeId(anilistId);
-    if (!animeId) {
-        return false;
-    }
-
-    const episodes = await db
-        .select({
-            episodeId: animeEpisode.episodeId,
-            episodeNumber: animeEpisode.number,
-            runtimeMinutes: animeEpisode.runtimeMinutes,
-        })
-        .from(animeEpisode)
-        .where(eq(animeEpisode.anilistId, anilistId));
-    if (!episodes.length) {
-        return false;
-    }
-
-    const now = new Date();
-    await db
-        .insert(playbackProgress)
-        .values(
-            episodes.map((episode) => {
-                const durationSeconds = Math.max(1, (episode.runtimeMinutes ?? 1) * 60);
-                return {
-                    userId,
-                    animeId,
-                    episodeId: episode.episodeId,
-                    episodeNumber: episode.episodeNumber,
-                    positionSeconds: durationSeconds,
-                    durationSeconds,
-                    completed: true,
-                    hasCompleted: true,
-                    completedAt: now,
-                    lastWatchedAt: now,
-                    eventAt: now,
-                    dismissedAt: null,
-                };
-            })
-        )
-        .onConflictDoUpdate({
-            target: [playbackProgress.userId, playbackProgress.animeId, playbackProgress.episodeId],
-            set: {
-                positionSeconds: sql`excluded.position_seconds`,
-                durationSeconds: sql`excluded.duration_seconds`,
-                completed: true,
-                hasCompleted: true,
-                completedAt: now,
-                updatedAt: now,
-                lastWatchedAt: now,
-                eventAt: now,
-                dismissedAt: null,
-            },
-        });
-
-    return true;
-}
-
-export async function resetAnimePlaybackProgress(userId: string, anilistId: number) {
+export async function clearPlaybackProgress(userId: string, anilistId: number) {
     const animeId = await findInternalAnimeId(anilistId);
     if (!animeId) {
         return false;
@@ -242,6 +172,7 @@ async function recentPlaybackProgress(userId: string | undefined) {
         .select({
             anilistId: animeExternalId.externalId,
             animeTitle: animeTable.title,
+            animeImage: animeRelease.imageUrl,
             details: animeRelease.data,
             episodeId: playbackProgress.episodeId,
             episodeNumber: playbackProgress.episodeNumber,
@@ -261,7 +192,6 @@ async function recentPlaybackProgress(userId: string | undefined) {
         .where(
             and(
                 eq(playbackProgress.userId, userId),
-                isNull(playbackProgress.dismissedAt),
                 eq(animeExternalId.provider, 'anilist'),
                 eq(animeExternalId.mediaType, 'anime')
             )
@@ -337,6 +267,9 @@ export async function getContinueWatchingCards(userId: string): Promise<Continue
             const backdrop =
                 storedMedia?.artwork.selectedBackdrop?.url ??
                 details?.bannerImage ??
+                progress.animeImage ??
+                storedDetails?.coverImage?.extraLarge ??
+                storedDetails?.coverImage?.large ??
                 target.imageUrl;
             const episodeImage =
                 storedDetails?.format === 'MOVIE' ? backdrop : (target.imageUrl ?? backdrop);

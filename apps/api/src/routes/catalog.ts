@@ -13,7 +13,7 @@ import { homePage } from '@arc/backend/internal/anime/application';
 import { releaseCalendar } from '@arc/backend/internal/anime/release-calendar';
 import { simulcast } from '@arc/backend/internal/anime/simulcast';
 import { getSearchResults } from '@arc/backend/internal/anime/search';
-import { dismissPlaybackProgress } from '@arc/backend/progress';
+import { clearPlaybackProgress } from '@arc/backend/progress';
 import { middleware, validate, type ApiEnvironment } from '../http';
 
 const SimulcastQuerySchema = PageQuerySchema.extend({
@@ -39,7 +39,7 @@ catalog.delete(
     '/home/continue-watching/:anilistId',
     validate('param', z.object({ anilistId: AnimeIdSchema })),
     async (context) => {
-        await dismissPlaybackProgress(
+        await clearPlaybackProgress(
             context.get('session').user.id,
             context.req.valid('param').anilistId
         );

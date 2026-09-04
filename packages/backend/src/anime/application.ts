@@ -295,7 +295,7 @@ export async function watchPage(userId: string, id: number, episodeId: string) {
         previousEpisode: episodes[currentIndex - 1] ?? null,
         nextEpisode: episodes[currentIndex + 1] ?? null,
         fallbackImage: storedMedia?.artwork.selectedBackdrop?.url ?? anime.bannerImage ?? null,
-        startAt: resumePosition(progress, currentEpisode.id),
+        startAt: resumePosition(episodeProgress.get(currentEpisode.id) ?? null, currentEpisode.id),
         progressEventAt: Math.max(Date.now(), progress?.eventAt.getTime() ?? 0),
     };
 }
