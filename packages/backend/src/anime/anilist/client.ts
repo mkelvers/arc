@@ -9,7 +9,7 @@ import { logger } from '@arc/backend/internal/logger';
 import { graphql } from '../../graphql';
 import { record, type JsonValue } from '../../utils';
 import { coordinatedAniListRequest } from './durable-request-policy';
-import { shouldUseQuerySnapshot } from './snapshot-policy';
+import { shouldUseQuerySnapshot } from '@arc/core/catalog/snapshot-policy';
 
 interface RequestOptions {
     refreshAfterMs?: number;
