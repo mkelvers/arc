@@ -1,22 +1,16 @@
 import { randomUUID } from 'node:crypto';
-
 import { and, eq, isNull, lte, or, sql } from 'drizzle-orm';
-
 import { db } from '@arc/db';
 import { anilistRequestState } from '@arc/db/schema';
-import { GraphQLRequestError } from '../../graphql';
-import { anilistRetryDelay } from './request-policy';
-
-const requestStateName = 'global';
-const minimumIntervalMs = 2_100;
-const leaseDurationMs = 30_000;
+import { GraphQLRequestError } from '@arc/shared/graphql-error';
+import { anilistRetryDelay } from './anilist-request-policy';
 
 export async function coordinatedAniListRequest<Value>(
     operation: string,
     load: () => Promise<Value>
 ) {
     const owner = randomUUID();
-    await db.insert(anilistRequestState).values({ name: requestStateName }).onConflictDoNothing();
+    await db.insert(anilistRequestState).values({ name: 'global' }).onConflictDoNothing();
 
     for (;;) {
         const now = new Date();
@@ -24,14 +18,14 @@ export async function coordinatedAniListRequest<Value>(
             .update(anilistRequestState)
             .set({
                 leaseOwner: owner,
-                leaseUntil: new Date(now.getTime() + leaseDurationMs),
+                leaseUntil: new Date(now.getTime() + 30_000),
                 lastRequestAt: now,
                 lastOperation: operation,
                 requestCount: sql`${anilistRequestState.requestCount} + 1`,
             })
             .where(
                 and(
-                    eq(anilistRequestState.name, requestStateName),
+                    eq(anilistRequestState.name, 'global'),
                     lte(anilistRequestState.nextRequestAt, now),
                     or(
                         isNull(anilistRequestState.blockedUntil),
@@ -56,7 +50,7 @@ export async function coordinatedAniListRequest<Value>(
                 nextRequestAt: anilistRequestState.nextRequestAt,
             })
             .from(anilistRequestState)
-            .where(eq(anilistRequestState.name, requestStateName))
+            .where(eq(anilistRequestState.name, 'global'))
             .limit(1);
         const blockedFor = (state?.blockedUntil?.getTime() ?? 0) - Date.now();
         if (blockedFor > 0) {
@@ -82,7 +76,7 @@ export async function coordinatedAniListRequest<Value>(
         await db
             .update(anilistRequestState)
             .set({
-                nextRequestAt: new Date(now.getTime() + minimumIntervalMs),
+                nextRequestAt: new Date(now.getTime() + 2_100),
                 blockedUntil: null,
                 leaseOwner: null,
                 leaseUntil: null,
@@ -92,7 +86,7 @@ export async function coordinatedAniListRequest<Value>(
             })
             .where(
                 and(
-                    eq(anilistRequestState.name, requestStateName),
+                    eq(anilistRequestState.name, 'global'),
                     eq(anilistRequestState.leaseOwner, owner)
                 )
             );
@@ -103,7 +97,7 @@ export async function coordinatedAniListRequest<Value>(
         await db
             .update(anilistRequestState)
             .set({
-                nextRequestAt: new Date(now.getTime() + minimumIntervalMs),
+                nextRequestAt: new Date(now.getTime() + 2_100),
                 blockedUntil:
                     delay > 0
                         ? sql`greatest(coalesce(${anilistRequestState.blockedUntil}, now()), now() + (${delay} * interval '1 millisecond'))`
@@ -116,7 +110,7 @@ export async function coordinatedAniListRequest<Value>(
             })
             .where(
                 and(
-                    eq(anilistRequestState.name, requestStateName),
+                    eq(anilistRequestState.name, 'global'),
                     eq(anilistRequestState.leaseOwner, owner)
                 )
             );
