@@ -1,9 +1,7 @@
 import type { BrowseFilters } from '@arc/shared/browse';
-import { z } from 'zod';
 import {
     BrowseAnimePageDocument,
     BrowseAnimeTaxonomyDocument,
-    type BrowseAnimePageQuery,
     type MediaFormat,
     type MediaSeason,
     type MediaSort,
@@ -12,9 +10,10 @@ import {
 } from '@arc/shared/anilist/generated/graphql';
 import { GraphQLRequestError } from '#graphql';
 import { request } from './client';
-import { mediaTitle, plainText } from '@arc/core/catalog/anilist-text';
-import { isDiscoverableAnime } from '@arc/core/catalog/discovery';
-import type { BrowseCatalogEntry } from '@arc/core/catalog/browse-types';
+import {
+    transformBrowseEntries,
+    transformBrowseTaxonomy,
+} from '@arc/core/catalog/browse-transform';
 
 export interface AniListBrowseFilters extends Omit<
     BrowseFilters,
@@ -24,70 +23,6 @@ export interface AniListBrowseFilters extends Omit<
     status: MediaStatus | null;
     source: MediaSource | null;
     season: MediaSeason | null;
-}
-
-export interface BrowseSourceTaxonomy {
-    genres: string[];
-    tags: string[];
-    formats: string[];
-    statuses: string[];
-    sources: string[];
-    seasons: string[];
-}
-
-function browseEntries(
-    mediaEntries: NonNullable<NonNullable<BrowseAnimePageQuery['Page']>['media']>,
-    formats: readonly MediaFormat[] = ['TV', 'ONA']
-) {
-    return mediaEntries
-        .filter((value) => value !== null)
-        .flatMap((media) => {
-            if (!isDiscoverableAnime(media, formats)) {
-                return [];
-            }
-
-            const imageUrl = media.coverImage?.extraLarge ?? media.coverImage?.large;
-            if (!imageUrl) {
-                return [];
-            }
-
-            const title = mediaTitle(media);
-            const titles = [
-                title,
-                media.title?.english,
-                media.title?.romaji,
-                media.title?.native,
-                ...(media.synonyms?.filter((value) => value !== null) ?? []),
-            ]
-                .map((title) => title?.trim())
-                .filter(
-                    (title, index, values): title is string =>
-                        Boolean(title) && values.indexOf(title) === index
-                );
-
-            return [
-                {
-                    anilistId: media.id,
-                    title,
-                    searchText: titles.join('\n'),
-                    imageUrl,
-                    synopsis: plainText(media.description),
-                    genres: media.genres?.filter((genre) => genre !== null) ?? [],
-                    tags: (media.tags?.filter((tag) => tag !== null) ?? []).map(({ name }) => name),
-                    format: media.format,
-                    status: media.status,
-                    source: media.source,
-                    season: media.season,
-                    seasonYear: media.seasonYear,
-                    countryOfOrigin:
-                        z.string().nullable().safeParse(media.countryOfOrigin).data ?? null,
-                    isAdult: media.isAdult !== false,
-                    popularity: media.popularity,
-                    duration: media.duration,
-                    averageScore: media.averageScore,
-                } satisfies BrowseCatalogEntry,
-            ];
-        });
 }
 
 export async function getBrowsePage(
@@ -120,7 +55,7 @@ export async function getBrowsePage(
         { forceRefresh }
     );
 
-    const anime = browseEntries(response.Page?.media ?? [], formats);
+    const anime = transformBrowseEntries(response.Page?.media ?? [], formats);
 
     return {
         anime,
@@ -137,28 +72,7 @@ export async function getBrowseTaxonomy(forceRefresh = false) {
             forceRefresh,
         }
     );
-    const sortedUnique = (values: string[]) =>
-        [...new Set(values)].sort((left, right) => left.localeCompare(right, 'en'));
-    const taxonomy = {
-        genres: sortedUnique(response.GenreCollection?.filter((value) => value !== null) ?? []),
-        tags: sortedUnique(
-            (response.tags?.filter((value) => value !== null) ?? [])
-                .filter(({ isAdult }) => isAdult === false)
-                .map(({ name }) => name)
-        ),
-        formats: (response.formats?.enumValues?.filter((value) => value !== null) ?? []).map(
-            ({ name }) => name
-        ),
-        statuses: (response.statuses?.enumValues?.filter((value) => value !== null) ?? []).map(
-            ({ name }) => name
-        ),
-        sources: (response.sources?.enumValues?.filter((value) => value !== null) ?? []).map(
-            ({ name }) => name
-        ),
-        seasons: (response.seasons?.enumValues?.filter((value) => value !== null) ?? []).map(
-            ({ name }) => name
-        ),
-    } satisfies BrowseSourceTaxonomy;
+    const taxonomy = transformBrowseTaxonomy(response);
 
     if (
         !taxonomy.genres.length ||
