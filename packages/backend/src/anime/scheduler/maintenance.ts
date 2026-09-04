@@ -14,7 +14,6 @@ import {
     isAniKotoLocalCooldownError,
     isAniKotoNoMatchError,
 } from '../providers/anikoto';
-import { episodeMetadataRevision } from '@arc/core';
 import { rediscoverMapping, setMetadataMappingOverride } from './mappings';
 import { MaintenanceRequestSchema, type MaintenanceRequest } from '@arc/core';
 import { reconcileAllAiringReleases } from './reconciliation';
@@ -390,12 +389,6 @@ async function seedEpisodeInventoryBackfills() {
                   select 1
                   from anime_episode_sync sync
                   where sync.anilist_id = release.anilist_id
-                    and sync.metadata_revision is distinct from ${episodeMetadataRevision}
-              )
-              or exists (
-                  select 1
-                  from anime_episode_sync sync
-                  where sync.anilist_id = release.anilist_id
                     and sync.metadata_external_id_id is distinct from (
                         select tmdb_link.external_id_id
                         from anime_external_id anilist
@@ -458,7 +451,6 @@ async function seedEpisodeInventoryBackfills() {
                       select 1
                       from anime_episode_sync sync
                       where sync.anilist_id = (excluded.payload ->> 'anilistId')::integer
-                        and sync.metadata_revision is distinct from ${episodeMetadataRevision}
                         and sync.next_refresh_at is not null
                         and sync.next_refresh_at <= now()
                   )

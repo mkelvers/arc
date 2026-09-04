@@ -10,7 +10,6 @@ export async function needsEpisodeMetadataRefresh(anilistId: number, metadataExt
         db
             .select({
                 metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
-                metadataRevision: animeEpisodeSync.metadataRevision,
             })
             .from(animeEpisodeSync)
             .where(eq(animeEpisodeSync.anilistId, anilistId))

@@ -1,8 +1,6 @@
 import type { AniListAnime } from './anilist-types';
 type EpisodeRefreshReason = 'metadata-source' | 'missing' | 'scheduled';
 
-export const episodeMetadataRevision = 'tmdb-episode-v4';
-
 export function episodeRefreshReason(
     sync: {
         metadataExternalIdId: number | null;
@@ -31,13 +29,11 @@ export function canPreserveEpisodeMetadata(
 
 export function episodeMetadataNeedsRefresh(
     episodes: readonly { image: string | null; title: string; overview: string }[],
-    hasMetadataSource: boolean,
-    metadataRevision: string | null | undefined = episodeMetadataRevision
+    hasMetadataSource: boolean
 ) {
     return (
         hasMetadataSource &&
-        (metadataRevision !== episodeMetadataRevision ||
-            episodes.length === 0 ||
+        (episodes.length === 0 ||
             episodes.some(
                 ({ image, title, overview }) => !image?.trim() || !title.trim() || !overview.trim()
             ))
@@ -48,27 +44,14 @@ export function episodeMetadataRefreshRequired(
     episodes: readonly { image: string | null; title: string; overview: string }[],
     sync: {
         metadataExternalIdId: number | null;
-        metadataRevision: string | null;
     } | null,
     metadataExternalIdId: number
 ) {
     return (
         !sync ||
         sync.metadataExternalIdId !== metadataExternalIdId ||
-        episodeMetadataNeedsRefresh(episodes, true, sync.metadataRevision)
+        episodeMetadataNeedsRefresh(episodes, true)
     );
-}
-
-export function episodeMetadataRevisionAfterSync(
-    episodes: readonly { image: string | null; title: string; overview: string }[],
-    metadataAvailable: boolean,
-    hasMetadataSource: boolean
-) {
-    if (!metadataAvailable || !hasMetadataSource) {
-        return null;
-    }
-
-    return episodeMetadataNeedsRefresh(episodes, true) ? null : episodeMetadataRevision;
 }
 
 const episodeRefreshRetryDelays = [
