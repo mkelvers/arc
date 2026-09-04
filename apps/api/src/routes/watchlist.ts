@@ -12,7 +12,7 @@ import {
     removeFromWatchlist,
     setWatchlistState,
     WatchlistImportError,
-} from '@arc/backend/watchlist';
+} from '@arc/core';
 import { middleware, validate, type ApiEnvironment } from '../http';
 
 const animeIdParamSchema = z.object({ anilistId: AnimeIdSchema });

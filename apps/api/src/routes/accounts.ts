@@ -6,8 +6,8 @@ import {
     InvalidInvitationError,
     InvitationCompletionError,
     registerInvitedAccount,
-} from '@arc/backend';
-import { logger } from '@arc/backend/internal/logger';
+    logger,
+} from '@arc/core';
 import { auth } from '../auth';
 import { validate } from '../http';
 

@@ -1,4 +1,3 @@
-import { createCatalogApplication } from '@arc/core';
-import { createCatalogSource } from '@arc/backend/internal/anime/catalog-source';
+import { createCatalogApplication, createCatalogSource } from '@arc/core';
 
 export const catalogApplication = createCatalogApplication(createCatalogSource());
