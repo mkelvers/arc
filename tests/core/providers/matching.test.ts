@@ -8,7 +8,7 @@ import {
     releaseInventoryEvidence,
     relatedCollectionTitle,
     normalizedProviderTitle,
-} from './match';
+} from '@arc/core';
 
 describe('playback episode identity matching', () => {
     test('normalizes single and double encoded provider HTML entities', () => {

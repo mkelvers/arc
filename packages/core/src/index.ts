@@ -24,6 +24,8 @@ export * from './catalog/storage';
 export * from './catalog/stored-anime-details';
 export * from './contracts';
 export * from './player/skip-times';
+export * from './providers/matching';
+export * from './providers/types';
 export * from './search';
 export * from './season';
 export * from './types';

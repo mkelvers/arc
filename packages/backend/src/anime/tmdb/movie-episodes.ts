@@ -1,4 +1,4 @@
-import type { ProviderEpisode } from '../providers/types';
+import type { ProviderEpisode } from '@arc/core';
 import type { EpisodeMetadata } from './types';
 
 /** Shares release artwork without treating whole-movie text, dates, or runtime as episode facts. */
