@@ -4,7 +4,7 @@ import {
     deduplicateReleaseCalendarEntries,
     parseReleaseCalendarPage,
     type ReleaseCalendarEntry,
-} from './release-calendar-parser';
+} from '@arc/core/catalog/release-calendar-parser';
 
 const pageSize = 50;
 const refreshAfterMs = 15 * 60 * 1_000;
