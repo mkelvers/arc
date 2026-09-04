@@ -12,6 +12,8 @@
         "./catalog/browse-transform": "./src/catalog/browse-transform.ts",
         "./catalog/card": "./src/catalog/card.ts",
         "./catalog/query": "./src/catalog/query.ts",
+        "./catalog/search-index": "./src/catalog/search-index.ts",
+        "./catalog/storage": "./src/catalog/storage.ts",
         "./catalog/details": "./src/catalog/details.ts",
         "./catalog/home-selection": "./src/catalog/home-selection.ts",
         "./catalog/identity": "./src/catalog/identity.ts",
