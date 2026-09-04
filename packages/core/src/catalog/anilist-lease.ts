@@ -3,7 +3,6 @@ import { and, eq, isNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '@arc/db';
 import { anilistRequestState } from '@arc/db/schema';
 import { GraphQLRequestError } from '@arc/shared/graphql-error';
-import { anilistRetryDelay } from './anilist-request-policy';
 
 export async function coordinatedAniListRequest<Value>(
     operation: string,
@@ -93,7 +92,14 @@ export async function coordinatedAniListRequest<Value>(
         return value;
     } catch (cause) {
         const now = new Date();
-        const delay = anilistRetryDelay(cause);
+        const delay =
+            cause instanceof GraphQLRequestError
+                ? cause.status === 429
+                    ? (cause.retryAfterMs ?? 60_000)
+                    : cause.status == null || cause.status >= 500
+                      ? 30_000
+                      : 0
+                : 0;
         await db
             .update(anilistRequestState)
             .set({
