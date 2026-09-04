@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { AnimeArtworkSchema, AnimeIdSchema, getEpisodeRevision } from '@arc/core';
+import { AnimeArtworkSchema, AnimeIdSchema, getEpisodeRevision } from '@arc/core/server';
 import {
     animePageDeferred,
     animePageArtwork,

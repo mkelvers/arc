@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
-import { episodeRevision, reconcileEpisodeMetadata, sourceRevision } from '@arc/core';
+import { reconcileEpisodeMetadata } from '@arc/core';
+import { episodeRevision, sourceRevision } from '@arc/core/revisions';
 import type { AudioMode } from '@arc/core';
 
 describe('episode catalog synchronization', () => {

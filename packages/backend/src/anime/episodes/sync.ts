@@ -11,9 +11,9 @@ import {
 import { logger } from '@arc/backend/internal/logger';
 import { GraphQLRequestError } from '@arc/shared/graphql/error';
 import type { AniListAnime } from '@arc/core';
-import { refreshAnimeRelease } from '@arc/core';
+import { refreshAnimeRelease } from '@arc/core/server';
 import { animeTitles } from '@arc/core';
-import { ensureInternalAnimeId } from '@arc/core';
+import { ensureInternalAnimeId } from '@arc/core/server';
 import {
     anikotoProvider,
     isAniKotoNoMatchError,
@@ -23,7 +23,7 @@ import {
 import { scheduleReleaseTargets } from '../scheduler/targets';
 import { createInventoryNotifications } from '../../notifications';
 import { getEpisodeMetadata, NoConfidentTmdbMappingError, resolveStored } from '@arc/core/tmdb';
-import { sourceRevision, storedEpisodes } from '@arc/core';
+import { sourceRevision, storedEpisodes } from '@arc/core/server';
 import {
     reconcileEpisodeMetadata,
     type EpisodeMetadata as CatalogEpisodeMetadata,

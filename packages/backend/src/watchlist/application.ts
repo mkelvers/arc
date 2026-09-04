@@ -1,8 +1,8 @@
-import { hydrateMissingAnimeReleases, storedReleaseCards } from '@arc/core';
+import { hydrateMissingAnimeReleases, storedReleaseCards } from '@arc/core/server';
 import { animeTitles } from '@arc/core';
 import { enrichAnimeCards } from '../anime/card-enrichment';
 import { parseStoredAnimeDetails } from '@arc/core';
-import { storedAudioModes } from '@arc/core';
+import { storedAudioModes } from '@arc/core/server';
 import { logger } from '@arc/backend/internal/logger';
 import { selectWatchlistEntries, type WatchlistSelection } from './selection';
 import {

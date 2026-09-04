@@ -4,7 +4,7 @@ import { db } from '@arc/shared/db';
 import { animeExternalId, animeExternalIdLink, animeMappingOverride } from '@arc/shared/db/schema';
 import { animeTitles } from '@arc/core';
 import { enqueueEpisodeInventoryBackfill } from '../episodes/sync';
-import { storedAnimeRelease } from '@arc/core';
+import { storedAnimeRelease } from '@arc/core/server';
 import {
     create as createTmdbClient,
     findMapping,

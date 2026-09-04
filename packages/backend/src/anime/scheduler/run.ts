@@ -10,7 +10,7 @@ import {
     maintenanceTask,
     schedulerHeartbeat,
 } from '@arc/shared/db/schema';
-import { refreshAnimeRelease } from '@arc/core';
+import { refreshAnimeRelease } from '@arc/core/server';
 import { GraphQLRequestError } from '@arc/shared/graphql/error';
 import { drainEpisodeTargets } from './episodes';
 import { refreshCatalogSnapshots } from './catalog';

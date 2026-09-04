@@ -5,6 +5,8 @@
     "type": "module",
     "exports": {
         ".": "./src/index.ts",
+        "./revisions": "./src/revisions.ts",
+        "./server": "./src/server.ts",
         "./tmdb": "./src/catalog/tmdb/index.ts",
         "./tmdb/pure": "./src/catalog/tmdb/pure.ts"
     },

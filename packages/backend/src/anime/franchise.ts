@@ -12,7 +12,7 @@ import {
     animeProviderMapping,
     animeRelease,
 } from '@arc/shared/db/schema';
-import { request } from '@arc/core';
+import { request } from '@arc/core/server';
 import { plainText } from '@arc/core';
 import { enrichAnimeCards } from './card-enrichment';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';

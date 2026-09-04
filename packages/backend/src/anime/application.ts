@@ -8,7 +8,7 @@ import {
     getRelatedReleaseTitles,
     getStoredAiringSchedule,
     needsEpisodeMetadataRefresh,
-} from '@arc/core';
+} from '@arc/core/server';
 import { episodesAvailableToWatch } from '@arc/core';
 import {
     discoverEpisodeInventory,
@@ -32,7 +32,7 @@ import {
     selectArtwork,
     setLogoSize,
 } from '@arc/core/tmdb';
-import { getAnimeOverview, getAnimeRelease, storedAnimeRelease } from '@arc/core';
+import { getAnimeOverview, getAnimeRelease, storedAnimeRelease } from '@arc/core/server';
 import { getEpisodePlaybackProgress, getPlaybackProgress } from '../progress/store';
 import { continuationEpisode, resumePosition } from '../progress/continue';
 import { getWatchlistState } from '../watchlist/store';

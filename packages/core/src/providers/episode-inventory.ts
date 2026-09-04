@@ -1,4 +1,3 @@
-import { createHash } from 'node:crypto';
 import { asc, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@arc/shared/db';
@@ -71,28 +70,6 @@ export async function storedEpisodes(anime: AniListAnime) {
 
 export async function getEpisodes(anime: AniListAnime) {
     return episodesAvailableToWatch(await storedEpisodes(anime), anime);
-}
-
-export function sourceRevision(
-    episodes: ReadonlyArray<{
-        id: string;
-        number: number;
-        title: string;
-        audio: AudioMode[];
-    }>
-) {
-    return createHash('sha256')
-        .update(
-            JSON.stringify(
-                episodes.map(({ id, number, title, audio }) => ({
-                    id,
-                    number,
-                    title,
-                    audio: audio.toSorted(),
-                }))
-            )
-        )
-        .digest('hex');
 }
 
 export async function storedAudioModes(anilistIds: number[]) {
