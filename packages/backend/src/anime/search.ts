@@ -4,7 +4,7 @@ import { db } from '@arc/db';
 import { request } from './anilist/client';
 import { animeCard } from '@arc/core/catalog/card';
 import { animeTitles } from '@arc/core/catalog/anilist-text';
-import { createAnimeSearchIndex } from './search-index';
+import { createAnimeSearchIndex } from '@arc/core/catalog/search-index';
 import { enrichAnimeCards } from './card-enrichment';
 import { withAnimeSearchMetadata } from './search-enrichment';
 
