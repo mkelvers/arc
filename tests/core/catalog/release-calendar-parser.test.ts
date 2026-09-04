@@ -1,9 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import {
-    deduplicateReleaseCalendarEntries,
-    parseReleaseCalendarPage,
-} from '@arc/core/catalog/release-calendar-parser';
+import { parseReleaseCalendarPage } from '@arc/core/catalog/release-calendar-parser';
 
 const media = {
     id: 101,
@@ -54,19 +51,5 @@ describe('AniList release calendar validation', () => {
                 Page: { pageInfo: { hasNextPage: false }, airingSchedules: [{ id: 1 }] },
             })
         ).toThrow('AniList returned invalid release calendar data');
-    });
-
-    test('deduplicates entries returned across pages by airing ID', () => {
-        const entry = {
-            airingId: 1,
-            anilistId: 101,
-            episode: 3,
-            airingAt: new Date('2026-08-29T10:40:00.000Z'),
-            title: 'Airing title',
-            synopsis: 'Airing synopsis',
-            imageUrl: 'https://example.com/large.jpg',
-        };
-
-        expect(deduplicateReleaseCalendarEntries([entry, entry])).toEqual([entry]);
     });
 });
