@@ -1,7 +1,7 @@
 import { db } from '@arc/shared/db';
 import { maintenanceTask } from '@arc/shared/db/schema';
 import { ne } from 'drizzle-orm';
-import type { MaintenanceRequest } from '@arc/api-contract/maintenance';
+import type { MaintenanceRequest } from '@arc/core/contracts/maintenance';
 
 export async function enqueueScheduleDiscovery(
     anilistId: number,

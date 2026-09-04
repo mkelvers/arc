@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { WatchlistPageResponseSchema, WatchlistUpdateSchema } from './watchlist';
+import { WatchlistPageResponseSchema, WatchlistUpdateSchema } from '@arc/core/contracts/watchlist';
 
 describe('watchlist contracts', () => {
     test('accepts an optional trimmed title on updates', () => {

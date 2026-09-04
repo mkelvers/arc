@@ -24,6 +24,8 @@
         "./player/skip-times": "./src/player/skip-times.ts",
         "./graphql/error": "./src/graphql/error.ts",
         "./utils/array": "./src/utils/array.ts",
+        "./contracts": "./src/contracts/index.ts",
+        "./contracts/*": "./src/contracts/*.ts",
         "./catalog/details": "./src/catalog/details.ts",
         "./catalog/home-selection": "./src/catalog/home-selection.ts",
         "./catalog/identity": "./src/catalog/identity.ts",

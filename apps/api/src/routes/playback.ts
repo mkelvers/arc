@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 
-import { PlaybackProgressSchema, SegmentRequestSchema } from '@arc/api-contract/anime';
+import { PlaybackProgressSchema, SegmentRequestSchema } from '@arc/core/contracts/anime';
 import { validSkipInterval } from '@arc/backend/internal/anime/aniskip';
 import { saveEpisodeSegment } from '@arc/backend/internal/anime/skip-times';
 import { parsePlaybackProgress } from '@arc/backend/internal/progress/input';
