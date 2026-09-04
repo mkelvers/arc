@@ -1,6 +1,7 @@
 import { audioAvailabilityLabel, episodeAudioAvailabilityLabel } from '@arc/shared/audio';
 import type { AudioMode } from '@arc/shared/audio';
 import { currentAnimeSeason } from '@arc/shared/season';
+import { withMovieBackdrop } from '@arc/core/catalog/movie-backdrop';
 import { getHomepage } from './anilist/home';
 import { enrichAnimeCards } from './card-enrichment';
 import { toAnimeDetails } from './details';
@@ -20,7 +21,6 @@ import {
 import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
-import { withMovieBackdrop } from './movie-backdrop';
 import {
     isAniKotoNoMatchError,
     isAniKotoTransientError,
