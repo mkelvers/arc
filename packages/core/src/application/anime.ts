@@ -9,7 +9,6 @@ import {
 } from '../catalog/episodes';
 import { getEpisodes } from '../providers/episode-inventory';
 import { getAnimeOverview, getAnimeRelease, storedAnimeRelease } from '../catalog/anilist-release';
-import { watchEpisodeNumber } from '../catalog/episode-route';
 import { episodesAvailableToWatch } from '../providers/inventory';
 import {
     discoverEpisodeInventory,
@@ -202,8 +201,11 @@ async function watchEpisode(id: number, episodeId: string) {
     let canonicalHref: string | null = null;
 
     if (currentIndex < 0) {
-        const number = watchEpisodeNumber(episodeId);
-        if (number !== null) {
+        const normalizedEpisodeId = episodeId.trim();
+        const number = /^\d+(?:\.\d+)?$/.test(normalizedEpisodeId)
+            ? Number(normalizedEpisodeId)
+            : null;
+        if (number !== null && Number.isFinite(number)) {
             const matching = episodes.flatMap((episode, index) =>
                 episode.number === number ? [index] : []
             );

@@ -1,6 +1,5 @@
 import { episodeAudioAvailabilityLabel, type AudioMode } from '../../audio';
 import type { FranchiseOrder } from '../../types';
-import { watchEpisodeHref } from '../episode-route';
 
 export type FranchisePlaybackEpisode = {
     anilistId: number;
@@ -26,7 +25,9 @@ export function withFranchisePlayback(
         return {
             ...entry,
             audioLabel: episodeAudioAvailabilityLabel(available),
-            link: first ? watchEpisodeHref(entry.anilistId, first.number) : entry.href,
+            link: first
+                ? `/anime/${entry.anilistId}/watch/${encodeURIComponent(String(first.number))}`
+                : entry.href,
         };
     });
 }

@@ -20,7 +20,6 @@ export * from './catalog/details';
 export * from './catalog/episode-sync';
 export * from './catalog/date';
 export * from './catalog/discovery';
-export * from './catalog/episode-route';
 export * from './catalog/episode-policy';
 export * from './catalog/episode-release';
 export * from './catalog/episode-reconciliation';
