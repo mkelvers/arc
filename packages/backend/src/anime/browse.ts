@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 
 import type { BrowseFilters } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
@@ -9,7 +9,6 @@ import type { BrowseSourceTaxonomy } from '@arc/core/catalog/browse-transform';
 import {
     animeCatalog,
     animeCatalogRefresh,
-    animeCatalogTaxonomy,
     animeEpisode,
     animeEpisodeTarget,
     animeRelease,
@@ -24,97 +23,11 @@ import {
     catalogTaxonomy,
     refreshCatalogPage as persistCatalogPage,
 } from '@arc/core/catalog/storage';
-import { createAnimeSearchIndex } from './search-index';
 
 type CatalogPageSnapshot = {
     animeIds: number[];
     hasNextPage: boolean;
 };
-
-export async function refreshCatalogPage(
-    queryKey: string,
-    anime: BrowseCatalogEntry[],
-    hasNextPage: boolean,
-    fetchedAt = new Date()
-) {
-    const pageSnapshot = {
-        animeIds: anime.map(({ anilistId }) => anilistId),
-        hasNextPage,
-    } satisfies CatalogPageSnapshot;
-
-    await db.transaction(async (tx) => {
-        if (anime.length) {
-            await tx
-                .insert(animeCatalog)
-                .values(
-                    anime.map((entry) => ({
-                        ...entry,
-                        discoveryRevision: 2,
-                        sourceFetchedAt: fetchedAt,
-                    }))
-                )
-                .onConflictDoUpdate({
-                    target: animeCatalog.anilistId,
-                    set: {
-                        title: sql.raw(`excluded."${animeCatalog.title.name}"`),
-                        searchText: sql.raw(`excluded."${animeCatalog.searchText.name}"`),
-                        imageUrl: sql.raw(`excluded."${animeCatalog.imageUrl.name}"`),
-                        synopsis: sql.raw(`excluded."${animeCatalog.synopsis.name}"`),
-                        genres: sql.raw(`excluded."${animeCatalog.genres.name}"`),
-                        tags: sql.raw(`excluded."${animeCatalog.tags.name}"`),
-                        format: sql.raw(`excluded."${animeCatalog.format.name}"`),
-                        status: sql.raw(`excluded."${animeCatalog.status.name}"`),
-                        source: sql.raw(`excluded."${animeCatalog.source.name}"`),
-                        season: sql.raw(`excluded."${animeCatalog.season.name}"`),
-                        seasonYear: sql.raw(`excluded."${animeCatalog.seasonYear.name}"`),
-                        countryOfOrigin: sql.raw(`excluded."${animeCatalog.countryOfOrigin.name}"`),
-                        isAdult: sql.raw(`excluded."${animeCatalog.isAdult.name}"`),
-                        popularity: sql.raw(`excluded."${animeCatalog.popularity.name}"`),
-                        duration: sql.raw(`excluded."${animeCatalog.duration.name}"`),
-                        discoveryRevision: sql.raw(
-                            `excluded."${animeCatalog.discoveryRevision.name}"`
-                        ),
-                        averageScore: sql.raw(`excluded."${animeCatalog.averageScore.name}"`),
-                        sourceFetchedAt: fetchedAt,
-                        updatedAt: fetchedAt,
-                    },
-                });
-
-            await createAnimeSearchIndex(tx).store(
-                anime.map((entry) => ({
-                    id: entry.anilistId,
-                    href: `/anime/${entry.anilistId}`,
-                    link: `/anime/${entry.anilistId}`,
-                    title: entry.title,
-                    titles: entry.searchText.split('\n'),
-                    image: entry.imageUrl,
-                    audioLabel: '',
-                    score: entry.averageScore ?? 0,
-                    genres: entry.genres,
-                    synopsis: entry.synopsis,
-                    format: entry.format,
-                    popularity: entry.popularity ?? 0,
-                    backdrop: null,
-                    artworkGroup: null,
-                    relatedIds: [],
-                }))
-            );
-        }
-
-        await tx
-            .insert(animeCatalogRefresh)
-            .values({ queryKey, ...pageSnapshot, fetchedAt })
-            .onConflictDoUpdate({
-                target: animeCatalogRefresh.queryKey,
-                set: {
-                    ...pageSnapshot,
-                    fetchedAt,
-                },
-            });
-    });
-
-    return pageSnapshot;
-}
 
 async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
     const queryKey = catalogSnapshotKey(filters, page);
@@ -136,49 +49,6 @@ async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
     return {
         ...(await persistCatalogPage(queryKey, result.anime, result.hasNextPage)),
         stale: false,
-    };
-}
-
-export async function browseTaxonomy() {
-    const [stored] = await db
-        .select({
-            genres: animeCatalogTaxonomy.genres,
-            tags: animeCatalogTaxonomy.tags,
-            formats: animeCatalogTaxonomy.formats,
-            statuses: animeCatalogTaxonomy.statuses,
-            sources: animeCatalogTaxonomy.sources,
-            seasons: animeCatalogTaxonomy.seasons,
-            fetchedAt: animeCatalogTaxonomy.fetchedAt,
-        })
-        .from(animeCatalogTaxonomy)
-        .where(eq(animeCatalogTaxonomy.provider, 'anilist'))
-        .limit(1);
-
-    if (stored) {
-        return stored;
-    }
-
-    const rows = await db
-        .select({
-            genres: animeCatalog.genres,
-            tags: animeCatalog.tags,
-            format: animeCatalog.format,
-            status: animeCatalog.status,
-            source: animeCatalog.source,
-            season: animeCatalog.season,
-        })
-        .from(animeCatalog);
-    const values = (entries: Array<string | null>) =>
-        [...new Set(entries.flatMap((value) => (value ? [value] : [])))].sort((left, right) =>
-            left.localeCompare(right, 'en')
-        );
-    return {
-        genres: [...new Set(rows.flatMap(({ genres }) => genres))].sort(),
-        tags: [...new Set(rows.flatMap(({ tags }) => tags))].sort(),
-        formats: values(rows.map(({ format }) => format)),
-        statuses: values(rows.map(({ status }) => status)),
-        sources: values(rows.map(({ source }) => source)),
-        seasons: values(rows.map(({ season }) => season)),
     };
 }
 
