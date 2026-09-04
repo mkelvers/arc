@@ -2,8 +2,8 @@ import { asc, and, eq, gte, lt } from 'drizzle-orm';
 
 import { db } from '@arc/db';
 import { animeAiringSchedule, schedulerHeartbeat } from '@arc/db/schema';
+import { releaseCalendarWindow } from '@arc/core/catalog/release-calendar-window';
 import { discoverReleaseCalendar } from './anilist/release-calendar';
-import { releaseCalendarWindow } from './release-calendar-window';
 
 export async function refreshReleaseCalendar(now = new Date()) {
     const { from, to } = releaseCalendarWindow(now);

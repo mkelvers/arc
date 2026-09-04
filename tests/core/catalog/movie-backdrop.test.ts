@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { AnimeEpisode } from '@arc/shared/types';
-import { withMovieBackdrop } from './movie-backdrop';
+import { withMovieBackdrop } from '@arc/core/catalog/movie-backdrop';
 
 const episode: AnimeEpisode = {
     id: 'movie',
