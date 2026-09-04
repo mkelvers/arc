@@ -15,6 +15,7 @@
         "./catalog/refresh": "./src/catalog/refresh.ts",
         "./catalog/search-index": "./src/catalog/search-index.ts",
         "./catalog/storage": "./src/catalog/storage.ts",
+        "./catalog/snapshot-policy": "./src/catalog/snapshot-policy.ts",
         "./catalog/details": "./src/catalog/details.ts",
         "./catalog/home-selection": "./src/catalog/home-selection.ts",
         "./catalog/identity": "./src/catalog/identity.ts",
