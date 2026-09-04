@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { AnimeEpisode } from '@arc/core/types';
+import type { AnimeEpisode } from '@arc/core';
 import { continuationEpisode, resumePosition, selectPlaybackProgress } from './continue';
 
 const episodes: AnimeEpisode[] = [

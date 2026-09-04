@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { z } from 'zod';
 
-import { WatchPlaybackSchema } from '@arc/core/contracts/anime';
+import { WatchPlaybackSchema } from '@arc/core';
 
 const playbackInputSchema = z.strictObject({
     error: z.boolean(),

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { BrowseCatalogEntry } from '@arc/core/catalog/browse-types';
-import { popularCatalogPages } from '@arc/core/catalog/browse-pagination';
+import type { BrowseCatalogEntry } from '@arc/core';
+import { popularCatalogPages } from '@arc/core';
 
 function entry(anilistId: number, popularity: number, title = `Anime ${anilistId}`) {
     return {

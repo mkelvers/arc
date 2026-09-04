@@ -6,8 +6,8 @@ import {
     type AnimeSeason,
     type AnimeSeasonSelection,
     type AnimeSeasonStartYears,
-} from '@arc/core/season';
-import { AnimeCardPageSchema } from '@arc/core/types';
+} from '@arc/core';
+import { AnimeCardPageSchema } from '@arc/core';
 import { and, asc, eq } from 'drizzle-orm';
 
 import { db } from '@arc/shared/db';

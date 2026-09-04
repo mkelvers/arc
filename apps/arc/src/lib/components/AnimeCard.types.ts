@@ -1,4 +1,4 @@
-import type { AnimeCard } from '@arc/core/types';
+import type { AnimeCard } from '@arc/core';
 
 export type AnimeCardItem = AnimeCard & {
     backdrop?: string | null;

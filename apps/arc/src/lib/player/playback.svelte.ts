@@ -1,5 +1,5 @@
 import { goto } from '$app/navigation';
-import type { AudioMode } from '@arc/core/audio';
+import type { AudioMode } from '@arc/core';
 import type HlsType from 'hls.js';
 import { tick } from 'svelte';
 import { Captions } from './captions.svelte';
