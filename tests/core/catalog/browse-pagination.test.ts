@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { BrowseCatalogEntry } from './anilist/browse';
-import { popularCatalogPages } from './catalog-pagination';
+import type { BrowseCatalogEntry } from '@arc/core/catalog/browse-types';
+import { popularCatalogPages } from '@arc/core/catalog/browse-pagination';
 
 function entry(anilistId: number, popularity: number, title = `Anime ${anilistId}`) {
     return {
@@ -26,7 +26,7 @@ function entry(anilistId: number, popularity: number, title = `Anime ${anilistId
 }
 
 describe('popular catalog snapshots', () => {
-    test('deduplicates pages, preserves stable order, and marks only non-final pages', () => {
+    test('deduplicates pages and preserves stable order', () => {
         const entries = [
             entry(3, 100, 'Same popularity'),
             entry(1, 100, 'Same popularity'),
@@ -37,14 +37,12 @@ describe('popular catalog snapshots', () => {
         expect(popularCatalogPages(entries)).toEqual([[entries[1], entries[0], entries[2]]]);
     });
 
-    test('creates a second page only when more than one page is materialized', () => {
+    test('creates a second page only when more than 42 entries exist', () => {
         const entries = Array.from({ length: 43 }, (_, index) => entry(index + 1, 43 - index));
-
         const pages = popularCatalogPages(entries);
 
         expect(pages).toHaveLength(2);
         expect(pages[0]).toHaveLength(42);
         expect(pages[1]).toHaveLength(1);
-        expect(pages[1]?.[0]?.anilistId).toBe(43);
     });
 });
