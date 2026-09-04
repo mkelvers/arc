@@ -14,7 +14,7 @@ import {
     episodeRefreshReason,
     nextRefreshAt,
     providerEpisodeCount,
-} from './policy';
+} from '@arc/core';
 import type { AniListAnime } from '@arc/core';
 
 describe('episode refresh policy', () => {
