@@ -1,4 +1,4 @@
-import type { BrowseFilters } from '@arc/shared/browse';
+import type { BrowseFilters } from '@arc/core/catalog/browse-filters';
 import {
     BrowseAnimePageDocument,
     BrowseAnimeTaxonomyDocument,
@@ -7,7 +7,7 @@ import {
     type MediaSort,
     type MediaSource,
     type MediaStatus,
-} from '@arc/shared/anilist/generated/graphql';
+} from '@arc/shared/graphql/generated/graphql';
 import { GraphQLRequestError } from '#graphql';
 import { request } from './client';
 import {

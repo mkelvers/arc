@@ -3,7 +3,7 @@ import type {
     MediaSeason,
     MediaSource,
     MediaStatus,
-} from '@arc/shared/anilist/generated/graphql';
+} from '@arc/shared/graphql/generated/graphql';
 
 export interface BrowseCatalogEntry {
     anilistId: number;

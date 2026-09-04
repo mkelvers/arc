@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull, lte, or } from 'drizzle-orm';
 
-import { db } from '@arc/db';
-import { animeEpisodeTarget } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { animeEpisodeTarget } from '@arc/shared/db/schema';
 import { refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
 import { confirmScheduledEpisode } from '../episodes/sync';
 import { nextEpisodeAttemptAt } from './policy';

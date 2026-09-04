@@ -1,5 +1,5 @@
-import type { AnimeQuery } from '@arc/shared/anilist/generated/graphql';
-import { present } from '@arc/shared/utils/array';
+import type { AnimeQuery } from '@arc/shared/graphql/generated/graphql';
+import { present } from '@arc/core/utils/array';
 
 type AniListAnimeDetailsMedia = Pick<
     NonNullable<AnimeQuery['Media']>,

@@ -1,8 +1,8 @@
 import { and, asc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 
-import { audioAvailabilityLabel } from '@arc/shared/audio';
-import type { ContinueWatchingCard } from '@arc/shared/types';
-import { db } from '@arc/db';
+import { audioAvailabilityLabel } from '@arc/core/audio';
+import type { ContinueWatchingCard } from '@arc/core/types';
+import { db } from '@arc/shared/db';
 import {
     anime as animeTable,
     animeEpisode,
@@ -10,7 +10,7 @@ import {
     animeExternalIdLink,
     animeRelease,
     playbackProgress,
-} from '@arc/db/schema';
+} from '@arc/shared/db/schema';
 import { toAnimeDetails } from '@arc/core/catalog/details';
 import { parseStoredAnimeDetails } from '../anime/details';
 import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core/catalog/identity';

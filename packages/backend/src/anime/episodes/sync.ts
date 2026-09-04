@@ -1,13 +1,13 @@
 import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 
-import { db } from '@arc/db';
+import { db } from '@arc/shared/db';
 import {
     animeEpisode,
     animeEpisodeSync,
     animeEpisodeTarget,
     maintenanceTask,
     playbackProgress,
-} from '@arc/db/schema';
+} from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { GraphQLRequestError } from '../../graphql';
 import type { AniListAnime } from '../anilist/types';

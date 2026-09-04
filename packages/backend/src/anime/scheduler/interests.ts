@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNotNull } from 'drizzle-orm';
 
-import { db } from '@arc/db';
+import { db } from '@arc/shared/db';
 import {
     anime,
     animeEpisodeSync,
@@ -10,7 +10,7 @@ import {
     animeRelease,
     animeReleaseInterest,
     watchlist,
-} from '@arc/db/schema';
+} from '@arc/shared/db/schema';
 import { ensureEpisodeInventoryBackfill } from '../episodes/sync';
 
 export async function reconcileAnimeInterests() {

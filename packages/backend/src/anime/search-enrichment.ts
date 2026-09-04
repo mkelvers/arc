@@ -1,9 +1,9 @@
 import { inArray } from 'drizzle-orm';
 
-import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
-import { inferSearchArtwork, type AnimeSearchResult, type SearchArtwork } from '@arc/shared/search';
-import { db } from '@arc/db';
-import { animeEpisode } from '@arc/db/schema';
+import { audioAvailabilityLabel, type AudioMode } from '@arc/core/audio';
+import { inferSearchArtwork, type AnimeSearchResult, type SearchArtwork } from '@arc/core/search';
+import { db } from '@arc/shared/db';
+import { animeEpisode } from '@arc/shared/db/schema';
 import { imageUrl } from './tmdb/client';
 import { getStoredBackdropCandidates } from './tmdb/media';
 import { watchEpisodeHref } from './episodes/route';

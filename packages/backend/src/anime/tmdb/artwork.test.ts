@@ -6,7 +6,7 @@ import {
     animeArtworkPreference,
     animeEpisode,
     animeRelease,
-} from '@arc/db/schema';
+} from '@arc/shared/db/schema';
 import type { AniListAnime } from '../anilist/types';
 import type { StoredMapping } from './types';
 
@@ -172,7 +172,7 @@ const db: TestDb = {
     }),
 };
 
-mock.module('@arc/db', () => ({
+mock.module('@arc/shared/db', () => ({
     db,
     excluded: () => undefined,
 }));

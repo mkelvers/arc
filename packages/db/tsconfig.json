@@ -1,9 +1,0 @@
-{
-    "compilerOptions": {
-        "strict": true,
-        "types": ["node"],
-        "moduleResolution": "bundler",
-        "module": "preserve",
-        "skipLibCheck": true
-    }
-}

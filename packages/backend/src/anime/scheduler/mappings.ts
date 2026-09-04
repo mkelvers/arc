@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 
-import { db } from '@arc/db';
-import { animeExternalId, animeExternalIdLink, animeMappingOverride } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { animeExternalId, animeExternalIdLink, animeMappingOverride } from '@arc/shared/db/schema';
 import { animeTitles } from '@arc/core/catalog/anilist-text';
 import { enqueueEpisodeInventoryBackfill } from '../episodes/sync';
 import { storedAnimeRelease } from '../anilist/releases';

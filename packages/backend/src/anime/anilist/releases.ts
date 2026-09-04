@@ -7,10 +7,10 @@ import {
     AnimeDocument,
     AnimeScheduleDocument,
     WatchlistAnimeDocument,
-} from '@arc/shared/anilist/generated/graphql';
-import type { AnimeCard } from '@arc/shared/types';
-import { db } from '@arc/db';
-import { animeEpisodeSync, animeRelation, animeRelease, animeReleaseRequest } from '@arc/db/schema';
+} from '@arc/shared/graphql/generated/graphql';
+import type { AnimeCard } from '@arc/core/types';
+import { db } from '@arc/shared/db';
+import { animeEpisodeSync, animeRelation, animeRelease, animeReleaseRequest } from '@arc/shared/db/schema';
 import { graphql } from '../../graphql';
 import { ensureInternalAnimeId } from '@arc/core/catalog/identity';
 import { animeTitles, plainText } from '@arc/core/catalog/anilist-text';

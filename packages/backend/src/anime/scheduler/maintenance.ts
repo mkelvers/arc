@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
 import { and, asc, desc, eq, isNull, lte, ne, or, sql } from 'drizzle-orm';
-import { db } from '@arc/db';
-import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/shared/db/schema';
 import { refreshAnimeRelease, refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
 import {
     discoverEpisodeInventory,

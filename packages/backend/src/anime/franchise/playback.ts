@@ -1,5 +1,5 @@
-import { episodeAudioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
-import type { FranchiseOrder } from '@arc/shared/types';
+import { episodeAudioAvailabilityLabel, type AudioMode } from '@arc/core/audio';
+import type { FranchiseOrder } from '@arc/core/types';
 import { watchEpisodeHref } from '../episodes/route';
 
 export type FranchisePlaybackEpisode = {

@@ -1,6 +1,6 @@
-import { audioAvailabilityLabel, episodeAudioAvailabilityLabel } from '@arc/shared/audio';
-import type { AudioMode } from '@arc/shared/audio';
-import { currentAnimeSeason } from '@arc/shared/season';
+import { audioAvailabilityLabel, episodeAudioAvailabilityLabel } from '@arc/core/audio';
+import type { AudioMode } from '@arc/core/audio';
+import { currentAnimeSeason } from '@arc/core/season';
 import { withMovieBackdrop } from '@arc/core/catalog/movie-backdrop';
 import { getHomepage } from './anilist/home';
 import { enrichAnimeCards } from './card-enrichment';

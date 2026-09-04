@@ -1,9 +1,9 @@
 import { and, arrayContains, asc, desc, eq, inArray, sql } from 'drizzle-orm';
-import type { BrowseFilters } from '@arc/shared/browse';
-import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
-import type { AnimeCard } from '@arc/shared/types';
-import { db } from '@arc/db';
-import { animeCatalog, animeEpisode } from '@arc/db/schema';
+import type { BrowseFilters } from '@arc/core/catalog/browse-filters';
+import { audioAvailabilityLabel, type AudioMode } from '@arc/core/audio';
+import type { AnimeCard } from '@arc/core/types';
+import { db } from '@arc/shared/db';
+import { animeCatalog, animeEpisode } from '@arc/shared/db/schema';
 
 function hasAudio(mode: AudioMode) {
     return sql<boolean>`exists (

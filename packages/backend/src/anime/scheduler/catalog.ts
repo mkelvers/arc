@@ -1,7 +1,7 @@
-import { currentAnimeSeason } from '@arc/shared/season';
+import { currentAnimeSeason } from '@arc/core/season';
 import { eq, isNotNull } from 'drizzle-orm';
-import { db } from '@arc/db';
-import { animeFranchise, animeRelease } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { animeFranchise, animeRelease } from '@arc/shared/db/schema';
 import { getAnimeRelease } from '../anilist/releases';
 import { getBrowseTaxonomy } from '../anilist/browse';
 import { refreshHomeHeroCandidates } from '../anilist/hero';

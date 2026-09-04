@@ -11,7 +11,7 @@
     },
     "dependencies": {
         "@arc/backend": "workspace:*",
-        "@arc/db": "workspace:*"
+        "@arc/shared": "workspace:*"
     },
     "devDependencies": {
         "@types/bun": "^1.4.0",

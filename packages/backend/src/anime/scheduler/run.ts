@@ -2,14 +2,14 @@ import { randomUUID } from 'node:crypto';
 
 import { and, count, eq, gt, isNotNull, isNull, lte, or } from 'drizzle-orm';
 
-import { db } from '@arc/db';
+import { db } from '@arc/shared/db';
 import {
     animeEpisodeTarget,
     animeReleaseRequest,
     anilistRequestState,
     maintenanceTask,
     schedulerHeartbeat,
-} from '@arc/db/schema';
+} from '@arc/shared/db/schema';
 import { refreshAnimeRelease } from '../anilist/releases';
 import { GraphQLRequestError } from '../../graphql';
 import { drainEpisodeTargets } from './episodes';

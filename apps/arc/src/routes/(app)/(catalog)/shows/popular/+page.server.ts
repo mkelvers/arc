@@ -2,7 +2,7 @@ import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
 import { CatalogPageSchema } from '@arc/api-contract/anime';
-import { parseBrowseFilters } from '@arc/shared/browse';
+import { parseBrowseFilters } from '@arc/core/catalog/browse-filters';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ request, url, fetch }) => {

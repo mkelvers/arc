@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 
-import { db } from '@arc/db';
-import { animeEpisode, animeEpisodeSync, animeEpisodeTarget, animeRelease } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { animeEpisode, animeEpisodeSync, animeEpisodeTarget, animeRelease } from '@arc/shared/db/schema';
 import { episodeInventoryCoversTarget } from '../episodes/policy';
 import { firstEpisodeAttemptAt } from './policy';
 import { enqueueScheduleDiscovery } from './schedule-repair';

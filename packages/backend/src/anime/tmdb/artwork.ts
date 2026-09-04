@@ -1,8 +1,8 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { db } from '@arc/db';
-import { animeArtwork, animeArtworkPreference, animeArtworkSync } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { animeArtwork, animeArtworkPreference, animeArtworkSync } from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';

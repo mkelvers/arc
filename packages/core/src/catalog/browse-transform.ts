@@ -2,8 +2,8 @@ import type {
     BrowseAnimePageQuery,
     BrowseAnimeTaxonomyQuery,
     MediaFormat,
-} from '@arc/shared/anilist/generated/graphql';
-import { present } from '@arc/shared/utils/array';
+} from '@arc/shared/graphql/generated/graphql';
+import { present } from '@arc/core/utils/array';
 import { animeTitles, mediaTitle, plainText } from './anilist-text';
 import { isDiscoverableAnime } from './discovery';
 import type { BrowseCatalogEntry } from './browse-types';
