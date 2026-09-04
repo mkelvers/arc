@@ -111,6 +111,7 @@
       },
       "devDependencies": {
         "@types/bun": "^1.4.0",
+        "@types/node": "catalog:",
         "typescript": "~6.0.3",
       },
     },
