@@ -121,6 +121,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@arc/db": "workspace:*",
+        "@arc/shared": "workspace:*",
         "drizzle-orm": "catalog:",
       },
       "devDependencies": {
@@ -151,6 +152,16 @@
       "devDependencies": {
         "@types/bun": "^1.4.0",
         "typescript": "~6.0.3",
+      },
+    },
+    "tests": {
+      "name": "@arc/tests",
+      "version": "0.0.1",
+      "dependencies": {
+        "@arc/core": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.4.0",
       },
     },
   },
@@ -184,6 +195,8 @@
     "@arc/scheduler": ["@arc/scheduler@workspace:apps/scheduler"],
 
     "@arc/shared": ["@arc/shared@workspace:packages/shared"],
+
+    "@arc/tests": ["@arc/tests@workspace:tests"],
 
     "@ardatan/relay-compiler": ["@ardatan/relay-compiler@13.0.2", "", { "dependencies": { "@babel/runtime": "^8.0.0", "immutable": "^5.1.9", "invariant": "^2.2.4" }, "peerDependencies": { "graphql": "*" } }, "sha512-VFpv9UP820SiwDUPYtq7PmD3jifzZlevkQ26bhbSzFeruSTys0eHzQCZyKg+IhgmZzwPI9AFjPe26ABNjGeIKg=="],
 
