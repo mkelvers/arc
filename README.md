@@ -11,10 +11,9 @@ apps/arc        # the web frontend (sveltekit)
 apps/api        # the http api (hono)
 apps/scheduler  # background episode sync
 packages/
-  backend      # business logic
-  db           # drizzle migrations + queries
-  shared       # shared types and utilities
-  api-contract # openapi / graphql schema
+  core        # catalog, application contracts, and core behavior
+  backend     # temporary legacy implementation during migration
+  shared      # database and GraphQL infrastructure
 ```
 
 ## run it
