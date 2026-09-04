@@ -14,6 +14,7 @@ import { GraphQLRequestError } from '#graphql';
 import { request } from './client';
 import { mediaTitle, plainText, present } from './text';
 import { isDiscoverableAnime } from '@arc/core/catalog/discovery';
+import type { BrowseCatalogEntry } from '@arc/core/catalog/browse-types';
 
 export interface AniListBrowseFilters extends Omit<
     BrowseFilters,
@@ -32,26 +33,6 @@ export interface BrowseSourceTaxonomy {
     statuses: string[];
     sources: string[];
     seasons: string[];
-}
-
-export interface BrowseCatalogEntry {
-    anilistId: number;
-    title: string;
-    searchText: string;
-    imageUrl: string;
-    synopsis: string;
-    genres: string[];
-    tags: string[];
-    format: MediaFormat | null;
-    status: MediaStatus | null;
-    source: MediaSource | null;
-    season: MediaSeason | null;
-    seasonYear: number | null;
-    countryOfOrigin: string | null;
-    isAdult: boolean;
-    popularity: number | null;
-    duration: number | null;
-    averageScore: number | null;
 }
 
 function browseEntries(
@@ -114,8 +95,7 @@ export async function getBrowsePage(
     forceRefresh = false
 ) {
     const sort: MediaSort = filters.sort === 'score' ? 'SCORE' : 'POPULARITY';
-    const formats: readonly MediaFormat[] =
-        filters.format === 'MOVIE' ? ['MOVIE'] : ['TV', 'ONA'];
+    const formats: readonly MediaFormat[] = filters.format === 'MOVIE' ? ['MOVIE'] : ['TV', 'ONA'];
     const response = await request(
         BrowseAnimePageDocument,
         {
