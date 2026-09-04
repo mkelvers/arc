@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 
 import { TargetEpisodeUnavailableError } from '@arc/backend/internal/anime/episodes/sync';
 import { isAniKotoTransientError } from '@arc/backend/internal/anime/providers/anikoto';
-import { GraphQLRequestError } from '@arc/backend/internal/graphql';
+import { GraphQLRequestError } from '@arc/shared/graphql/error';
 import { logger } from '@arc/backend/internal/logger';
 import { auth } from './auth';
 import { origin } from './http';
