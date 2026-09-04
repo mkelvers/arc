@@ -7,7 +7,7 @@ import { drizzle } from 'drizzle-orm/postgres-js/driver';
 import postgres from 'postgres';
 
 import * as schema from '@arc/db/schema';
-import { createAnimeSearchIndex } from './search-index';
+import { createAnimeSearchIndex } from '@arc/core/catalog/search-index';
 
 describe('PostgreSQL anime search index', () => {
     test.skip('finds a title when the query contains a spelling mistake', async () => {
