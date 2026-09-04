@@ -1,4 +1,4 @@
-import { ReleaseCalendarPageDocument } from '@arc/shared/anilist/generated/graphql';
+import { ReleaseCalendarPageDocument } from '@arc/shared/graphql/generated/graphql';
 import { request } from './client';
 import { parseReleaseCalendarPage } from '@arc/core/catalog/release-calendar-parser';
 import type { ReleaseCalendarEntry } from '@arc/core/catalog/release-calendar-parser';

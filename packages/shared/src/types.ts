@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import type { AudioMode } from './audio';
-import type { MediaFormat, MediaRelation, MediaStatus } from './anilist/generated/graphql';
+import type { MediaFormat, MediaRelation, MediaStatus } from './graphql/generated/graphql';
 
 export const AnimeCardSchema = z.object({
     id: z.number().int().positive(),

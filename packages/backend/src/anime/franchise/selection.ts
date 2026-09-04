@@ -2,7 +2,7 @@ import type {
     MediaFormat,
     MediaRelation,
     MediaStatus,
-} from '@arc/shared/anilist/generated/graphql';
+} from '@arc/shared/graphql/generated/graphql';
 
 export type FranchiseSelectionEntry = {
     malId: number;

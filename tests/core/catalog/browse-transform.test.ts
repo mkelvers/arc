@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import type {
     BrowseAnimePageQuery,
     BrowseAnimeTaxonomyQuery,
-} from '@arc/shared/anilist/generated/graphql';
+} from '@arc/shared/graphql/generated/graphql';
 import {
     transformBrowseEntries,
     transformBrowseTaxonomy,

@@ -1,4 +1,4 @@
-import type { AnimeQuery } from '@arc/shared/anilist/generated/graphql';
+import type { AnimeQuery } from '@arc/shared/graphql/generated/graphql';
 import { present } from '@arc/shared/utils/array';
 
 type AniListAnimeDetailsMedia = Pick<

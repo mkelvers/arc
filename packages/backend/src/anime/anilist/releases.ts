@@ -7,7 +7,7 @@ import {
     AnimeDocument,
     AnimeScheduleDocument,
     WatchlistAnimeDocument,
-} from '@arc/shared/anilist/generated/graphql';
+} from '@arc/shared/graphql/generated/graphql';
 import type { AnimeCard } from '@arc/shared/types';
 import { db } from '@arc/db';
 import { animeEpisodeSync, animeRelation, animeRelease, animeReleaseRequest } from '@arc/db/schema';

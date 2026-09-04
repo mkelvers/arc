@@ -1,5 +1,5 @@
 import { rankAnimeSearch } from '@arc/shared/search';
-import { SearchAnimePageDocument } from '@arc/shared/anilist/generated/graphql';
+import { SearchAnimePageDocument } from '@arc/shared/graphql/generated/graphql';
 import { db } from '@arc/db';
 import { request } from './anilist/client';
 import { animeCard } from '@arc/core/catalog/card';

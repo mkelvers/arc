@@ -4,7 +4,7 @@ import type { FranchiseOrder } from '@arc/shared/types';
 import {
     FranchiseMediaDocument,
     type FranchiseMediaQuery,
-} from '@arc/shared/anilist/generated/graphql';
+} from '@arc/shared/graphql/generated/graphql';
 import { db, type DatabaseTransaction } from '@arc/db';
 import { animeEpisode, animeFranchise, animeProviderMapping, animeRelease } from '@arc/db/schema';
 import { request } from './anilist/client';
