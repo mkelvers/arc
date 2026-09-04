@@ -10,7 +10,6 @@ import {
 } from '@arc/shared/search';
 import type * as schema from '@arc/db/schema';
 import { animeSearchIndex as animeSearchIndexTable } from '@arc/db/schema';
-import { excluded } from '@arc/db/sql';
 
 type SearchDatabase = Pick<PostgresJsDatabase<typeof schema>, 'insert' | 'select'>;
 
@@ -65,8 +64,8 @@ export function createAnimeSearchIndex(database: SearchDatabase) {
                 .onConflictDoUpdate({
                     target: animeSearchIndexTable.anilistId,
                     set: {
-                        searchText: excluded(animeSearchIndexTable.searchText),
-                        data: excluded(animeSearchIndexTable.data),
+                        searchText: sql.raw(`excluded."${animeSearchIndexTable.searchText.name}"`),
+                        data: sql.raw(`excluded."${animeSearchIndexTable.data.name}"`),
                         updatedAt: new Date(),
                     },
                 });

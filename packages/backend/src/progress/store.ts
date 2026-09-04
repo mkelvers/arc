@@ -2,7 +2,7 @@ import { and, asc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 
 import { audioAvailabilityLabel } from '@arc/shared/audio';
 import type { ContinueWatchingCard } from '@arc/shared/types';
-import { db, excluded } from '@arc/db';
+import { db } from '@arc/db';
 import {
     anime as animeTable,
     animeEpisode,
@@ -71,7 +71,10 @@ export async function savePlaybackProgress(userId: string, input: PlaybackProgre
                 dismissedAt: null,
             },
             setWhere: and(
-                lt(playbackProgress.eventAt, excluded(playbackProgress.eventAt)),
+                lt(
+                    playbackProgress.eventAt,
+                    sql.raw(`excluded."${playbackProgress.eventAt.name}"`)
+                ),
                 or(
                     isNull(playbackProgress.dismissedAt),
                     lt(playbackProgress.dismissedAt, input.sessionStartedAt)

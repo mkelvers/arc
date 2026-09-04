@@ -1,7 +1,7 @@
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { db, excluded } from '@arc/db';
+import { db } from '@arc/db';
 import { animeArtwork, animeArtworkPreference, animeArtworkSync } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
@@ -266,11 +266,11 @@ async function fetchArtworkSource(match: StoredMapping) {
                 .onConflictDoUpdate({
                     target: [animeArtwork.externalIdId, animeArtwork.type, animeArtwork.filePath],
                     set: {
-                        aspectRatio: excluded(animeArtwork.aspectRatio),
-                        height: excluded(animeArtwork.height),
-                        language: excluded(animeArtwork.language),
-                        voteAverage: excluded(animeArtwork.voteAverage),
-                        width: excluded(animeArtwork.width),
+                        aspectRatio: sql.raw(`excluded."${animeArtwork.aspectRatio.name}"`),
+                        height: sql.raw(`excluded."${animeArtwork.height.name}"`),
+                        language: sql.raw(`excluded."${animeArtwork.language.name}"`),
+                        voteAverage: sql.raw(`excluded."${animeArtwork.voteAverage.name}"`),
+                        width: sql.raw(`excluded."${animeArtwork.width.name}"`),
                     },
                 });
         }

@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 
-import { db, excluded } from '@arc/db';
+import { db } from '@arc/db';
 import {
     animeEpisode,
     animeEpisodeSync,
@@ -346,16 +346,18 @@ async function fetchAndStore(
             .onConflictDoUpdate({
                 target: [animeEpisode.anilistId, animeEpisode.episodeId],
                 set: {
-                    number: excluded(animeEpisode.number),
-                    providerTitle: excluded(animeEpisode.providerTitle),
-                    metadataTitle: excluded(animeEpisode.metadataTitle),
-                    metadataTitleSource: excluded(animeEpisode.metadataTitleSource),
-                    audio: excluded(animeEpisode.audio),
-                    imageUrl: excluded(animeEpisode.imageUrl),
-                    runtimeMinutes: excluded(animeEpisode.runtimeMinutes),
-                    airDate: excluded(animeEpisode.airDate),
-                    overview: excluded(animeEpisode.overview),
-                    overviewSource: excluded(animeEpisode.overviewSource),
+                    number: sql.raw(`excluded."${animeEpisode.number.name}"`),
+                    providerTitle: sql.raw(`excluded."${animeEpisode.providerTitle.name}"`),
+                    metadataTitle: sql.raw(`excluded."${animeEpisode.metadataTitle.name}"`),
+                    metadataTitleSource: sql.raw(
+                        `excluded."${animeEpisode.metadataTitleSource.name}"`
+                    ),
+                    audio: sql.raw(`excluded."${animeEpisode.audio.name}"`),
+                    imageUrl: sql.raw(`excluded."${animeEpisode.imageUrl.name}"`),
+                    runtimeMinutes: sql.raw(`excluded."${animeEpisode.runtimeMinutes.name}"`),
+                    airDate: sql.raw(`excluded."${animeEpisode.airDate.name}"`),
+                    overview: sql.raw(`excluded."${animeEpisode.overview.name}"`),
+                    overviewSource: sql.raw(`excluded."${animeEpisode.overviewSource.name}"`),
                     lastSeenAt: now,
                     lastVerifiedAt: now,
                 },
