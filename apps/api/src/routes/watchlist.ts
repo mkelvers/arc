@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { AnimeIdSchema } from '@arc/api-contract/anime';
-import { WatchlistSelectionSchema, WatchlistUpdateSchema } from '@arc/api-contract/watchlist';
+import { AnimeIdSchema } from '@arc/core/server';
+import { WatchlistSelectionSchema, WatchlistUpdateSchema } from '@arc/core/server';
 import {
     exportWatchlist,
     getWatchlistPage,
@@ -12,7 +12,7 @@ import {
     removeFromWatchlist,
     setWatchlistState,
     WatchlistImportError,
-} from '@arc/backend/watchlist';
+} from '@arc/core/server';
 import { middleware, validate, type ApiEnvironment } from '../http';
 
 const animeIdParamSchema = z.object({ anilistId: AnimeIdSchema });

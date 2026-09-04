@@ -2,7 +2,7 @@
     import { goto } from '$app/navigation';
     import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
     import { CaretDownIcon, DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
-    import { NotificationsResponseSchema, type Notification } from '@arc/api-contract/notifications';
+    import { NotificationsResponseSchema, type Notification } from '@arc/core/client';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import { cn } from '$lib/utils';
@@ -136,9 +136,16 @@
                 artworkHeight={1254}
                 title="Notifications unavailable"
                 body="Arc couldn't load your notifications right now. Try again."
-                actionLabel="Try again"
-                actionHref="/notifications"
-            />
+            >
+                {#snippet action()}
+                    <a
+                        href="/notifications"
+                        class="inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
+                    >
+                        Try again
+                    </a>
+                {/snippet}
+            </EmptyState>
         </div>
     </main>
 {:else if notifications === null}

@@ -1,17 +1,22 @@
 import { randomUUID } from 'node:crypto';
 import { and, eq, isNull, lte, or, sql } from 'drizzle-orm';
-import { db } from '@arc/db';
-import { anilistRequestState } from '@arc/db/schema';
-import { GraphQLRequestError } from '@arc/shared/graphql-error';
+import { db } from '@arc/shared/db';
+import { anilistRequestState } from '@arc/shared/db/schema';
+import { GraphQLRequestError } from '@arc/shared/graphql/error';
 
 export async function coordinatedAniListRequest<Value>(
     operation: string,
     load: () => Promise<Value>
 ) {
     const owner = randomUUID();
-    await db.insert(anilistRequestState).values({ name: 'global' }).onConflictDoNothing();
+    await db
+        .insert(anilistRequestState)
+        .values({
+            name: 'global',
+        })
+        .onConflictDoNothing();
 
-    for (;;) {
+    while (true) {
         const now = new Date();
         const [claimed] = await db
             .update(anilistRequestState)

@@ -1,5 +1,4 @@
-import type { AnimeQuery } from '@arc/shared/anilist/generated/graphql';
-import { present } from '@arc/shared/utils/array';
+import type { AnimeQuery } from '@arc/shared/graphql/generated/graphql';
 
 type AniListAnimeDetailsMedia = Pick<
     NonNullable<AnimeQuery['Media']>,
@@ -76,7 +75,9 @@ function formatDescription(value: string | null) {
 function formatStaff(media: AniListAnimeDetailsMedia) {
     const credits = new Map<string, string[]>();
 
-    for (const edge of present(media.staff?.edges)) {
+    for (const edge of media.staff?.edges?.filter(
+        (edge): edge is NonNullable<typeof edge> => edge !== null
+    ) ?? []) {
         const name = edge.node?.name?.full?.trim();
         const role = edge.role ? staffRoles.get(edge.role) : undefined;
 
@@ -89,7 +90,10 @@ function formatStaff(media: AniListAnimeDetailsMedia) {
 }
 
 function formatRankings(media: AniListAnimeDetailsMedia) {
-    const rankings = present(media.rankings).filter(({ type }) => type === 'POPULAR');
+    const rankings =
+        media.rankings
+            ?.filter((ranking): ranking is NonNullable<typeof ranking> => ranking !== null)
+            .filter(({ type }) => type === 'POPULAR') ?? [];
     const seasonal = rankings.find(
         ({ season, year }) => season === media.season && year === media.seasonYear
     );
@@ -127,19 +131,22 @@ export function toAnimeDetails(
             `Anime ${media.id}`,
         bannerImage: media.bannerImage ?? null,
         description: formatDescription(description),
-        genres: present(media.genres),
+        genres: media.genres?.filter((genre): genre is string => genre !== null) ?? [],
         format: enumLabel(media.format),
         status: media.status,
         nextAiringEpisode,
         score: media.averageScore ?? 0,
         members: count.format(media.popularity ?? 0),
         favourites: count.format(media.favourites ?? 0),
-        themes: present(media.tags)
+        themes: (media.tags?.filter((tag): tag is NonNullable<typeof tag> => tag !== null) ?? [])
             .filter((tag) => !tag.isGeneralSpoiler && !tag.isMediaSpoiler)
             .sort((left, right) => (right.rank ?? 0) - (left.rank ?? 0))
             .slice(0, 5)
             .map((tag) => tag.name),
-        studios: present(media.studios?.nodes).map((studio) => studio.name),
+        studios:
+            media.studios?.nodes
+                ?.filter((studio): studio is NonNullable<typeof studio> => studio !== null)
+                .map((studio) => studio.name) ?? [],
         staff: formatStaff(media),
         rankings: formatRankings(media),
     };

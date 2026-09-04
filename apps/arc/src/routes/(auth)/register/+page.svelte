@@ -1,7 +1,7 @@
 <script lang="ts">
     import { goto } from '$app/navigation';
 
-    import { ApiErrorSchema } from '@arc/api-contract/auth';
+    import { ApiErrorSchema } from '@arc/core/client';
     import AuthInput from '../_components/AuthInput.svelte';
     import { m } from '$lib/i18n.svelte';
     import { Button } from '$lib/components/ui/button';

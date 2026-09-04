@@ -4,26 +4,38 @@
     "private": true,
     "type": "module",
     "exports": {
-        "./audio": "./src/audio.ts",
-        "./graphql-error": "./src/graphql-error.ts",
-        "./browse": "./src/browse.ts",
-        "./search": "./src/search.ts",
-        "./season": "./src/season.ts",
-        "./types": "./src/types.ts",
-        "./player/skip-times": "./src/player/skip-times.ts",
-        "./utils/array": "./src/utils/array.ts",
-        "./anilist/generated/*": "./src/anilist/generated/*.ts"
+        ".": "./src/index.ts",
+        "./db": "./src/db/index.ts",
+        "./graphql": "./src/graphql/client.ts",
+        "./graphql/error": "./src/graphql/error.ts",
+        "./db/schema": "./src/db/schema/index.ts",
+        "./graphql/generated/*": "./src/graphql/generated/*.ts"
     },
     "scripts": {
+        "graphql:generate": "graphql-codegen --config codegen.ts",
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "drizzle-kit migrate",
+        "db:check": "drizzle-kit check",
+        "db:studio": "drizzle-kit studio",
+        "db:up": "docker compose -f ../../compose.yaml up -d --wait postgres",
+        "db:down": "docker compose -f ../../compose.yaml down",
         "check": "tsc --noEmit",
         "test": "bun test --pass-with-no-tests"
     },
     "dependencies": {
         "@graphql-typed-document-node/core": "^3.2.0",
+        "drizzle-orm": "catalog:",
+        "postgres": "catalog:",
         "zod": "^4.4.3"
     },
     "devDependencies": {
+        "@graphql-codegen/cli": "^7.2.0",
+        "@graphql-codegen/client-preset": "^6.1.3",
         "@types/bun": "^1.4.0",
+        "@types/node": "catalog:",
+        "dotenv": "catalog:",
+        "drizzle-kit": "catalog:",
+        "graphql": "^17.0.2",
         "typescript": "~6.0.3"
     }
 }

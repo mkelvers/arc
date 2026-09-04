@@ -1,7 +1,7 @@
 import { and, eq, isNull } from 'drizzle-orm';
 
-import { db } from '@arc/db';
-import { anime, animeExternalId, animeExternalIdLink } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { anime, animeExternalId, animeExternalIdLink } from '@arc/shared/db/schema';
 
 export async function findInternalAnimeId(anilistId: number) {
     const [stored] = await db

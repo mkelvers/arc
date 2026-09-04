@@ -1,7 +1,7 @@
 <script lang="ts">
     import { CaretRightIcon } from 'phosphor-svelte';
 
-    import type { AnimeSearchResult } from '@arc/shared/search';
+    import type { AnimeSearchResult } from '@arc/core/client';
     import { cn } from '$lib/utils';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import { m } from '$lib/i18n.svelte';

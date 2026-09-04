@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { parseAiringMedia } from '@arc/core/catalog/airing';
+import { parseAiringMedia } from '@arc/core';
 
 describe('AniList airing normalization', () => {
     test('selects the latest episode already aired', () => {

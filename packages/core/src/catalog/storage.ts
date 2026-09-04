@@ -1,10 +1,17 @@
-import { eq, sql } from 'drizzle-orm';
-import type { BrowseFilters } from '@arc/shared/browse';
-import { present } from '@arc/shared/utils/array';
+import { eq, inArray, sql } from 'drizzle-orm';
+import type { BrowseFilters } from './browse-filters';
 import type { BrowseCatalogEntry } from './browse-types';
-import { db } from '@arc/db';
-import { animeCatalog, animeCatalogRefresh, animeCatalogTaxonomy } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import {
+    animeCatalog,
+    animeCatalogRefresh,
+    animeCatalogTaxonomy,
+    animeRelease,
+} from '@arc/shared/db/schema';
 import { createAnimeSearchIndex } from './search-index';
+import type { AnimeCard } from '../types';
+import { AniListAnimeSchema } from './anilist-types';
+import { plainText } from './anilist-text';
 
 export function catalogSnapshotKey(filters: Omit<BrowseFilters, 'audio'>, page: number) {
     return JSON.stringify({
@@ -129,9 +136,98 @@ export async function catalogTaxonomy() {
     return {
         genres: [...new Set(rows.flatMap(({ genres }) => genres))].sort(),
         tags: [...new Set(rows.flatMap(({ tags }) => tags))].sort(),
-        formats: [...new Set(present(rows.map(({ format }) => format)))].sort(),
-        statuses: [...new Set(present(rows.map(({ status }) => status)))].sort(),
-        sources: [...new Set(present(rows.map(({ source }) => source)))].sort(),
-        seasons: [...new Set(present(rows.map(({ season }) => season)))].sort(),
+        formats: [
+            ...new Set(
+                rows.map(({ format }) => format).filter((value): value is string => value !== null)
+            ),
+        ].sort(),
+        statuses: [
+            ...new Set(
+                rows.map(({ status }) => status).filter((value): value is string => value !== null)
+            ),
+        ].sort(),
+        sources: [
+            ...new Set(
+                rows.map(({ source }) => source).filter((value): value is string => value !== null)
+            ),
+        ].sort(),
+        seasons: [
+            ...new Set(
+                rows.map(({ season }) => season).filter((value): value is string => value !== null)
+            ),
+        ].sort(),
+        fetchedAt: null,
     };
+}
+
+export async function refreshCatalogTaxonomy(
+    taxonomy: {
+        genres: string[];
+        tags: string[];
+        formats: string[];
+        statuses: string[];
+        sources: string[];
+        seasons: string[];
+    },
+    fetchedAt = new Date()
+) {
+    await db
+        .insert(animeCatalogTaxonomy)
+        .values({ provider: 'anilist', ...taxonomy, fetchedAt })
+        .onConflictDoUpdate({
+            target: animeCatalogTaxonomy.provider,
+            set: { ...taxonomy, fetchedAt },
+        });
+
+    return { ...taxonomy, fetchedAt };
+}
+
+export async function storedReleaseCards(ids: number[]): Promise<AnimeCard[]> {
+    const uniqueIds = [...new Set(ids)];
+    if (!uniqueIds.length) {
+        return [];
+    }
+
+    const rows = await db
+        .select({
+            id: animeRelease.anilistId,
+            data: animeRelease.data,
+            title: animeRelease.title,
+            image: animeRelease.imageUrl,
+            format: animeRelease.format,
+            status: animeRelease.status,
+        })
+        .from(animeRelease)
+        .where(inArray(animeRelease.anilistId, uniqueIds));
+    const cards = new Map(
+        rows.flatMap((row) => {
+            const parsed = row.data ? AniListAnimeSchema.safeParse(row.data) : null;
+            const media = parsed?.success ? parsed.data : null;
+            const image =
+                row.image ?? media?.coverImage?.extraLarge ?? media?.coverImage?.large ?? null;
+            if (!image) {
+                return [];
+            }
+
+            const card: AnimeCard = {
+                id: row.id,
+                href: `/anime/${row.id}`,
+                link: `/anime/${row.id}`,
+                title: row.title,
+                image,
+                audioLabel: '',
+                format: row.format,
+                status: row.status,
+                score: media?.averageScore ?? 0,
+                genres: media?.genres?.filter((genre): genre is string => genre !== null) ?? [],
+                synopsis: plainText(media?.description),
+            };
+            return [[row.id, card] as const];
+        })
+    );
+
+    return uniqueIds.flatMap((id) => {
+        const card = cards.get(id);
+        return card ? [card] : [];
+    });
 }

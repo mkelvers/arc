@@ -5,7 +5,7 @@ import {
     getNotifications,
     getUnreadNotificationCount,
     markNotificationRead,
-} from '@arc/backend/notifications';
+} from '@arc/core/server';
 import { middleware, type ApiEnvironment } from '../http';
 
 const idSchema = z.object({ id: z.uuid() });

@@ -1,4 +1,4 @@
-import type { FranchiseOrder } from '@arc/shared/types';
+import type { FranchiseOrder } from '@arc/core/client';
 
 export type FranchiseFilter = 'main' | 'movies' | 'side-stories';
 

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, mock, spyOn, test } from 'bun:test';
 
-import type { BrowseFilters } from '@arc/shared/browse';
-import type { AnimeCard } from '@arc/shared/types';
+import type { BrowseFilters } from '@arc/core/client';
+import type { AnimeCard } from '@arc/core/client';
 import { appendCatalogPage, createPaginationGate, fetchCatalogPage } from './catalog-pagination';
 
 afterEach(() => {

@@ -115,7 +115,6 @@
                                             meta={`${m.release_calendar_episode({ episode: event.episode })} · ${time}`}
                                             reserveTitleSpace={false}
                                             truncateTitle={false}
-                                            showActions={true}
                                         />
                                     </div>
                                 {:else}

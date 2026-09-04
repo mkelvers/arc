@@ -1,8 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
-import { runAnimeMaintenance, runAnimeScheduler } from '@arc/backend/internal/anime/scheduler/run';
-import { logger } from '@arc/backend/internal/logger';
-import { db } from '@arc/db';
+import { logger, runAnimeMaintenance, runAnimeScheduler } from '@arc/core/server';
+import { db } from '@arc/shared/db';
 
 export async function startScheduler() {
     let stopping = false;
