@@ -1,13 +1,13 @@
 import { asc, eq, inArray } from 'drizzle-orm';
 import { createHash } from 'node:crypto';
 
-import type { AudioMode } from '@arc/shared/audio';
-import type { AnimeEpisode } from '@arc/shared/types';
-import { db } from '@arc/db';
-import { animeEpisode } from '@arc/db/schema';
+import type { AudioMode } from '@arc/core';
+import type { AnimeEpisode } from '@arc/core';
+import { db } from '@arc/shared/db';
+import { animeEpisode } from '@arc/shared/db/schema';
 import { formatDuration } from '../../utils';
-import type { AniListAnime } from '../anilist/types';
-import { watchEpisodeHref } from './route';
+import type { AniListAnime } from '@arc/core';
+import { watchEpisodeHref } from '@arc/core';
 
 function episodeModel(
     episode: typeof animeEpisode.$inferSelect,

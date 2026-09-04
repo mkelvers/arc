@@ -1,7 +1,7 @@
-import { AiringAnimePageDocument } from '@arc/shared/anilist/generated/graphql';
+import { AiringAnimePageDocument } from '@arc/shared/graphql/generated/graphql';
 import { batches } from '#utils';
 import { request } from './client';
-import { parseAiringMedia, type AiringAnime, type AiringPageEntry } from '@arc/core/catalog/airing';
+import { parseAiringMedia, type AiringAnime, type AiringPageEntry } from '@arc/core';
 
 async function getAiringPages(
     ids: number[] | undefined,

@@ -1,19 +1,19 @@
 import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 
-import { db } from '@arc/db';
+import { db } from '@arc/shared/db';
 import {
     animeEpisode,
     animeEpisodeSync,
     animeEpisodeTarget,
     maintenanceTask,
     playbackProgress,
-} from '@arc/db/schema';
+} from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { GraphQLRequestError } from '../../graphql';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import { refreshAnimeRelease } from '../anilist/releases';
-import { animeTitles } from '@arc/core/catalog/anilist-text';
-import { ensureInternalAnimeId } from '@arc/core/catalog/identity';
+import { animeTitles } from '@arc/core';
+import { ensureInternalAnimeId } from '@arc/core';
 import {
     anikotoProvider,
     isAniKotoNoMatchError,
@@ -32,8 +32,8 @@ import {
     episodeMetadataRevisionAfterSync,
     nextRefreshAt,
     providerEpisodeCount,
-} from './policy';
-import { episodesForRelease, preferredEpisodeAirDate, providerConfirmsEpisode } from './release';
+} from '@arc/core';
+import { episodesForRelease, preferredEpisodeAirDate, providerConfirmsEpisode } from '@arc/core';
 
 export class TargetEpisodeUnavailableError extends Error {
     constructor(

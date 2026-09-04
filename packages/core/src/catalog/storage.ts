@@ -1,9 +1,8 @@
 import { eq, sql } from 'drizzle-orm';
-import type { BrowseFilters } from '@arc/shared/browse';
-import { present } from '@arc/shared/utils/array';
+import type { BrowseFilters } from './browse-filters';
 import type { BrowseCatalogEntry } from './browse-types';
-import { db } from '@arc/db';
-import { animeCatalog, animeCatalogRefresh, animeCatalogTaxonomy } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { animeCatalog, animeCatalogRefresh, animeCatalogTaxonomy } from '@arc/shared/db/schema';
 import { createAnimeSearchIndex } from './search-index';
 
 export function catalogSnapshotKey(filters: Omit<BrowseFilters, 'audio'>, page: number) {
@@ -129,9 +128,9 @@ export async function catalogTaxonomy() {
     return {
         genres: [...new Set(rows.flatMap(({ genres }) => genres))].sort(),
         tags: [...new Set(rows.flatMap(({ tags }) => tags))].sort(),
-        formats: [...new Set(present(rows.map(({ format }) => format)))].sort(),
-        statuses: [...new Set(present(rows.map(({ status }) => status)))].sort(),
-        sources: [...new Set(present(rows.map(({ source }) => source)))].sort(),
-        seasons: [...new Set(present(rows.map(({ season }) => season)))].sort(),
+        formats: [...new Set(rows.map(({ format }) => format).filter((value): value is string => value !== null))].sort(),
+        statuses: [...new Set(rows.map(({ status }) => status).filter((value): value is string => value !== null))].sort(),
+        sources: [...new Set(rows.map(({ source }) => source).filter((value): value is string => value !== null))].sort(),
+        seasons: [...new Set(rows.map(({ season }) => season).filter((value): value is string => value !== null))].sort(),
     };
 }

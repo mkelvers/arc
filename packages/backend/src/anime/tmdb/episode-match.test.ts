@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { ProviderEpisode } from '../providers/types';
+import type { ProviderEpisode } from '@arc/core';
 import {
     matchBestEpisodeMetadata,
     matchEpisodeMetadata,
     providerReleaseWindow,
 } from './episode-match';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import type { EpisodeCandidate } from './types';
 
 function anime(

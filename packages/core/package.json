@@ -4,31 +4,13 @@
     "private": true,
     "type": "module",
     "exports": {
-        "./catalog/discovery": "./src/catalog/discovery.ts",
-        "./catalog/browse-pagination": "./src/catalog/browse-pagination.ts",
-        "./catalog/browse-types": "./src/catalog/browse-types.ts",
-        "./catalog/anilist-text": "./src/catalog/anilist-text.ts",
-        "./catalog/airing": "./src/catalog/airing.ts",
-        "./catalog/browse-transform": "./src/catalog/browse-transform.ts",
-        "./catalog/card": "./src/catalog/card.ts",
-        "./catalog/query": "./src/catalog/query.ts",
-        "./catalog/refresh": "./src/catalog/refresh.ts",
-        "./catalog/search-index": "./src/catalog/search-index.ts",
-        "./catalog/storage": "./src/catalog/storage.ts",
-        "./catalog/anilist-lease": "./src/catalog/anilist-lease.ts",
-        "./catalog/details": "./src/catalog/details.ts",
-        "./catalog/home-selection": "./src/catalog/home-selection.ts",
-        "./catalog/identity": "./src/catalog/identity.ts",
-        "./catalog/movie-backdrop": "./src/catalog/movie-backdrop.ts",
-        "./catalog/release-calendar-window": "./src/catalog/release-calendar-window.ts",
-        "./catalog/release-calendar-parser": "./src/catalog/release-calendar-parser.ts"
+        ".": "./src/index.ts"
     },
     "scripts": {
         "check": "tsc --noEmit",
         "test": "bun test --pass-with-no-tests"
     },
     "dependencies": {
-        "@arc/db": "workspace:*",
         "@arc/shared": "workspace:*",
         "drizzle-orm": "catalog:",
         "zod": "^4.4.3"

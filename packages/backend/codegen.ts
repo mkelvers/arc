@@ -2,9 +2,9 @@ import type { CodegenConfig } from '@graphql-codegen/cli';
 
 export default {
     generates: {
-        '../shared/src/anilist/generated/': {
+        '../shared/src/graphql/generated/': {
             schema: 'https://graphql.anilist.co',
-            documents: 'src/graphql/operations/anilist/*.graphql',
+            documents: '../shared/src/graphql/operations/anilist/*.graphql',
             preset: 'client',
             config: {
                 documentMode: 'string',

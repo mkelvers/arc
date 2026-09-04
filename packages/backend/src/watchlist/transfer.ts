@@ -3,10 +3,10 @@ import { z } from 'zod';
 import {
     SearchAnimePageDocument,
     WatchlistTransferAnimeDocument,
-} from '@arc/shared/anilist/generated/graphql';
-import type { WatchlistState } from '@arc/db/schema';
+} from '@arc/shared/graphql/generated/graphql';
+import type { WatchlistState } from '@arc/shared/db/schema';
 import { batches, positiveInteger, record, text, type JsonValue } from '../utils';
-import { animeTitles } from '@arc/core/catalog/anilist-text';
+import { animeTitles } from '@arc/core';
 
 interface TransferTitles {
     preferred?: string;

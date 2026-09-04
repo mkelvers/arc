@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { ProviderEpisode } from '../providers/types';
+import type { ProviderEpisode } from '@arc/core';
 import {
     releaseEpisodeGroup,
     releaseWindowEpisodeGroup,
     type EpisodeGroupBlock,
 } from './episode-groups';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 
 function anime(episodes: number | null, start: [number, number, number]) {
     return {

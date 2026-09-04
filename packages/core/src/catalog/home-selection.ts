@@ -1,4 +1,4 @@
-import type { MediaFormat } from '@arc/shared/anilist/generated/graphql';
+import type { MediaFormat } from '@arc/shared/graphql/generated/graphql';
 
 import { isDiscoverableAnime } from './discovery';
 

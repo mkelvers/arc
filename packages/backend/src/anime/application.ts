@@ -1,10 +1,10 @@
-import { audioAvailabilityLabel, episodeAudioAvailabilityLabel } from '@arc/shared/audio';
-import type { AudioMode } from '@arc/shared/audio';
-import { currentAnimeSeason } from '@arc/shared/season';
-import { withMovieBackdrop } from '@arc/core/catalog/movie-backdrop';
+import { audioAvailabilityLabel, episodeAudioAvailabilityLabel } from '@arc/core';
+import type { AudioMode } from '@arc/core';
+import { currentAnimeSeason } from '@arc/core';
+import { withMovieBackdrop } from '@arc/core';
 import { getHomepage } from './anilist/home';
 import { enrichAnimeCards } from './card-enrichment';
-import { toAnimeDetails } from '@arc/core/catalog/details';
+import { toAnimeDetails } from '@arc/core';
 import {
     getEpisodeRevision,
     getEpisodes,
@@ -12,7 +12,7 @@ import {
     getStoredAiringSchedule,
     needsEpisodeMetadataRefresh,
 } from './episodes';
-import { episodesAvailableToWatch } from './episodes/policy';
+import { episodesAvailableToWatch } from '@arc/core';
 import {
     discoverEpisodeInventory,
     ensureEpisodeInventoryBackfill,
@@ -27,7 +27,7 @@ import {
     anikotoProvider,
 } from './providers/anikoto';
 import { getEpisodeSkipTimes, getSegmentTemplates } from './skip-times';
-import { watchEpisodeNumber } from './episodes/route';
+import { watchEpisodeNumber } from '@arc/core';
 import { resolveAnimeSynopsis } from './synopsis';
 import { getArtwork } from './tmdb/artwork';
 import { findMapping } from './tmdb/mapping-store';

@@ -1,9 +1,9 @@
 <script lang="ts">
-    import { WatchPlaybackSchema } from '@arc/api-contract/anime';
-    import { audioModeOrder } from '@arc/shared/audio';
-    import type { AnimeEpisode } from '@arc/shared/types';
+    import { WatchPlaybackSchema } from '@arc/core';
+    import { audioModeOrder } from '@arc/core';
+    import type { AnimeEpisode } from '@arc/core';
     import type { Sources } from '$lib/player/media';
-    import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/shared/player/skip-times';
+    import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/core';
     import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import VideoPlayer from '$lib/components/VideoPlayer.svelte';

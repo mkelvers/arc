@@ -1,7 +1,7 @@
 import type { DocumentTypeDecoration } from '@graphql-typed-document-node/core';
 import { z } from 'zod';
-export { GraphQLRequestError } from '@arc/shared/graphql-error';
-import { GraphQLRequestError } from '@arc/shared/graphql-error';
+export { GraphQLRequestError } from '@arc/shared/graphql/error';
+import { GraphQLRequestError } from '@arc/shared/graphql/error';
 
 interface Document<TResult, TVariables> extends DocumentTypeDecoration<TResult, TVariables> {
     toString(): string;

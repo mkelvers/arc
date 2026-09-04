@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private';
-import { CatalogTaxonomySchema } from '@arc/api-contract/anime';
+import { CatalogTaxonomySchema } from '@arc/core';
 import { z } from 'zod';
 import type { LayoutServerLoad } from './$types';
 

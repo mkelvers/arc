@@ -1,16 +1,16 @@
 import { and, eq, inArray, isNull, ne, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import { db } from '@arc/db';
+import { db } from '@arc/shared/db';
 import {
     anime as animeTable,
     animeArtworkSource,
     animeExternalId,
     animeExternalIdLink,
     animeMappingOverride,
-} from '@arc/db/schema';
-import { animeTitles } from '@arc/core/catalog/anilist-text';
-import type { AniListAnime } from '../anilist/types';
+} from '@arc/shared/db/schema';
+import { animeTitles } from '@arc/core';
+import type { AniListAnime } from '@arc/core';
 import { type Mapping, type StoredMapping } from './types';
 
 export async function findMapping(anilistId: number): Promise<StoredMapping | null> {

@@ -2,11 +2,11 @@ import { and, eq, isNull, or } from 'drizzle-orm';
 import { load } from 'cheerio';
 import { z } from 'zod';
 
-import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
-import type { AnimeSeasonSelection } from '@arc/shared/season';
-import type { AnimeCard } from '@arc/shared/types';
-import { animeTitles, plainText } from '@arc/core/catalog/anilist-text';
-import type { AniListAnime } from '../anilist/types';
+import { audioAvailabilityLabel, type AudioMode } from '@arc/core';
+import type { AnimeSeasonSelection } from '@arc/core';
+import type { AnimeCard } from '@arc/core';
+import { animeTitles, plainText } from '@arc/core';
+import type { AniListAnime } from '@arc/core';
 import type { JsonValue } from '../../utils';
 import type {
     PlaybackProvider,
@@ -14,8 +14,8 @@ import type {
     ProviderEpisodeReference,
     ProviderStream,
     ProviderStreams,
-} from './types';
-import { normalizedProviderTitle, relatedCollectionTitle } from './match';
+} from '@arc/core';
+import { normalizedProviderTitle, relatedCollectionTitle } from '@arc/core';
 
 const anikotoUrl = 'https://anikototv.to';
 const catalogUrl = 'https://anikotoapi.site';
@@ -1059,7 +1059,7 @@ async function requestJson(
 }
 
 async function providerMediaId(anilistId: number) {
-    const [{ db }, schema] = await Promise.all([import('@arc/db'), import('@arc/db/schema')]);
+    const [{ db }, schema] = await Promise.all([import('@arc/shared/db'), import('@arc/shared/db/schema')]);
     const [override] = await db
         .select({ id: schema.animeMappingOverride.externalId })
         .from(schema.animeMappingOverride)
@@ -1107,7 +1107,7 @@ async function providerMediaId(anilistId: number) {
 }
 
 async function saveProviderMediaId(anilistId: number, id: string) {
-    const [{ db }, schema] = await Promise.all([import('@arc/db'), import('@arc/db/schema')]);
+    const [{ db }, schema] = await Promise.all([import('@arc/shared/db'), import('@arc/shared/db/schema')]);
     const [override] = await db
         .select({ id: schema.animeMappingOverride.externalId })
         .from(schema.animeMappingOverride)
@@ -1165,7 +1165,7 @@ export async function recordAniKotoInventoryVerification(
     }
 
     const now = new Date();
-    const [{ db }, schema] = await Promise.all([import('@arc/db'), import('@arc/db/schema')]);
+    const [{ db }, schema] = await Promise.all([import('@arc/shared/db'), import('@arc/shared/db/schema')]);
     await db
         .update(schema.animeProviderMapping)
         .set({

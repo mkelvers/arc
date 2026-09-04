@@ -2,8 +2,7 @@ import type {
     BrowseAnimePageQuery,
     BrowseAnimeTaxonomyQuery,
     MediaFormat,
-} from '@arc/shared/anilist/generated/graphql';
-import { present } from '@arc/shared/utils/array';
+} from '@arc/shared/graphql/generated/graphql';
 import { animeTitles, mediaTitle, plainText } from './anilist-text';
 import { isDiscoverableAnime } from './discovery';
 import type { BrowseCatalogEntry } from './browse-types';
@@ -21,7 +20,7 @@ export function transformBrowseEntries(
     mediaEntries: NonNullable<NonNullable<BrowseAnimePageQuery['Page']>['media']>,
     formats: readonly MediaFormat[] = ['TV', 'ONA']
 ) {
-    return present(mediaEntries).flatMap((media) => {
+    return (mediaEntries?.filter((media): media is NonNullable<typeof media> => media !== null) ?? []).flatMap((media) => {
         if (!isDiscoverableAnime(media, formats)) {
             return [];
         }
@@ -47,8 +46,8 @@ export function transformBrowseEntries(
                 searchText,
                 imageUrl,
                 synopsis: plainText(media.description),
-                genres: present(media.genres),
-                tags: present(media.tags).map(({ name }) => name),
+                genres: media.genres?.filter((genre): genre is string => genre !== null) ?? [],
+                tags: media.tags?.filter((tag): tag is NonNullable<typeof tag> => tag !== null).map(({ name }) => name) ?? [],
                 format: media.format,
                 status: media.status,
                 source: media.source,
@@ -67,19 +66,21 @@ export function transformBrowseEntries(
 
 export function transformBrowseTaxonomy(response: BrowseAnimeTaxonomyQuery): BrowseSourceTaxonomy {
     return {
-        genres: [...new Set(present(response.GenreCollection))].sort((left, right) =>
+        genres: [...new Set(response.GenreCollection?.filter((genre): genre is string => genre !== null) ?? [])].sort((left, right) =>
             left.localeCompare(right, 'en')
         ),
         tags: [
             ...new Set(
-                present(response.tags)
+                (response.tags?.filter(
+                    (tag): tag is NonNullable<typeof tag> => tag !== null
+                ) ?? [])
                     .filter(({ isAdult }) => isAdult === false)
                     .map(({ name }) => name)
             ),
         ].sort((left, right) => left.localeCompare(right, 'en')),
-        formats: present(response.formats?.enumValues).map(({ name }) => name),
-        statuses: present(response.statuses?.enumValues).map(({ name }) => name),
-        sources: present(response.sources?.enumValues).map(({ name }) => name),
-        seasons: present(response.seasons?.enumValues).map(({ name }) => name),
+        formats: response.formats?.enumValues?.filter((value): value is NonNullable<typeof value> => value !== null).map(({ name }) => name) ?? [],
+        statuses: response.statuses?.enumValues?.filter((value): value is NonNullable<typeof value> => value !== null).map(({ name }) => name) ?? [],
+        sources: response.sources?.enumValues?.filter((value): value is NonNullable<typeof value> => value !== null).map(({ name }) => name) ?? [],
+        seasons: response.seasons?.enumValues?.filter((value): value is NonNullable<typeof value> => value !== null).map(({ name }) => name) ?? [],
     };
 }

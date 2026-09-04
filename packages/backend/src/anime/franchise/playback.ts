@@ -1,6 +1,6 @@
-import { episodeAudioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
-import type { FranchiseOrder } from '@arc/shared/types';
-import { watchEpisodeHref } from '../episodes/route';
+import { episodeAudioAvailabilityLabel, type AudioMode } from '@arc/core';
+import type { FranchiseOrder } from '@arc/core';
+import { watchEpisodeHref } from '@arc/core';
 
 export type FranchisePlaybackEpisode = {
     anilistId: number;

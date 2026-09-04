@@ -1,10 +1,10 @@
-import { rankAnimeSearch } from '@arc/shared/search';
-import { SearchAnimePageDocument } from '@arc/shared/anilist/generated/graphql';
-import { db } from '@arc/db';
+import { rankAnimeSearch } from '@arc/core';
+import { SearchAnimePageDocument } from '@arc/shared/graphql/generated/graphql';
+import { db } from '@arc/shared/db';
 import { request } from './anilist/client';
-import { animeCard } from '@arc/core/catalog/card';
-import { animeTitles } from '@arc/core/catalog/anilist-text';
-import { createAnimeSearchIndex } from '@arc/core/catalog/search-index';
+import { animeCard } from '@arc/core';
+import { animeTitles } from '@arc/core';
+import { createAnimeSearchIndex } from '@arc/core';
 import { enrichAnimeCards } from './card-enrichment';
 import { withAnimeSearchMetadata } from './search-enrichment';
 

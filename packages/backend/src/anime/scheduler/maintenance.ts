@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
 import { and, asc, desc, eq, isNull, lte, ne, or, sql } from 'drizzle-orm';
-import { db } from '@arc/db';
-import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { animeEpisodeTarget, maintenanceTask, schedulerHeartbeat } from '@arc/shared/db/schema';
 import { refreshAnimeRelease, refreshAnimeSchedule, storedAnimeRelease } from '../anilist/releases';
 import {
     discoverEpisodeInventory,
@@ -14,9 +14,9 @@ import {
     isAniKotoLocalCooldownError,
     isAniKotoNoMatchError,
 } from '../providers/anikoto';
-import { episodeMetadataRevision } from '../episodes/policy';
+import { episodeMetadataRevision } from '@arc/core';
 import { rediscoverMapping, setMetadataMappingOverride } from './mappings';
-import { MaintenanceRequestSchema, type MaintenanceRequest } from '@arc/api-contract/maintenance';
+import { MaintenanceRequestSchema, type MaintenanceRequest } from '@arc/core';
 import { reconcileAllAiringReleases } from './reconciliation';
 import { maintenancePriority } from './maintenance-policy';
 

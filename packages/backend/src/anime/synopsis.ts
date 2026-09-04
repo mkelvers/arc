@@ -1,12 +1,12 @@
 import { eq } from 'drizzle-orm';
 
-import type { AnimeCard } from '@arc/shared/types';
-import { db } from '@arc/db';
-import { animeSynopsis } from '@arc/db/schema';
+import type { AnimeCard } from '@arc/core';
+import { db } from '@arc/shared/db';
+import { animeSynopsis } from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { getAnimeRelease, storedAnimeRelease } from './anilist/releases';
-import { mediaTitle, plainText } from '@arc/core/catalog/anilist-text';
-import type { AniListAnime } from './anilist/types';
+import { mediaTitle, plainText } from '@arc/core';
+import type { AniListAnime } from '@arc/core';
 import { create } from './tmdb/client';
 import { NoConfidentTmdbMappingError, resolveStored } from './tmdb/mapping';
 import {

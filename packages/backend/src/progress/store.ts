@@ -1,8 +1,8 @@
 import { and, asc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 
-import { audioAvailabilityLabel } from '@arc/shared/audio';
-import type { ContinueWatchingCard } from '@arc/shared/types';
-import { db } from '@arc/db';
+import { audioAvailabilityLabel } from '@arc/core';
+import type { ContinueWatchingCard } from '@arc/core';
+import { db } from '@arc/shared/db';
 import {
     anime as animeTable,
     animeEpisode,
@@ -10,14 +10,14 @@ import {
     animeExternalIdLink,
     animeRelease,
     playbackProgress,
-} from '@arc/db/schema';
-import { toAnimeDetails } from '@arc/core/catalog/details';
-import { parseStoredAnimeDetails } from '../anime/details';
-import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core/catalog/identity';
+} from '@arc/shared/db/schema';
+import { toAnimeDetails } from '@arc/core';
+import { parseStoredAnimeDetails } from '@arc/core';
+import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core';
 import { getStoredMedia } from '../anime/tmdb/media';
 import { updateWatchlistAfterPlayback } from '../watchlist/store';
 import { formatDuration } from '../utils';
-import { watchEpisodeHref } from '../anime/episodes/route';
+import { watchEpisodeHref } from '@arc/core';
 import type { PlaybackProgressInput } from './input';
 import { selectPlaybackProgress } from './continue';
 

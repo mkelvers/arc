@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { AnimeCard } from '@arc/shared/types';
+import type { AnimeCard } from '@arc/core';
 import { selectWatchlistEntries, type WatchlistSelection } from './selection';
 
 const selection = {

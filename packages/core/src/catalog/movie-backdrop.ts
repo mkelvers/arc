@@ -1,4 +1,4 @@
-import type { AnimeEpisode } from '@arc/shared/types';
+import type { AnimeEpisode } from '../types';
 
 export function withMovieBackdrop(
     anime: {

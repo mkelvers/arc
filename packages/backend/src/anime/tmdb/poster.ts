@@ -3,15 +3,15 @@ import { alias } from 'drizzle-orm/pg-core';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 
-import { db } from '@arc/db';
+import { db } from '@arc/shared/db';
 import {
     animeArtworkSource,
     animeExternalId,
     animeExternalIdLink,
     animeReleasePoster,
-} from '@arc/db/schema';
+} from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import { create, imageUrl } from './client';
 import { findMapping } from './mapping-store';
 import {
@@ -107,10 +107,13 @@ async function savePoster(
         fetchedAt: new Date(),
     };
 
-    await db.insert(animeReleasePoster).values(values).onConflictDoUpdate({
-        target: animeReleasePoster.animeId,
-        set: values,
-    });
+    await db
+        .insert(animeReleasePoster)
+        .values(values)
+        .onConflictDoUpdate({
+            target: animeReleasePoster.animeId,
+            set: values,
+        });
 
     return poster
         ? {

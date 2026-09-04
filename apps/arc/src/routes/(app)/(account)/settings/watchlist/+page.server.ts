@@ -1,6 +1,6 @@
 import { env } from '$env/dynamic/private';
-import { ApiErrorSchema } from '@arc/api-contract/auth';
-import { WatchlistImportResponseSchema } from '@arc/api-contract/watchlist';
+import { ApiErrorSchema } from '@arc/core';
+import { WatchlistImportResponseSchema } from '@arc/core';
 import { fail, type RequestEvent } from '@sveltejs/kit';
 import type { Actions } from './$types';
 

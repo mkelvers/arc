@@ -16,7 +16,7 @@
         "test": "turbo run test",
         "format": "oxfmt",
         "format:check": "oxfmt --check",
-        "db:check": "bun --cwd packages/db db:check"
+        "db:check": "bun --cwd packages/shared db:check"
     },
     "devDependencies": {
         "@oxlint/plugins": "1.79.0",

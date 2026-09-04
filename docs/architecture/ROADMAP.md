@@ -1,23 +1,26 @@
 # Arc architecture roadmap
 
-Arc is replacing `@arc/backend` with a smaller `@arc/core` catalog boundary. The migration is stacked on `refactor/core-package` and must preserve observable behavior and persisted meaning unless a change is explicitly approved.
+Arc is replacing `@arc/backend` with a deliberately designed `@arc/core`. The migration is integrated on `refactor/core-package` and preserves observable behavior and persisted meaning while reimplementing ownership and structure.
 
 ## Rules
 
 - New catalog behavior belongs in `@arc/core`.
-- `@arc/backend` is temporary migration scaffolding, not a place to polish or redesign.
-- Backend changes are limited to mechanical wiring, compatibility, behavior preservation, and deletion.
-- Shared code must be runtime-agnostic and genuinely used by the API, frontend, or scheduler.
+- `@arc/backend` is temporary migration scaffolding and a reference for behavior, not a package to keep working.
+- Do not repair backend merely to make it compile. Backend failures are expected until all consumers have moved.
+- Reimplement fundamentals in core, then delete the replaced backend implementation. Do not port backend structure or add compatibility wrappers just to preserve it.
+- Shared code must be cross-runtime infrastructure genuinely used by API, frontend, scheduler, core, or tests.
 - Tests live in the top-level `tests/` workspace, outside production packages.
 - Historical migrations and persisted data remain intact.
 - Delete a helper when its operation has one owner; inline it at that owner.
+- Temporary core modules without a current owner, such as player, audio, search, season, and broad types modules, may be deleted and intentionally reintroduced later.
 
 ## Completed
 
 - Established `@arc/core` and moved catalog identity and discovery rules.
 - Moved browse pagination, browse transformation, catalog cards, homepage selection, detail shaping, airing normalization, and release-calendar parsing into core.
 - Moved focused tests into `tests/`.
-- Moved the generic nullable-array utility to `@arc/shared/utils/array`.
+- Removed the one-use nullable-array helper by inlining its filtering at the catalog call sites.
+- Moved the database client, schema, and migration history into `@arc/shared`.
 - Removed obsolete database SQL and migration runtime helpers.
 
 ## Remaining sequence

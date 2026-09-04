@@ -1,10 +1,10 @@
 import { and, eq } from 'drizzle-orm';
 
-import { db } from '@arc/db';
-import { animeEpisode, animeEpisodeSync } from '@arc/db/schema';
-import type { AniListAnime } from './anilist/types';
+import { db } from '@arc/shared/db';
+import { animeEpisode, animeEpisodeSync } from '@arc/shared/db/schema';
+import type { AniListAnime } from '@arc/core';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
-import { episodesAvailableToWatch, episodeMetadataRefreshRequired } from './episodes/policy';
+import { episodesAvailableToWatch, episodeMetadataRefreshRequired } from '@arc/core';
 import { episodeRevision } from './episodes/revision';
 
 export async function getEpisodes(anime: AniListAnime) {

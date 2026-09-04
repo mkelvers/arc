@@ -1,4 +1,4 @@
-import type { EpisodeSkipTimes, SkipInterval } from '@arc/shared/player/skip-times';
+import type { EpisodeSkipTimes, SkipInterval } from '@arc/core';
 import { z } from 'zod';
 
 import type { JsonValue } from '#utils';

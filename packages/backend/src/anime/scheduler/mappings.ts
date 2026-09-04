@@ -1,14 +1,14 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 
-import { db } from '@arc/db';
-import { animeExternalId, animeExternalIdLink, animeMappingOverride } from '@arc/db/schema';
-import { animeTitles } from '@arc/core/catalog/anilist-text';
+import { db } from '@arc/shared/db';
+import { animeExternalId, animeExternalIdLink, animeMappingOverride } from '@arc/shared/db/schema';
+import { animeTitles } from '@arc/core';
 import { enqueueEpisodeInventoryBackfill } from '../episodes/sync';
 import { storedAnimeRelease } from '../anilist/releases';
 import { create as createTmdbClient } from '../tmdb/client';
 import { findMapping, saveVerifiedMapping } from '../tmdb/mapping-store';
 import { resolveStored } from '../tmdb/mapping';
-import { normalizedProviderTitle } from '../providers/match';
+import { normalizedProviderTitle } from '@arc/core';
 
 async function requireRelease(anilistId: number) {
     const release = await storedAnimeRelease(anilistId);

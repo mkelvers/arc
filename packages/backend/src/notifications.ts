@@ -1,13 +1,13 @@
 import { and, desc, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
 
-import { db, type DatabaseTransaction } from '@arc/db';
+import { db, type DatabaseTransaction } from '@arc/shared/db';
 import {
     animeExternalId,
     animeExternalIdLink,
     animeRelation,
     notification,
     watchlist,
-} from '@arc/db/schema';
+} from '@arc/shared/db/schema';
 import { getStoredMedia } from './anime/tmdb/media';
 
 type InventoryNotification = {

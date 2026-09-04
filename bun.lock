@@ -19,9 +19,8 @@
       "name": "@arc/api",
       "version": "0.0.1",
       "dependencies": {
-        "@arc/api-contract": "workspace:*",
         "@arc/backend": "workspace:*",
-        "@arc/db": "workspace:*",
+        "@arc/core": "workspace:*",
         "@arc/shared": "workspace:*",
         "@hono/zod-validator": "^0.9.0",
         "better-auth": "1.6.22",
@@ -38,7 +37,7 @@
       "name": "arc",
       "version": "0.0.1",
       "dependencies": {
-        "@arc/api-contract": "workspace:*",
+        "@arc/core": "workspace:*",
         "@arc/shared": "workspace:*",
         "@fontsource-variable/dm-sans": "^5.3.0",
         "@inlang/paraglide-js": "^2.24.1",
@@ -71,19 +70,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@arc/backend": "workspace:*",
-        "@arc/db": "workspace:*",
-      },
-      "devDependencies": {
-        "@types/bun": "^1.4.0",
-        "typescript": "~6.0.3",
-      },
-    },
-    "packages/api-contract": {
-      "name": "@arc/api-contract",
-      "version": "0.0.1",
-      "dependencies": {
         "@arc/shared": "workspace:*",
-        "zod": "^4.4.3",
       },
       "devDependencies": {
         "@types/bun": "^1.4.0",
@@ -94,9 +81,7 @@
       "name": "@arc/backend",
       "version": "0.0.1",
       "dependencies": {
-        "@arc/api-contract": "workspace:*",
         "@arc/core": "workspace:*",
-        "@arc/db": "workspace:*",
         "@arc/shared": "workspace:*",
         "@graphql-typed-document-node/core": "^3.2.0",
         "cheerio": "^1.2.0",
@@ -120,26 +105,13 @@
       "name": "@arc/core",
       "version": "0.0.1",
       "dependencies": {
-        "@arc/db": "workspace:*",
         "@arc/shared": "workspace:*",
         "drizzle-orm": "catalog:",
+        "zod": "^4.4.3",
       },
       "devDependencies": {
         "@types/bun": "^1.4.0",
         "typescript": "~6.0.3",
-      },
-    },
-    "packages/db": {
-      "name": "@arc/db",
-      "version": "0.0.1",
-      "dependencies": {
-        "drizzle-orm": "catalog:",
-        "postgres": "catalog:",
-      },
-      "devDependencies": {
-        "@types/node": "catalog:",
-        "dotenv": "catalog:",
-        "drizzle-kit": "catalog:",
       },
     },
     "packages/shared": {
@@ -147,10 +119,14 @@
       "version": "0.0.1",
       "dependencies": {
         "@graphql-typed-document-node/core": "^3.2.0",
-        "zod": "^4.4.3",
+        "drizzle-orm": "catalog:",
+        "postgres": "catalog:",
       },
       "devDependencies": {
         "@types/bun": "^1.4.0",
+        "@types/node": "catalog:",
+        "dotenv": "catalog:",
+        "drizzle-kit": "catalog:",
         "typescript": "~6.0.3",
       },
     },
@@ -185,13 +161,9 @@
   "packages": {
     "@arc/api": ["@arc/api@workspace:apps/api"],
 
-    "@arc/api-contract": ["@arc/api-contract@workspace:packages/api-contract"],
-
     "@arc/backend": ["@arc/backend@workspace:packages/backend"],
 
     "@arc/core": ["@arc/core@workspace:packages/core"],
-
-    "@arc/db": ["@arc/db@workspace:packages/db"],
 
     "@arc/scheduler": ["@arc/scheduler@workspace:apps/scheduler"],
 

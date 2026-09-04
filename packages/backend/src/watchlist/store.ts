@@ -1,8 +1,8 @@
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { PlaybackProgressInput } from '../progress/input';
-import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core/catalog/identity';
-import { db } from '@arc/db';
+import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core';
+import { db } from '@arc/shared/db';
 import {
     anime,
     animeCatalog,
@@ -14,7 +14,7 @@ import {
     animeRelease,
     watchlist,
     type WatchlistState,
-} from '@arc/db/schema';
+} from '@arc/shared/db/schema';
 import { watchlistStateAfterPlayback } from './completion';
 import { batches } from '../utils';
 
