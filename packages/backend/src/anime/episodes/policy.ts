@@ -1,5 +1,5 @@
 import type { AniListAnime } from '@arc/core';
-import { coversExpectedEpisodes } from '../providers/match';
+import { coversExpectedEpisodes } from '@arc/core';
 type EpisodeRefreshReason = 'metadata-source' | 'missing' | 'scheduled';
 
 export const episodeMetadataRevision = 'tmdb-episode-v4';

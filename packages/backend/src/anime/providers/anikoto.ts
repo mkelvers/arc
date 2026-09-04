@@ -14,8 +14,8 @@ import type {
     ProviderEpisodeReference,
     ProviderStream,
     ProviderStreams,
-} from './types';
-import { normalizedProviderTitle, relatedCollectionTitle } from './match';
+} from '@arc/core';
+import { normalizedProviderTitle, relatedCollectionTitle } from '@arc/core';
 
 const anikotoUrl = 'https://anikototv.to';
 const catalogUrl = 'https://anikotoapi.site';
