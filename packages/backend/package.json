@@ -23,6 +23,7 @@
     },
     "dependencies": {
         "@arc/api-contract": "workspace:*",
+        "@arc/core": "workspace:*",
         "@arc/db": "workspace:*",
         "@arc/shared": "workspace:*",
         "@graphql-typed-document-node/core": "^3.2.0",

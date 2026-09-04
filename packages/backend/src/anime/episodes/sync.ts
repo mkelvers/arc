@@ -13,7 +13,7 @@ import { isGraphQLTransientError } from '../../graphql';
 import type { AniListAnime } from '../anilist/types';
 import { refreshAnimeRelease } from '../anilist/releases';
 import { animeTitles } from '../anilist/text';
-import { ensureInternalAnimeId } from '../identity';
+import { ensureInternalAnimeId } from '@arc/core/catalog/identity';
 import {
     anikotoProvider,
     isAniKotoNoMatchError,
