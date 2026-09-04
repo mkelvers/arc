@@ -1,8 +1,8 @@
 import { z } from 'zod';
 
-import { AnimeSearchResultSchema } from '@arc/shared/search';
-import { AnimeCardPageSchema, AnimeCardSchema, EpisodeRevisionSchema } from '@arc/shared/types';
-import { SegmentSaveResultSchema } from '@arc/shared/player/skip-times';
+import { AnimeSearchResultSchema } from '@arc/core/search';
+import { AnimeCardPageSchema, AnimeCardSchema, EpisodeRevisionSchema } from '@arc/core/types';
+import { SegmentSaveResultSchema } from '@arc/core/player/skip-times';
 
 export const AnimeIdSchema = z.coerce.number().int().positive();
 

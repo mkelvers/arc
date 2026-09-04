@@ -1,4 +1,4 @@
-import type { BrowseFilters } from '@arc/shared/browse';
+import type { BrowseFilters } from '@arc/core/catalog/browse-filters';
 import {
     BrowseAnimePageDocument,
     BrowseAnimeTaxonomyDocument,

@@ -1,4 +1,4 @@
-import type { AnimeCard } from '@arc/shared/types';
+import type { AnimeCard } from '@arc/core/types';
 import type { MediaSeason } from '@arc/shared/graphql/generated/graphql';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '@arc/db';

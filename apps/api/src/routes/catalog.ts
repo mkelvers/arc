@@ -7,7 +7,7 @@ import {
     ReleaseCalendarSchema,
     SearchQuerySchema,
 } from '@arc/api-contract/anime';
-import { parseBrowseFilters } from '@arc/shared/browse';
+import { parseBrowseFilters } from '@arc/core/catalog/browse-filters';
 import { catalogTaxonomy } from '@arc/core/catalog/storage';
 import { newAnimePage, popularAnimePage } from '@arc/backend/internal/anime/browse';
 import { homePage } from '@arc/backend/internal/anime/application';

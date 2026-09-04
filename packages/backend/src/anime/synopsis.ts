@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm';
 
-import type { AnimeCard } from '@arc/shared/types';
+import type { AnimeCard } from '@arc/core/types';
 import { db } from '@arc/db';
 import { animeSynopsis } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';

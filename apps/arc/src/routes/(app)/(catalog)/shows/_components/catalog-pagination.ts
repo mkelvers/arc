@@ -1,5 +1,5 @@
-import { browseSearchParams, type BrowseFilters } from '@arc/shared/browse';
-import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '@arc/shared/types';
+import { browseSearchParams, type BrowseFilters } from '@arc/core/catalog/browse-filters';
+import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '@arc/core/types';
 
 export type PaginationStrategy = 'eager' | 'gated';
 type CatalogKind = 'new' | 'popular';

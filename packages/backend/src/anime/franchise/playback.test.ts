@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { FranchiseOrder } from '@arc/shared/types';
+import type { FranchiseOrder } from '@arc/core/types';
 import { type FranchisePlaybackEpisode, withFranchisePlayback } from './playback';
 
 function entry(anilistId: number, audioLabel: string): FranchiseOrder['entries'][number] {

@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 
-import type { FranchiseOrder } from '@arc/shared/types';
+import type { FranchiseOrder } from '@arc/core/types';
 import { positiveInteger } from '#utils';
 
 export interface ChiakiEntry {

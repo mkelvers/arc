@@ -1,4 +1,4 @@
-import type { AnimeEpisode } from '@arc/shared/types';
+import type { AnimeEpisode } from '@arc/core/types';
 
 interface Progress {
     episodeId: string;
