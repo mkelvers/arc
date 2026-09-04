@@ -6,8 +6,8 @@ import {
     relatedSpecialMappingIsBetter,
     specialEpisodeEvidenceScore,
     type SpecialEpisodeEvidence,
-} from './mapping-evidence';
-import type { Candidate } from './types';
+} from '@arc/core/tmdb/pure';
+import type { Candidate } from '@arc/core/tmdb/pure';
 import type { AniListAnime } from '@arc/core';
 
 const anime = {

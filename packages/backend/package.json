@@ -28,7 +28,6 @@
         "cheerio": "^1.2.0",
         "dotenv": "catalog:",
         "drizzle-orm": "catalog:",
-        "openapi-fetch": "^0.17.0",
         "postgres": "catalog:",
         "zod": "^4.4.3"
     },

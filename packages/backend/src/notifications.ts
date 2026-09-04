@@ -8,7 +8,7 @@ import {
     notification,
     watchlist,
 } from '@arc/shared/db/schema';
-import { getStoredMedia } from './anime/tmdb/media';
+import { getStoredMedia } from '@arc/core/tmdb';
 
 type InventoryNotification = {
     type: 'episode_available' | 'dub_available';

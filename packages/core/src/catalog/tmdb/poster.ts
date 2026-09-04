@@ -10,8 +10,7 @@ import {
     animeExternalIdLink,
     animeReleasePoster,
 } from '@arc/shared/db/schema';
-import { logger } from '@arc/backend/internal/logger';
-import type { AniListAnime } from '@arc/core';
+import type { AniListAnime } from '../anilist-types';
 import { create, imageUrl } from './client';
 import { findMapping } from './mapping-store';
 import {
@@ -107,13 +106,10 @@ async function savePoster(
         fetchedAt: new Date(),
     };
 
-    await db
-        .insert(animeReleasePoster)
-        .values(values)
-        .onConflictDoUpdate({
-            target: animeReleasePoster.animeId,
-            set: values,
-        });
+    await db.insert(animeReleasePoster).values(values).onConflictDoUpdate({
+        target: animeReleasePoster.animeId,
+        set: values,
+    });
 
     return poster
         ? {
@@ -215,9 +211,7 @@ async function hasVisuallyMatchingPoster(filePath: string, usedPaths: Set<string
                 return true;
             }
         }
-    } catch (cause) {
-        logger.debug(`TMDB poster comparison failed for ${filePath}; using path uniqueness`, cause);
-    }
+    } catch {}
 
     return false;
 }
@@ -379,10 +373,6 @@ export async function getPoster(anime: AniListAnime, match: StoredMapping) {
         } catch (cause) {
             const stale = stored ? storedPoster(stored) : null;
             if (stale) {
-                logger.debug(
-                    `TMDB poster refresh failed for AniList ${anime.id}; using stored poster`,
-                    cause
-                );
                 return stale;
             }
             throw cause;

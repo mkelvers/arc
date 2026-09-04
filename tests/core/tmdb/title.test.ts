@@ -8,7 +8,7 @@ import {
     normalizeTitle,
     releaseSequence,
     seriesTitle,
-} from './title';
+} from '@arc/core/tmdb/pure';
 import type { AniListAnime } from '@arc/core';
 
 describe('TMDB title matching', () => {

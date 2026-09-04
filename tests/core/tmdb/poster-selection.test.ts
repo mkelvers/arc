@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { selectPoster, selectReleaseSeason } from './poster-selection';
+import { selectPoster, selectReleaseSeason } from '@arc/core/tmdb/pure';
 import type { AniListAnime } from '@arc/core';
 
 function anime(values: Partial<AniListAnime> = {}): AniListAnime {

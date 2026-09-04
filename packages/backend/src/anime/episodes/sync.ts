@@ -22,8 +22,7 @@ import {
 } from '../providers/anikoto';
 import { scheduleReleaseTargets } from '../scheduler/targets';
 import { createInventoryNotifications } from '../../notifications';
-import { getEpisodeMetadata } from '../tmdb/episodes';
-import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
+import { getEpisodeMetadata, NoConfidentTmdbMappingError, resolveStored } from '@arc/core/tmdb';
 import { sourceRevision, storedEpisodes } from './model';
 import {
     availableEpisodeCount,

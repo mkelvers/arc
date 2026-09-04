@@ -1,8 +1,7 @@
-import type { AniListAnime } from '@arc/core';
+import type { AniListAnime } from '../anilist-types';
 import { z } from 'zod';
-import { animeDate } from '@arc/core';
-import type { ProviderEpisode } from '@arc/core';
-import type { JsonValue } from '#utils';
+import { animeDate } from '../date';
+import type { ProviderEpisode } from '../../providers/types';
 import { create, imageUrl } from './client';
 import { getEpisodeChanges } from './episode-changes';
 import {
@@ -21,6 +20,9 @@ import { movieEpisodeMetadata } from './movie-episodes';
 import { resolveStored } from './mapping';
 import { releaseSequence } from './title';
 import type { EpisodeCandidate, EpisodeMetadata, StoredEpisodeText, StoredMapping } from './types';
+
+const tmdbObjectSchema = z.looseObject({});
+type TmdbObject = z.infer<typeof tmdbObjectSchema>;
 
 interface MetadataEntry {
     id: string;
@@ -102,7 +104,7 @@ function displayAirDate(value: string | null | undefined) {
     return year && month && day ? `${month}/${day}/${year}` : '';
 }
 
-function featuredEpisode(value: JsonValue) {
+function featuredEpisode(value: TmdbObject) {
     const parsed = featuredEpisodeSchema.safeParse(value);
     if (!parsed.success) {
         return null;
@@ -134,7 +136,7 @@ function episodeCandidate(episode: TmdbEpisode): EpisodeCandidate {
     };
 }
 
-function parseEpisodeCandidate(value: JsonValue) {
+function parseEpisodeCandidate(value: TmdbObject) {
     const parsed = episodeSchema.safeParse(value);
     return parsed.success ? episodeCandidate(parsed.data) : null;
 }
@@ -192,13 +194,15 @@ async function episodeGroupCandidates(
     const blocks: EpisodeGroupBlock[] = groups.flatMap((group) =>
         (group?.groups ?? []).map((block) => ({
             episodes: (block.episodes ?? []).flatMap((episode, index) => {
-                const parsed = z.json().safeParse(episode);
+                const parsed = tmdbObjectSchema.safeParse(episode);
                 const candidate = parsed.success ? parseEpisodeCandidate(parsed.data) : null;
                 return candidate
                     ? [
                           {
                               ...candidate,
-                              order: Number.isSafeInteger(episode.order) ? episode.order : index,
+                              order: Number.isSafeInteger(episode.order)
+                                  ? (episode.order ?? index)
+                                  : index,
                           },
                       ]
                     : [];
@@ -412,7 +416,8 @@ export async function getEpisodeMetadata(
             }
 
             return (response.data.episodes ?? []).flatMap((episode) => {
-                const candidate = parseEpisodeCandidate(episode);
+                const parsed = tmdbObjectSchema.safeParse(episode);
+                const candidate = parsed.success ? parseEpisodeCandidate(parsed.data) : null;
                 return candidate ? [candidate] : [];
             });
         }),
@@ -433,7 +438,7 @@ export async function getEpisodeMetadata(
         const localizedText = hasRequestedEpisodeLocalization(
             sourceById.get(sourceId)?.title ?? '',
             candidate.title,
-            series.original_language
+            series.original_language ?? undefined
         );
         const needed = episodeDetailsNeeded(candidate, localizedText);
         const needsFallback = needed.details || needed.translations || needed.images;
@@ -518,7 +523,7 @@ export async function getEpisodeMetadata(
             ]);
             const featured = [series.last_episode_to_air, series.next_episode_to_air]
                 .map((value) => {
-                    const parsed = z.json().safeParse(value);
+                    const parsed = tmdbObjectSchema.safeParse(value);
                     return parsed.success ? featuredEpisode(parsed.data) : null;
                 })
                 .find(

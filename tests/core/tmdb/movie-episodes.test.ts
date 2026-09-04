@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { ProviderEpisode } from '@arc/core';
-import { movieEpisodeMetadata } from './movie-episodes';
+import { movieEpisodeMetadata } from '@arc/core/tmdb/pure';
 
 const release = {
     title: 'Kaguya-sama: Love Is War -The First Kiss That Never Ends-',

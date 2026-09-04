@@ -4,8 +4,8 @@ import {
     completeEpisodeDetails,
     episodeDetailsNeeded,
     hasRequestedEpisodeLocalization,
-} from './episode-details';
-import type { EpisodeCandidate } from './types';
+} from '@arc/core/tmdb/pure';
+import type { EpisodeCandidate } from '@arc/core/tmdb/pure';
 
 const candidate: EpisodeCandidate = {
     episodeNumber: 4,

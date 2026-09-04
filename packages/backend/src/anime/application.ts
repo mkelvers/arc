@@ -29,9 +29,14 @@ import {
 import { getEpisodeSkipTimes, getSegmentTemplates } from './skip-times';
 import { watchEpisodeNumber } from '@arc/core';
 import { resolveAnimeSynopsis } from './synopsis';
-import { getArtwork } from './tmdb/artwork';
-import { findMapping } from './tmdb/mapping-store';
-import { getStoredMedia, refreshArtwork, selectArtwork, setLogoSize } from './tmdb/media';
+import {
+    findMapping,
+    getArtwork,
+    getStoredMedia,
+    refreshArtwork,
+    selectArtwork,
+    setLogoSize,
+} from '@arc/core/tmdb';
 import { getAnimeOverview, getAnimeRelease, storedAnimeRelease } from './anilist/releases';
 import {
     getContinueWatchingCards,

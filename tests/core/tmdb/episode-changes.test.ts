@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { getEpisodeChanges } from './episode-changes';
+import { getEpisodeChanges } from '@arc/core/tmdb/pure';
 
 describe('TMDB episode changes', () => {
     test('uses an end boundary that includes changes from the requested date', async () => {

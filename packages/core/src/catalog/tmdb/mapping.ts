@@ -1,8 +1,7 @@
-import { animeTitles } from '@arc/core';
-import type { AniListAnime } from '@arc/core';
-import { animeDate } from '@arc/core';
-import { logger } from '@arc/backend/internal/logger';
-import { episodeTitleKey } from '@arc/core';
+import { animeTitles } from '../anilist-text';
+import type { AniListAnime } from '../anilist-types';
+import { animeDate } from '../date';
+import { episodeTitleKey } from '../../providers/matching';
 import { create } from './client';
 import {
     preferredTvReleaseCandidate,
@@ -544,10 +543,6 @@ async function refreshStoredMapping(
             stored.title === title &&
             (expectedMediaType === null || stored.mediaType === expectedMediaType)
         ) {
-            logger.debug(
-                `TMDB mapping revalidation failed for AniList ${anime.id}; using the last verified mapping`,
-                cause
-            );
             return stored;
         }
 
