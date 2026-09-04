@@ -9,11 +9,11 @@ import {
     playbackProgress,
 } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
-import { isGraphQLTransientError } from '../../graphql';
+import { GraphQLRequestError } from '../../graphql';
 import type { AniListAnime } from '../anilist/types';
 import { refreshAnimeRelease } from '../anilist/releases';
-import { animeTitles } from '../anilist/text';
-import { ensureInternalAnimeId } from '../identity';
+import { animeTitles } from '@arc/core/catalog/anilist-text';
+import { ensureInternalAnimeId } from '@arc/core/catalog/identity';
 import {
     anikotoProvider,
     isAniKotoNoMatchError,
@@ -590,7 +590,10 @@ export function discoverEpisodeInventory(anime: AniListAnime) {
                 !isAniKotoTransientError(cause) &&
                 !isAniKotoNoMatchError(cause) &&
                 !isEpisodeInventoryUnresolvedError(cause) &&
-                !isGraphQLTransientError(cause)
+                !(
+                    cause instanceof GraphQLRequestError &&
+                    (cause.status === undefined || cause.status === 429 || cause.status >= 500)
+                )
             ) {
                 logger.debug(`Episode inventory repair failed for AniList ${anime.id}`, cause);
             }

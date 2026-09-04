@@ -12,10 +12,10 @@ import type { AnimeCard } from '@arc/shared/types';
 import { db } from '@arc/db';
 import { animeEpisodeSync, animeRelation, animeRelease, animeReleaseRequest } from '@arc/db/schema';
 import { graphql } from '../../graphql';
-import { ensureInternalAnimeId } from '../identity';
-import { animeTitles, plainText, present } from './text';
+import { ensureInternalAnimeId } from '@arc/core/catalog/identity';
+import { animeTitles, plainText } from '@arc/core/catalog/anilist-text';
 import { request as requestAniList } from './client';
-import { coordinatedAniListRequest } from './durable-request-policy';
+import { coordinatedAniListRequest } from '@arc/core/catalog/anilist-lease';
 import {
     AniListAnimeOverviewSchema,
     AniListAnimeSchema,
@@ -92,10 +92,12 @@ export async function hydrateAnimeReleases(anilistIds: number[]) {
 
     for (const batch of batches(ids, 50)) {
         const response = await requestAniList(WatchlistAnimeDocument, { ids: batch });
-        const media = present(response.Page?.media).flatMap((entry) => {
-            const parsed = AniListAnimeSchema.safeParse(entry);
-            return parsed.success ? [parsed.data] : [];
-        });
+        const media = (response.Page?.media?.filter((value) => value !== null) ?? []).flatMap(
+            (entry) => {
+                const parsed = AniListAnimeSchema.safeParse(entry);
+                return parsed.success ? [parsed.data] : [];
+            }
+        );
 
         for (const anime of media) {
             await storeAnimeRelease(anime);
@@ -397,7 +399,7 @@ export async function storedReleaseCards(ids: number[]): Promise<AnimeCard[]> {
                 format: row.format,
                 status: row.status,
                 score: media?.averageScore ?? 0,
-                genres: present(media?.genres),
+                genres: media?.genres?.filter((genre) => genre !== null) ?? [],
                 synopsis: plainText(media?.description),
             };
             return [[row.id, card] as const];

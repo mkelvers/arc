@@ -11,8 +11,9 @@ import {
     animeRelease,
     playbackProgress,
 } from '@arc/db/schema';
-import { parseStoredAnimeDetails, toAnimeDetails } from '../anime/details';
-import { ensureInternalAnimeId, findInternalAnimeId } from '../anime/identity';
+import { toAnimeDetails } from '@arc/core/catalog/details';
+import { parseStoredAnimeDetails } from '../anime/details';
+import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core/catalog/identity';
 import { getStoredMedia } from '../anime/tmdb/media';
 import { updateWatchlistAfterPlayback } from '../watchlist/store';
 import { formatDuration } from '../utils';

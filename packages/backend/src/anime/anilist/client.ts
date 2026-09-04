@@ -8,8 +8,7 @@ import { anilistQuerySnapshot } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { graphql } from '../../graphql';
 import { record, type JsonValue } from '../../utils';
-import { coordinatedAniListRequest } from './durable-request-policy';
-import { shouldUseQuerySnapshot } from './snapshot-policy';
+import { coordinatedAniListRequest } from '@arc/core/catalog/anilist-lease';
 
 interface RequestOptions {
     refreshAfterMs?: number;
@@ -103,12 +102,9 @@ async function refreshWithLock<TResult, TVariables>(
             if (!storedObject) {
                 await tx.delete(anilistQuerySnapshot).where(eq(anilistQuerySnapshot.key, key));
             } else if (
-                shouldUseQuerySnapshot(
-                    stored,
-                    requestedAt,
-                    options.forceRefresh === true,
-                    requestedAt
-                )
+                options.forceRefresh === true
+                    ? stored.fetchedAt >= requestedAt
+                    : stored.refreshAfter > requestedAt
             ) {
                 return storedObject as TResult;
             }
@@ -156,12 +152,9 @@ export async function request<TResult, TVariables>(
             if (!object) {
                 await db.delete(anilistQuerySnapshot).where(eq(anilistQuerySnapshot.key, key));
             } else if (
-                shouldUseQuerySnapshot(
-                    stored,
-                    requestedAt,
-                    options.forceRefresh === true,
-                    requestedAt
-                )
+                options.forceRefresh === true
+                    ? stored.fetchedAt >= requestedAt
+                    : stored.refreshAfter > requestedAt
             ) {
                 return object as TResult;
             }

@@ -4,7 +4,7 @@ import { and, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '@arc/db';
 import { animeCatalog } from '@arc/db/schema';
 import { getBrowsePage, type AniListBrowseFilters } from './browse';
-import { browseRefreshKey, refreshCatalogPage } from '../browse';
+import { catalogSnapshotKey, refreshCatalogPage } from '@arc/core/catalog/storage';
 
 export async function refreshHomepage(season: MediaSeason, seasonYear: number) {
     const filters: AniListBrowseFilters = {
@@ -22,7 +22,7 @@ export async function refreshHomepage(season: MediaSeason, seasonYear: number) {
         order: 'desc',
     };
     const result = await getBrowsePage(filters, 1, 30, true);
-    await refreshCatalogPage(browseRefreshKey(filters, 1), result.anime, result.hasNextPage);
+    await refreshCatalogPage(catalogSnapshotKey(filters, 1), result.anime, result.hasNextPage);
     return result;
 }
 

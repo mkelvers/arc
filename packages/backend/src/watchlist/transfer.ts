@@ -6,7 +6,7 @@ import {
 } from '@arc/shared/anilist/generated/graphql';
 import type { WatchlistState } from '@arc/db/schema';
 import { batches, positiveInteger, record, text, type JsonValue } from '../utils';
-import { animeTitles, present } from '../anime/anilist/text';
+import { animeTitles } from '@arc/core/catalog/anilist-text';
 
 interface TransferTitles {
     preferred?: string;
@@ -296,7 +296,7 @@ async function mediaByMalId(malIds: number[]) {
         const response = await request(WatchlistTransferAnimeDocument, {
             malIds: ids,
         });
-        media.push(...present(response.mal?.media));
+        media.push(...(response.mal?.media?.filter((value) => value !== null) ?? []));
     }
     return [...new Map(media.map((entry) => [entry.id, entry])).values()];
 }
@@ -308,7 +308,7 @@ async function searchTitle(title: string) {
         page: 1,
         perPage: 50,
     });
-    return present(response.Page?.media).map((media) => ({
+    return (response.Page?.media?.filter((value) => value !== null) ?? []).map((media) => ({
         id: media.id,
         title: media.title?.english ?? media.title?.romaji ?? media.title?.native ?? null,
         titles: animeTitles(media),

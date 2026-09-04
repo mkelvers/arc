@@ -13,6 +13,24 @@ Arc code should be direct, shallow, local, and unsurprising. Prefer the smallest
 
 Prefer code that performs the operation over code that calls another function that performs it. Keep ownership visible.
 
+### Non-negotiable: inline one-use literals
+
+Never extract a one-use set of literals into exported constants. Inline values such as catalog formats, thresholds, revisions, limits, and simple configuration directly where they are used. Names like `discoveryCatalogRevision`, `discoveryFormats`, `discoveryMinimumPopularity`, and `discoveryMinimumDuration` add no value when they have one caller and no independent interface.
+
+Only name a value when it is reused, configurable, protects a non-obvious protocol/security/persistence/timing rule, or represents a substantial algorithm. “It makes the code shorter” is never sufficient.
+
+### Expanded object shapes
+
+Always open nested object values and object types across lines. Do not compress a shape such as `anime: { format: string | null }`; write it as:
+
+```ts
+anime: {
+    format: string | null,
+},
+```
+
+This applies to function parameters, return values, object literals, and inline type shapes. Keep the property comma and the closing brace visible.
+
 ```ts
 if (event.url.pathname.startsWith('/api/')) {
     return new Response('Unauthorized', { status: 401 });
@@ -44,6 +62,10 @@ Do not extract helpers just to reduce nesting or line count. Extract only when t
 ## Modules and files
 
 A module should expose a small interface while hiding meaningful knowledge. Split a file only when each resulting module owns an independently changing concern, such as playback persistence ordering, caption alignment, HLS lifecycle, provider scheduling, or identity evidence.
+
+### Backend replacement rule
+
+When replacing `@arc/backend`, do not improve or redesign its internals. Build the replacement in `@arc/core`, move behavior with focused tests, and change backend only when temporary wiring, compilation, behavior preservation, or deletion requires it. Treat backend changes as migration scaffolding: keep them mechanical, avoid adding new backend abstractions, and delete the package once core has taken ownership and no production consumer remains.
 
 Prefer this path:
 

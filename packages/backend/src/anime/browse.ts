@@ -1,135 +1,29 @@
-import { and, arrayContains, asc, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 
 import type { BrowseFilters } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
 import type { AnimeCard } from '@arc/shared/types';
 import { db } from '@arc/db';
+import type { BrowseSourceTaxonomy } from '@arc/core/catalog/browse-transform';
 import {
     animeCatalog,
     animeCatalogRefresh,
-    animeCatalogTaxonomy,
     animeEpisode,
     animeEpisodeTarget,
     animeRelease,
 } from '@arc/db/schema';
-import {
-    getBrowsePage,
-    type AniListBrowseFilters,
-    type BrowseCatalogEntry,
-    type BrowseSourceTaxonomy,
-} from './anilist/browse';
+import { getBrowsePage, type AniListBrowseFilters } from './anilist/browse';
 import { storedReleaseCards } from './anilist/releases';
 import { enrichAnimeCards } from './card-enrichment';
-import { popularCatalogPages } from './catalog-pagination';
-import { createAnimeSearchIndex } from './search-index';
+import { catalogPage as queryCatalogPage } from '@arc/core/catalog/query';
 import {
-    discoveryCatalogRevision,
-    discoveryFormats,
-    discoveryMinimumDuration,
-    discoveryMinimumPopularity,
-} from './discovery';
-
-type CatalogPageSnapshot = {
-    animeIds: number[];
-    hasNextPage: boolean;
-};
-
-export function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
-    return JSON.stringify({
-        discoveryCatalogRevision,
-        ...filters,
-        query: filters.query.toLocaleLowerCase('en'),
-        page,
-    });
-}
-
-export async function refreshCatalogPage(
-    queryKey: string,
-    anime: BrowseCatalogEntry[],
-    hasNextPage: boolean,
-    fetchedAt = new Date()
-) {
-    const pageSnapshot = {
-        animeIds: anime.map(({ anilistId }) => anilistId),
-        hasNextPage,
-    } satisfies CatalogPageSnapshot;
-
-    await db.transaction(async (tx) => {
-        if (anime.length) {
-            await tx
-                .insert(animeCatalog)
-                .values(
-                    anime.map((entry) => ({
-                        ...entry,
-                        discoveryRevision: discoveryCatalogRevision,
-                        sourceFetchedAt: fetchedAt,
-                    }))
-                )
-                .onConflictDoUpdate({
-                    target: animeCatalog.anilistId,
-                    set: {
-                        title: sql.raw(`excluded."${animeCatalog.title.name}"`),
-                        searchText: sql.raw(`excluded."${animeCatalog.searchText.name}"`),
-                        imageUrl: sql.raw(`excluded."${animeCatalog.imageUrl.name}"`),
-                        synopsis: sql.raw(`excluded."${animeCatalog.synopsis.name}"`),
-                        genres: sql.raw(`excluded."${animeCatalog.genres.name}"`),
-                        tags: sql.raw(`excluded."${animeCatalog.tags.name}"`),
-                        format: sql.raw(`excluded."${animeCatalog.format.name}"`),
-                        status: sql.raw(`excluded."${animeCatalog.status.name}"`),
-                        source: sql.raw(`excluded."${animeCatalog.source.name}"`),
-                        season: sql.raw(`excluded."${animeCatalog.season.name}"`),
-                        seasonYear: sql.raw(`excluded."${animeCatalog.seasonYear.name}"`),
-                        countryOfOrigin: sql.raw(`excluded."${animeCatalog.countryOfOrigin.name}"`),
-                        isAdult: sql.raw(`excluded."${animeCatalog.isAdult.name}"`),
-                        popularity: sql.raw(`excluded."${animeCatalog.popularity.name}"`),
-                        duration: sql.raw(`excluded."${animeCatalog.duration.name}"`),
-                        discoveryRevision: sql.raw(
-                            `excluded."${animeCatalog.discoveryRevision.name}"`
-                        ),
-                        averageScore: sql.raw(`excluded."${animeCatalog.averageScore.name}"`),
-                        sourceFetchedAt: fetchedAt,
-                        updatedAt: fetchedAt,
-                    },
-                });
-
-            await createAnimeSearchIndex(tx).store(
-                anime.map((entry) => ({
-                    id: entry.anilistId,
-                    href: `/anime/${entry.anilistId}`,
-                    link: `/anime/${entry.anilistId}`,
-                    title: entry.title,
-                    titles: entry.searchText.split('\n'),
-                    image: entry.imageUrl,
-                    audioLabel: '',
-                    score: entry.averageScore ?? 0,
-                    genres: entry.genres,
-                    synopsis: entry.synopsis,
-                    format: entry.format,
-                    popularity: entry.popularity ?? 0,
-                    backdrop: null,
-                    artworkGroup: null,
-                    relatedIds: [],
-                }))
-            );
-        }
-
-        await tx
-            .insert(animeCatalogRefresh)
-            .values({ queryKey, ...pageSnapshot, fetchedAt })
-            .onConflictDoUpdate({
-                target: animeCatalogRefresh.queryKey,
-                set: {
-                    ...pageSnapshot,
-                    fetchedAt,
-                },
-            });
-    });
-
-    return pageSnapshot;
-}
+    catalogSnapshotKey,
+    catalogTaxonomy,
+    refreshCatalogPage as persistCatalogPage,
+} from '@arc/core/catalog/storage';
 
 async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
-    const queryKey = browseRefreshKey(filters, page);
+    const queryKey = catalogSnapshotKey(filters, page);
     const [stored] = await db
         .select({
             animeIds: animeCatalogRefresh.animeIds,
@@ -146,51 +40,8 @@ async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
 
     const result = await getBrowsePage(filters, page, 42, true);
     return {
-        ...(await refreshCatalogPage(queryKey, result.anime, result.hasNextPage)),
+        ...(await persistCatalogPage(queryKey, result.anime, result.hasNextPage)),
         stale: false,
-    };
-}
-
-export async function browseTaxonomy() {
-    const [stored] = await db
-        .select({
-            genres: animeCatalogTaxonomy.genres,
-            tags: animeCatalogTaxonomy.tags,
-            formats: animeCatalogTaxonomy.formats,
-            statuses: animeCatalogTaxonomy.statuses,
-            sources: animeCatalogTaxonomy.sources,
-            seasons: animeCatalogTaxonomy.seasons,
-            fetchedAt: animeCatalogTaxonomy.fetchedAt,
-        })
-        .from(animeCatalogTaxonomy)
-        .where(eq(animeCatalogTaxonomy.provider, 'anilist'))
-        .limit(1);
-
-    if (stored) {
-        return stored;
-    }
-
-    const rows = await db
-        .select({
-            genres: animeCatalog.genres,
-            tags: animeCatalog.tags,
-            format: animeCatalog.format,
-            status: animeCatalog.status,
-            source: animeCatalog.source,
-            season: animeCatalog.season,
-        })
-        .from(animeCatalog);
-    const values = (entries: Array<string | null>) =>
-        [...new Set(entries.flatMap((value) => (value ? [value] : [])))].sort((left, right) =>
-            left.localeCompare(right, 'en')
-        );
-    return {
-        genres: [...new Set(rows.flatMap(({ genres }) => genres))].sort(),
-        tags: [...new Set(rows.flatMap(({ tags }) => tags))].sort(),
-        formats: values(rows.map(({ format }) => format)),
-        statuses: values(rows.map(({ status }) => status)),
-        sources: values(rows.map(({ source }) => source)),
-        seasons: values(rows.map(({ season }) => season)),
     };
 }
 
@@ -228,152 +79,19 @@ function validatedFilters(
     return sourceFilters as AniListBrowseFilters;
 }
 
-function escapeLike(value: string) {
-    return value.replace(/[\\%_]/g, '\\$&');
-}
-
-function hasAudio(mode: AudioMode) {
-    return sql<boolean>`exists (
-        select 1
-        from ${animeEpisode}
-        where ${animeEpisode.anilistId} = ${animeCatalog.anilistId}
-          and cast(${mode} as episode_audio) = any(${animeEpisode.audio})
-    )`;
-}
-
-function catalogConditions(filters: BrowseFilters) {
-    return and(
-        filters.query
-            ? sql`${animeCatalog.searchText} ilike ${`%${escapeLike(filters.query)}%`} escape '\\'`
-            : undefined,
-        filters.format === 'MOVIE'
-            ? eq(animeCatalog.format, 'MOVIE')
-            : inArray(animeCatalog.format, [...discoveryFormats]),
-        sql`${animeCatalog.popularity} >= ${discoveryMinimumPopularity}`,
-        sql`(${animeCatalog.duration} is null or ${animeCatalog.duration} >= ${discoveryMinimumDuration})`,
-        eq(animeCatalog.discoveryRevision, discoveryCatalogRevision),
-        filters.safe ? eq(animeCatalog.isAdult, false) : undefined,
-        filters.genre ? arrayContains(animeCatalog.genres, [filters.genre]) : undefined,
-        filters.tag ? arrayContains(animeCatalog.tags, [filters.tag]) : undefined,
-        filters.status ? eq(animeCatalog.status, filters.status) : undefined,
-        filters.format && filters.format !== 'MOVIE'
-            ? eq(animeCatalog.format, filters.format)
-            : undefined,
-        filters.source ? eq(animeCatalog.source, filters.source) : undefined,
-        filters.season ? eq(animeCatalog.season, filters.season) : undefined,
-        filters.year ? eq(animeCatalog.seasonYear, filters.year) : undefined,
-        filters.country ? eq(animeCatalog.countryOfOrigin, filters.country) : undefined,
-        filters.audio === 'dub' ? hasAudio('dub') : undefined,
-        filters.audio === 'sub' ? hasAudio('sub') : undefined
-    );
-}
-
-function catalogOrder(filters: BrowseFilters) {
-    const popularityDescending = sql`${animeCatalog.popularity} desc nulls last`;
-    const titleAscending = sql`${animeCatalog.title} asc`;
-
-    if (filters.sort === 'score') {
-        return [
-            filters.order === 'asc'
-                ? sql`${animeCatalog.averageScore} asc nulls last`
-                : sql`${animeCatalog.averageScore} desc nulls last`,
-            popularityDescending,
-            titleAscending,
-            asc(animeCatalog.anilistId),
-        ];
-    }
-
-    return [
-        filters.order === 'asc'
-            ? sql`${animeCatalog.popularity} asc nulls last`
-            : popularityDescending,
-        titleAscending,
-        asc(animeCatalog.anilistId),
-    ];
-}
-
-function audioModes(row: { hasSub: boolean; hasDub: boolean; hasRaw: boolean }) {
-    const modes: AudioMode[] = [];
-    if (row.hasSub) {
-        modes.push('sub');
-    }
-    if (row.hasDub) {
-        modes.push('dub');
-    }
-    if (row.hasRaw) {
-        modes.push('raw');
-    }
-    return modes;
-}
-
-async function catalogPage(filters: BrowseFilters, page: number, animeIds: number[] | null) {
-    if (animeIds?.length === 0) {
-        return { anime: [], hasNextPage: false };
-    }
-
-    const rows = await db
-        .select({
-            id: animeCatalog.anilistId,
-            title: animeCatalog.title,
-            image: animeCatalog.imageUrl,
-            score: animeCatalog.averageScore,
-            genres: animeCatalog.genres,
-            synopsis: animeCatalog.synopsis,
-            hasSub: hasAudio('sub'),
-            hasDub: hasAudio('dub'),
-            hasRaw: hasAudio('raw'),
-        })
-        .from(animeCatalog)
-        .where(
-            and(
-                catalogConditions(filters),
-                animeIds ? inArray(animeCatalog.anilistId, animeIds) : undefined
-            )
-        )
-        .orderBy(...catalogOrder(filters))
-        .limit(43)
-        .offset(animeIds ? 0 : (page - 1) * 42);
-
-    const orderedRows = animeIds
-        ? animeIds.flatMap((id) => {
-              const row = rows.find((candidate) => candidate.id === id);
-              return row ? [row] : [];
-          })
-        : rows;
-
-    const cards: AnimeCard[] = orderedRows.slice(0, 42).map((row) => {
-        return {
-            id: row.id,
-            href: `/anime/${row.id}`,
-            link: `/anime/${row.id}`,
-            title: row.title,
-            image: row.image,
-            audioLabel: audioAvailabilityLabel(audioModes(row)),
-            score: row.score ?? 0,
-            genres: row.genres,
-            synopsis: row.synopsis,
-        };
-    });
-
-    return {
-        anime: await enrichAnimeCards(cards),
-        hasNextPage: orderedRows.length > 42,
-    };
-}
-
 async function loadPage(filters: BrowseFilters, page: number) {
     if (!Number.isSafeInteger(page) || page < 1 || page > 2_147_483_647) {
         throw new BrowseFilterError('Invalid browse page');
     }
 
-    const taxonomy = await browseTaxonomy();
+    const taxonomy = await catalogTaxonomy();
     const sourceFilters = validatedFilters(filters, taxonomy);
     const pageSnapshot = await ensureFreshCatalog(sourceFilters, page);
 
-    const catalog = await catalogPage(filters, page, pageSnapshot?.animeIds ?? null);
+    const catalog = await queryCatalogPage(filters, page, pageSnapshot?.animeIds ?? null);
 
     return {
-        anime: catalog.anime,
+        anime: await enrichAnimeCards(catalog.anime),
         hasNextPage: pageSnapshot?.hasNextPage ?? catalog.hasNextPage,
         page,
         stale: pageSnapshot?.stale ?? true,
@@ -384,51 +102,6 @@ async function loadPage(filters: BrowseFilters, page: number) {
 export async function popularAnimePage(page: number, filters: BrowseFilters) {
     const { sourceTaxonomy: _, ...result } = await loadPage(filters, page);
     return { ...result, loadedAt: new Date().toISOString() };
-}
-
-export async function refreshPopularAnime() {
-    const filters: AniListBrowseFilters = {
-        query: '',
-        genre: null,
-        tag: null,
-        format: null,
-        status: null,
-        source: null,
-        season: null,
-        year: null,
-        country: null,
-        safe: true,
-        sort: 'popularity',
-        order: 'desc',
-    };
-    const entries: BrowseCatalogEntry[] = [];
-    for (let page = 1; ; page += 1) {
-        const result = await getBrowsePage(filters, page, 42, true);
-        entries.push(...result.anime);
-        if (!result.hasNextPage) {
-            break;
-        }
-    }
-
-    const pages = popularCatalogPages(entries);
-    const refreshedAt = new Date();
-    for (const [index, page] of pages.entries()) {
-        await refreshCatalogPage(
-            browseRefreshKey(filters, index + 1),
-            page,
-            index < pages.length - 1,
-            refreshedAt
-        );
-    }
-
-    if (!pages.length) {
-        await refreshCatalogPage(browseRefreshKey(filters, 1), [], false, refreshedAt);
-    }
-
-    return {
-        animeIds: pages[0]?.map(({ anilistId }) => anilistId) ?? [],
-        hasNextPage: pages.length > 1,
-    } satisfies CatalogPageSnapshot;
 }
 
 export async function newAnimePage(page: number, filters: BrowseFilters) {

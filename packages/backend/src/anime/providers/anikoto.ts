@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
 import type { AnimeSeasonSelection } from '@arc/shared/season';
 import type { AnimeCard } from '@arc/shared/types';
-import { animeTitles, plainText } from '../anilist/text';
+import { animeTitles, plainText } from '@arc/core/catalog/anilist-text';
 import type { AniListAnime } from '../anilist/types';
 import type { JsonValue } from '../../utils';
 import type {
