@@ -10,13 +10,13 @@ import {
     maintenanceTask,
     schedulerHeartbeat,
 } from '@arc/shared/db/schema';
-import { refreshAnimeRelease } from '../anilist/releases';
-import { GraphQLRequestError } from '../../graphql';
+import { refreshAnimeRelease } from '@arc/core';
+import { GraphQLRequestError } from '@arc/shared/graphql/error';
 import { drainEpisodeTargets } from './episodes';
 import { refreshCatalogSnapshots } from './catalog';
 import { drainMaintenanceTasks } from './maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
-import { refreshReleaseCalendar } from '../release-calendar';
+import { refreshReleaseCalendar } from './catalog';
 import { scheduleReleaseTargets } from './targets';
 import { schedulerPolicy, schedulerRunLease } from './policy';
 import { enqueueUnresolvedAnimeInterests, reconcileAnimeInterests } from './interests';

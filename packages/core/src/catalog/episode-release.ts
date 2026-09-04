@@ -1,11 +1,13 @@
 import { animeDate, dateTimestamp } from './date';
-import type { ProviderEpisode } from '../providers/types';
 import type { AniListAnime } from './anilist-types';
 
-export function providerConfirmsEpisode(
-    episodes: readonly ProviderEpisode[],
-    targetEpisode: number
-) {
+export interface EpisodeSource {
+    id: string;
+    number: number;
+    supplemental?: boolean;
+}
+
+export function providerConfirmsEpisode(episodes: readonly EpisodeSource[], targetEpisode: number) {
     return episodes.some(
         (episode) => episode.number === targetEpisode && Boolean(episode.id.trim())
     );
@@ -56,7 +58,7 @@ function metadataDate(metadata: { airDate: string; rawAirDate?: string | null } 
     return Date.UTC(year, month - 1, date);
 }
 
-function normalizeReleaseWindow(episodes: ProviderEpisode[], expected: number) {
+function normalizeReleaseWindow<T extends EpisodeSource>(episodes: T[], expected: number) {
     const firstSelectedNumber = episodes[0]?.number;
     if (
         episodes.length !== expected ||
@@ -76,7 +78,7 @@ function normalizeReleaseWindow(episodes: ProviderEpisode[], expected: number) {
     }));
 }
 
-function declaredReleaseWindow(episodes: ProviderEpisode[], expected: number) {
+function declaredReleaseWindow<T extends EpisodeSource>(episodes: T[], expected: number) {
     if (episodes.length <= expected) {
         return episodes;
     }
@@ -89,9 +91,9 @@ function declaredReleaseWindow(episodes: ProviderEpisode[], expected: number) {
         : episodes;
 }
 
-export function episodesForRelease(
+export function episodesForRelease<T extends EpisodeSource>(
     anime: AniListAnime,
-    episodes: ProviderEpisode[],
+    episodes: T[],
     metadata: Map<string, { airDate: string; rawAirDate?: string | null }> | null
 ) {
     const expected = anime.episodes;

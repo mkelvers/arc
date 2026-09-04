@@ -4,10 +4,13 @@ import { db } from '@arc/shared/db';
 import { animeExternalId, animeExternalIdLink, animeMappingOverride } from '@arc/shared/db/schema';
 import { animeTitles } from '@arc/core';
 import { enqueueEpisodeInventoryBackfill } from '../episodes/sync';
-import { storedAnimeRelease } from '../anilist/releases';
-import { create as createTmdbClient } from '../tmdb/client';
-import { findMapping, saveVerifiedMapping } from '../tmdb/mapping-store';
-import { resolveStored } from '../tmdb/mapping';
+import { storedAnimeRelease } from '@arc/core';
+import {
+    create as createTmdbClient,
+    findMapping,
+    resolveStored,
+    saveVerifiedMapping,
+} from '@arc/core/tmdb';
 import { normalizedProviderTitle } from '@arc/core';
 
 async function requireRelease(anilistId: number) {

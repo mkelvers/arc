@@ -1,20 +1,16 @@
-import { currentAnimeSeason } from '@arc/core';
+import { createCatalogApplication } from '@arc/core';
 import { eq, isNotNull } from 'drizzle-orm';
 import { db } from '@arc/shared/db';
 import { animeFranchise, animeRelease } from '@arc/shared/db/schema';
-import { getAnimeRelease } from '../anilist/releases';
-import { getBrowseTaxonomy } from '../anilist/browse';
-import { refreshHomeHeroCandidates } from '../anilist/hero';
-import { refreshHomepage } from '../anilist/home';
-import { getBrowsePage } from '../anilist/browse';
-import { refreshCatalogSnapshots as refreshPopularCatalog } from '@arc/core';
+import { getAnimeRelease, refreshHomeHeroCandidates } from '@arc/core';
 import { refreshFranchiseOrder } from '../franchise';
-import { refreshCurrentSimulcast } from '../simulcast';
 import { ensureEpisodeInventoryBackfill } from '../episodes/sync';
-import { findMapping } from '../tmdb/mapping-store';
-import { getArtwork } from '../tmdb/artwork';
+import { findMapping, getArtwork } from '@arc/core/tmdb';
 import { rediscoverMapping } from './mappings';
 import { logger } from '../../logger';
+import { createCatalogSource } from '../catalog-source';
+
+const catalog = createCatalogApplication(createCatalogSource());
 
 const franchiseRefreshIntervalMs = 7 * 24 * 60 * 60 * 1_000;
 
@@ -74,28 +70,7 @@ async function rediscoverRelatedMappings(release: Awaited<ReturnType<typeof getA
 }
 
 export async function refreshCatalogSnapshots(now = new Date()) {
-    const { season, year } = currentAnimeSeason(now);
-    await refreshHomepage(season, year);
-    await refreshPopularCatalog(
-        {
-            query: '',
-            genre: null,
-            tag: null,
-            format: null,
-            status: null,
-            source: null,
-            season: null,
-            year: null,
-            country: null,
-            safe: true,
-            sort: 'popularity',
-            order: 'desc',
-        },
-        (filters, page, perPage, forceRefresh) =>
-            getBrowsePage(filters, page, perPage, forceRefresh)
-    );
-    await refreshCurrentSimulcast(now);
-    await getBrowseTaxonomy(true);
+    await catalog.refreshCatalogSnapshots(now);
     const heroCandidates = await refreshHomeHeroCandidates(now);
     for (const { anilistId } of heroCandidates) {
         try {
@@ -112,3 +87,5 @@ export async function refreshCatalogSnapshots(now = new Date()) {
     }
     await refreshKnownFranchises(now);
 }
+
+export const refreshReleaseCalendar = catalog.refreshReleaseCalendar;

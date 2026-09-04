@@ -29,6 +29,17 @@ const airingMediaSchema = z.object({
         .nullable(),
 });
 
+type DeepPartial<T> =
+    T extends Array<infer Item>
+        ? DeepPartial<Item>[]
+        : T extends null
+          ? null
+          : T extends object
+            ? { [Key in keyof T]?: DeepPartial<T[Key]> }
+            : T;
+
+type AiringMediaInput = DeepPartial<z.output<typeof airingMediaSchema>>;
+
 export interface AiringAnime {
     id: number;
     nextAiringAt: number | null;
@@ -41,7 +52,7 @@ export interface AiringPageEntry extends AiringAnime {
     scheduleLastPage: number;
 }
 
-export function parseAiringMedia(value: unknown, now: Date): AiringPageEntry {
+export function parseAiringMedia(value: AiringMediaInput, now: Date): AiringPageEntry {
     const parsed = airingMediaSchema.safeParse(value);
     if (!parsed.success) {
         throw new Error('AniList returned invalid airing discovery data', {

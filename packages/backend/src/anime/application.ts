@@ -1,9 +1,6 @@
-import { audioAvailabilityLabel, episodeAudioAvailabilityLabel } from '@arc/core';
+import { episodeAudioAvailabilityLabel } from '@arc/core';
 import type { AudioMode } from '@arc/core';
-import { currentAnimeSeason } from '@arc/core';
 import { withMovieBackdrop } from '@arc/core';
-import { getHomepage } from './anilist/home';
-import { enrichAnimeCards } from './card-enrichment';
 import { toAnimeDetails } from '@arc/core';
 import {
     getEpisodeRevision,
@@ -11,16 +8,14 @@ import {
     getRelatedReleaseTitles,
     getStoredAiringSchedule,
     needsEpisodeMetadataRefresh,
-} from './episodes';
+} from '@arc/core';
 import { episodesAvailableToWatch } from '@arc/core';
 import {
     discoverEpisodeInventory,
     ensureEpisodeInventoryBackfill,
     isEpisodeInventoryUnresolvedError,
 } from './episodes/sync';
-import { storedAudioModes } from './episodes/model';
 import { getFranchiseOrder } from './franchise';
-import { getHomeHero } from './home';
 import {
     isAniKotoNoMatchError,
     isAniKotoTransientError,
@@ -29,42 +24,19 @@ import {
 import { getEpisodeSkipTimes, getSegmentTemplates } from './skip-times';
 import { watchEpisodeNumber } from '@arc/core';
 import { resolveAnimeSynopsis } from './synopsis';
-import { getArtwork } from './tmdb/artwork';
-import { findMapping } from './tmdb/mapping-store';
-import { getStoredMedia, refreshArtwork, selectArtwork, setLogoSize } from './tmdb/media';
-import { getAnimeOverview, getAnimeRelease, storedAnimeRelease } from './anilist/releases';
 import {
-    getContinueWatchingCards,
-    getEpisodePlaybackProgress,
-    getPlaybackProgress,
-} from '../progress/store';
+    findMapping,
+    getArtwork,
+    getStoredMedia,
+    refreshArtwork,
+    selectArtwork,
+    setLogoSize,
+} from '@arc/core/tmdb';
+import { getAnimeOverview, getAnimeRelease, storedAnimeRelease } from '@arc/core';
+import { getEpisodePlaybackProgress, getPlaybackProgress } from '../progress/store';
 import { continuationEpisode, resumePosition } from '../progress/continue';
 import { getWatchlistState } from '../watchlist/store';
 import { logger } from '@arc/backend/internal/logger';
-
-export async function homePage(userId: string) {
-    const { season, year } = currentAnimeSeason();
-    const homepage = await getHomepage(season, year);
-    const animeIds = [...new Set([...homepage.season, ...homepage.popular].map(({ id }) => id))];
-    const [highlights, continueWatching, audioByAnime] = await Promise.all([
-        getHomeHero().catch(() => []),
-        getContinueWatchingCards(userId).catch(() => []),
-        storedAudioModes(animeIds),
-    ]);
-    const withAudio = (card: (typeof homepage.season)[number]) => ({
-        ...card,
-        audioLabel: audioAvailabilityLabel([...(audioByAnime.get(card.id) ?? [])]),
-    });
-    const seasonCards = homepage.season.map(withAudio);
-    const cards = await enrichAnimeCards([...seasonCards, ...homepage.popular.map(withAudio)]);
-
-    return {
-        highlights,
-        season: cards.slice(0, seasonCards.length),
-        popular: cards.slice(seasonCards.length),
-        continueWatching,
-    };
-}
 
 export async function animePageOverview(userId: string, id: number) {
     const stored = await storedAnimeRelease(id);
