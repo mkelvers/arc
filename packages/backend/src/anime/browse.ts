@@ -18,6 +18,7 @@ import { getBrowsePage, type AniListBrowseFilters } from './anilist/browse';
 import { storedReleaseCards } from './anilist/releases';
 import { enrichAnimeCards } from './card-enrichment';
 import { popularCatalogPages } from '@arc/core/catalog/browse-pagination';
+import { catalogPage as queryCatalogPage } from '@arc/core/catalog/query';
 import { createAnimeSearchIndex } from './search-index';
 
 type CatalogPageSnapshot = {
@@ -361,10 +362,10 @@ async function loadPage(filters: BrowseFilters, page: number) {
     const sourceFilters = validatedFilters(filters, taxonomy);
     const pageSnapshot = await ensureFreshCatalog(sourceFilters, page);
 
-    const catalog = await catalogPage(filters, page, pageSnapshot?.animeIds ?? null);
+    const catalog = await queryCatalogPage(filters, page, pageSnapshot?.animeIds ?? null);
 
     return {
-        anime: catalog.anime,
+        anime: await enrichAnimeCards(catalog.anime),
         hasNextPage: pageSnapshot?.hasNextPage ?? catalog.hasNextPage,
         page,
         stale: pageSnapshot?.stale ?? true,
