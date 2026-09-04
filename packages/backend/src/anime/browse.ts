@@ -19,6 +19,11 @@ import { storedReleaseCards } from './anilist/releases';
 import { enrichAnimeCards } from './card-enrichment';
 import { popularCatalogPages } from '@arc/core/catalog/browse-pagination';
 import { catalogPage as queryCatalogPage } from '@arc/core/catalog/query';
+import {
+    catalogRefreshKey,
+    catalogTaxonomy,
+    refreshCatalogPage as persistCatalogPage,
+} from '@arc/core/catalog/storage';
 import { createAnimeSearchIndex } from './search-index';
 
 type CatalogPageSnapshot = {
@@ -121,7 +126,7 @@ export async function refreshCatalogPage(
 }
 
 async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
-    const queryKey = browseRefreshKey(filters, page);
+    const queryKey = catalogRefreshKey(filters, page);
     const [stored] = await db
         .select({
             animeIds: animeCatalogRefresh.animeIds,
@@ -138,7 +143,7 @@ async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
 
     const result = await getBrowsePage(filters, page, 42, true);
     return {
-        ...(await refreshCatalogPage(queryKey, result.anime, result.hasNextPage)),
+        ...(await persistCatalogPage(queryKey, result.anime, result.hasNextPage)),
         stale: false,
     };
 }
@@ -225,7 +230,7 @@ async function loadPage(filters: BrowseFilters, page: number) {
         throw new BrowseFilterError('Invalid browse page');
     }
 
-    const taxonomy = await browseTaxonomy();
+    const taxonomy = await catalogTaxonomy();
     const sourceFilters = validatedFilters(filters, taxonomy);
     const pageSnapshot = await ensureFreshCatalog(sourceFilters, page);
 
@@ -272,8 +277,8 @@ export async function refreshPopularAnime() {
     const pages = popularCatalogPages(entries);
     const refreshedAt = new Date();
     for (const [index, page] of pages.entries()) {
-        await refreshCatalogPage(
-            browseRefreshKey(filters, index + 1),
+        await persistCatalogPage(
+            catalogRefreshKey(filters, index + 1),
             page,
             index < pages.length - 1,
             refreshedAt
@@ -281,7 +286,7 @@ export async function refreshPopularAnime() {
     }
 
     if (!pages.length) {
-        await refreshCatalogPage(browseRefreshKey(filters, 1), [], false, refreshedAt);
+        await persistCatalogPage(catalogRefreshKey(filters, 1), [], false, refreshedAt);
     }
 
     return {
