@@ -4,7 +4,7 @@ import { currentAnimeSeason } from '@arc/shared/season';
 import { withMovieBackdrop } from '@arc/core/catalog/movie-backdrop';
 import { getHomepage } from './anilist/home';
 import { enrichAnimeCards } from './card-enrichment';
-import { toAnimeDetails } from './details';
+import { toAnimeDetails } from '@arc/core/catalog/details';
 import {
     getEpisodeRevision,
     getEpisodes,

@@ -63,6 +63,10 @@ Do not extract helpers just to reduce nesting or line count. Extract only when t
 
 A module should expose a small interface while hiding meaningful knowledge. Split a file only when each resulting module owns an independently changing concern, such as playback persistence ordering, caption alignment, HLS lifecycle, provider scheduling, or identity evidence.
 
+### Backend replacement rule
+
+When replacing `@arc/backend`, do not improve or redesign its internals. Build the replacement in `@arc/core`, move behavior with focused tests, and change backend only when temporary wiring, compilation, behavior preservation, or deletion requires it. Treat backend changes as migration scaffolding: keep them mechanical, avoid adding new backend abstractions, and delete the package once core has taken ownership and no production consumer remains.
+
 Prefer this path:
 
 ```text
