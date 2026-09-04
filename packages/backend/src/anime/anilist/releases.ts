@@ -22,7 +22,7 @@ import {
     AniListScheduleSchema,
     type AniListAnime,
     type AniListAnimeOverview,
-} from './types';
+} from '@arc/core';
 import { batches } from '../../utils';
 
 const releaseSchemaRevision = 1;

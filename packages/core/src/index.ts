@@ -1,6 +1,7 @@
 export * from './audio';
 export * from './catalog/airing';
 export * from './catalog/anilist-lease';
+export * from './catalog/anilist-types';
 export * from './catalog/anilist-text';
 export * from './catalog/browse-filters';
 export * from './catalog/browse-pagination';

@@ -6,7 +6,7 @@ import type { AnimeEpisode } from '@arc/core';
 import { db } from '@arc/shared/db';
 import { animeEpisode } from '@arc/shared/db/schema';
 import { formatDuration } from '../../utils';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import { watchEpisodeHref } from './route';
 
 function episodeModel(

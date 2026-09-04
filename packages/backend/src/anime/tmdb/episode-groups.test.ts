@@ -6,7 +6,7 @@ import {
     releaseWindowEpisodeGroup,
     type EpisodeGroupBlock,
 } from './episode-groups';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 
 function anime(episodes: number | null, start: [number, number, number]) {
     return {

@@ -10,7 +10,7 @@ import {
     animeMappingOverride,
 } from '@arc/shared/db/schema';
 import { animeTitles } from '@arc/core';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import { type Mapping, type StoredMapping } from './types';
 
 export async function findMapping(anilistId: number): Promise<StoredMapping | null> {

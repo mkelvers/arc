@@ -8,7 +8,7 @@ import {
     preferredEpisodeAirDate,
     providerConfirmsEpisode,
 } from './release';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 
 function anime(episodes: number, start: [number, number, number], end: [number, number, number]) {
     return {

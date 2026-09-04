@@ -15,7 +15,7 @@ import {
     nextRefreshAt,
     providerEpisodeCount,
 } from './policy';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 
 describe('episode refresh policy', () => {
     const future = new Date('2026-08-02T00:00:00Z');

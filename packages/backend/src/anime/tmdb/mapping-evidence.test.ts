@@ -8,7 +8,7 @@ import {
     type SpecialEpisodeEvidence,
 } from './mapping-evidence';
 import type { Candidate } from './types';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 
 const anime = {
     duration: 24,

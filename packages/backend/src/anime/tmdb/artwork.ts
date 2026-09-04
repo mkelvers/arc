@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { db } from '@arc/shared/db';
 import { animeArtwork, animeArtworkPreference, animeArtworkSync } from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import { create, imageUrl } from './client';
 import { NoConfidentTmdbMappingError, resolveStored } from './mapping';
 import { findArtworkMappings, type ArtworkMappings } from './mapping-store';

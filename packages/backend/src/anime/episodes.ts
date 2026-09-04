@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { db } from '@arc/shared/db';
 import { animeEpisode, animeEpisodeSync } from '@arc/shared/db/schema';
-import type { AniListAnime } from './anilist/types';
+import type { AniListAnime } from '@arc/core';
 import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
 import { episodesAvailableToWatch, episodeMetadataRefreshRequired } from './episodes/policy';
 import { episodeRevision } from './episodes/revision';

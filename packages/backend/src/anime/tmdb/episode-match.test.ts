@@ -6,7 +6,7 @@ import {
     matchEpisodeMetadata,
     providerReleaseWindow,
 } from './episode-match';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import type { EpisodeCandidate } from './types';
 
 function anime(
