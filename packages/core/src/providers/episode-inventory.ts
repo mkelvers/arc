@@ -7,7 +7,6 @@ import type { AniListAnime } from '../catalog/anilist-types';
 import { episodesAvailableToWatch } from './inventory';
 import type { AudioMode } from '../audio';
 import type { AnimeEpisode } from '../types';
-import { watchEpisodeHref } from '../catalog/episode-route';
 
 function formatDuration(minutes: number | null | undefined) {
     if (!minutes || minutes <= 0) {
@@ -43,7 +42,7 @@ function episodeModel(
         number: episode.number,
         label: `E${episode.number}`,
         title,
-        href: watchEpisodeHref(episode.anilistId, episode.number),
+        href: `/anime/${episode.anilistId}/watch/${encodeURIComponent(String(episode.number))}`,
         audio: episode.audio,
         image: episode.imageUrl,
         duration: formatDuration(episode.runtimeMinutes ?? fallbackDuration),

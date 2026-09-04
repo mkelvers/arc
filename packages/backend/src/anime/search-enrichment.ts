@@ -5,7 +5,6 @@ import { inferSearchArtwork, type AnimeSearchResult, type SearchArtwork } from '
 import { db } from '@arc/shared/db';
 import { animeEpisode } from '@arc/shared/db/schema';
 import { getStoredBackdropCandidates, imageUrl } from '@arc/core/tmdb';
-import { watchEpisodeHref } from '@arc/core';
 
 async function storedArtwork(anilistIds: number[]) {
     const rows = await getStoredBackdropCandidates(anilistIds);
@@ -82,7 +81,9 @@ export async function withAnimeSearchMetadata<T extends AnimeSearchResult>(resul
             backdrop: selectedArtwork?.backdrop ?? null,
             artworkGroup: selectedArtwork?.group ?? null,
             audioLabel: stored ? audioAvailabilityLabel([...stored.audio]) : '',
-            link: stored ? watchEpisodeHref(result.id, stored.number) : result.link,
+            link: stored
+                ? `/anime/${result.id}/watch/${encodeURIComponent(String(stored.number))}`
+                : result.link,
         };
     });
 }

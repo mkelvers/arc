@@ -22,7 +22,6 @@ import {
     anikotoProvider,
 } from './providers/anikoto';
 import { getEpisodeSkipTimes, getSegmentTemplates } from './skip-times';
-import { watchEpisodeNumber } from '@arc/core';
 import { resolveAnimeSynopsis } from './synopsis';
 import {
     findMapping,
@@ -203,8 +202,11 @@ async function watchEpisode(id: number, episodeId: string) {
     let canonicalHref: string | null = null;
 
     if (currentIndex < 0) {
-        const number = watchEpisodeNumber(episodeId);
-        if (number !== null) {
+        const normalizedEpisodeId = episodeId.trim();
+        const number = /^\d+(?:\.\d+)?$/.test(normalizedEpisodeId)
+            ? Number(normalizedEpisodeId)
+            : null;
+        if (number !== null && Number.isFinite(number)) {
             const matching = episodes.flatMap((episode, index) =>
                 episode.number === number ? [index] : []
             );
