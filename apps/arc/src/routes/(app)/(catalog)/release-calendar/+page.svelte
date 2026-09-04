@@ -3,7 +3,7 @@
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
 
     import AnimeCard from '$lib/components/AnimeCard.svelte';
-    import type { AnimeCardItem } from '$lib/components/AnimeCard.types';
+    import type { AnimeCardItem } from '$lib/components/AnimeCard.svelte';
     import { locale } from '$lib/locale.svelte';
     import { localReleaseTime, releaseCalendarWeek } from '$lib/release-calendar';
     import { m } from '$lib/i18n.svelte';

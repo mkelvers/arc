@@ -42,10 +42,6 @@ type Shortcut =
     | { volume: number }
     | { percent: number };
 
-export function streamsFor(sources: Sources, mode: AudioMode) {
-    return sources[mode] ?? [];
-}
-
 export interface SubtitleTrack {
     url: string;
     kind: SubtitleKind;

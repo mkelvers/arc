@@ -17,7 +17,7 @@
     import type { PageData } from '../$types';
     import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
     import { m } from '$lib/i18n.svelte';
-    import { Skeleton } from '$lib/components/ui/skeleton';
+    import Skeleton from '$lib/components/ui/skeleton/Skeleton.svelte';
     import PageLoading from '$lib/components/ui/PageLoading.svelte';
 
     type PageResult = Awaited<PageData['page']>;

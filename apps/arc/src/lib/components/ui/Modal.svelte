@@ -4,7 +4,7 @@
 
     import { cn } from '$lib/utils';
     import { m } from '$lib/i18n.svelte';
-    import { Button } from './button';
+    import Button from './button/button.svelte';
 
     interface Props {
         children?: Snippet;

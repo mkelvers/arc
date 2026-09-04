@@ -12,7 +12,6 @@ import {
     orderStreams,
     playbackStartTarget,
     seekTarget,
-    streamsFor,
     subtitlesAt,
     type TimelineOffset,
     type Sources,
@@ -147,7 +146,7 @@ export class Playback {
     }
 
     private get modeSources() {
-        return streamsFor(this.sources, this.mode);
+        return this.sources[this.mode] ?? [];
     }
 
     private get preferredSources() {

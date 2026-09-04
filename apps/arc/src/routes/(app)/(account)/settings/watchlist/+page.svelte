@@ -3,7 +3,7 @@
     import type { SubmitFunction } from '@sveltejs/kit';
 
     import StatusBanner from '$lib/components/StatusBanner.svelte';
-    import { Checkbox } from '$lib/components/ui/checkbox';
+    import Checkbox from '$lib/components/ui/checkbox/Checkbox.svelte';
     import { watchlist } from '$lib/watchlist.svelte';
     import { m } from '$lib/i18n.svelte';
     import type { PageProps } from './$types';

@@ -257,14 +257,6 @@ function isReplacementEntry(
     );
 }
 
-function isContinuityEntry(entry: FranchiseSelectionEntry) {
-    if (entry.format === 'OVA') {
-        return false;
-    }
-
-    return entry.format !== 'SPECIAL';
-}
-
 export function primaryFranchiseIds(entries: FranchiseSelectionEntry[]) {
     if (!entries.length) {
         return new Set<number>();
@@ -274,25 +266,32 @@ export function primaryFranchiseIds(entries: FranchiseSelectionEntry[]) {
     const continuityGraphEntries = entries.filter(
         (entry) => !isReplacementEntry(entry, entries, entryIds)
     );
-    const continuityEntries = continuityGraphEntries.filter((entry) => isContinuityEntry(entry));
+    const continuityEntries = continuityGraphEntries.filter(
+        (entry) => entry.format !== 'OVA' && entry.format !== 'SPECIAL'
+    );
     const components = continuityComponents(
         continuityGraphEntries,
         new Set(continuityEntries.map(({ malId }) => malId))
     );
     const byId = new Map(continuityEntries.map((entry) => [entry.malId, entry]));
-    const primaryComponent = components.toSorted((left, right) => {
-        const score = (component: number[]) =>
-            component.reduce((total, malId) => {
-                const entry = byId.get(malId);
-                if (!entry) {
-                    throw new Error(`Franchise component contains unknown MAL ID ${malId}`);
-                }
-
-                return total + entryWeight(entry);
-            }, 0);
-
-        return score(right) - score(left) || right.length - left.length;
-    })[0];
+    let primaryComponent: number[] = [];
+    let primaryScore = Number.NEGATIVE_INFINITY;
+    for (const component of components) {
+        const score = component.reduce((total, malId) => {
+            const entry = byId.get(malId);
+            if (!entry) {
+                throw new Error(`Franchise component contains unknown MAL ID ${malId}`);
+            }
+            return total + entryWeight(entry);
+        }, 0);
+        if (
+            score > primaryScore ||
+            (score === primaryScore && component.length > primaryComponent.length)
+        ) {
+            primaryComponent = component;
+            primaryScore = score;
+        }
+    }
     const primaryIds = new Set(primaryComponent);
 
     for (const entry of entries) {

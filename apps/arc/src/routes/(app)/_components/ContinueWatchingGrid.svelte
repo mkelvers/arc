@@ -4,7 +4,8 @@
     import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
     import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
     import XIcon from 'phosphor-svelte/lib/XIcon';
-    import { Card, CardMedia } from '$lib/components/ui/card';
+    import Card from '$lib/components/ui/card/Card.svelte';
+    import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import { m } from '$lib/i18n.svelte';

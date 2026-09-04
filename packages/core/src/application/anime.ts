@@ -14,11 +14,11 @@ import { episodesAvailableToWatch } from '../providers/inventory';
 import {
     discoverEpisodeInventory,
     ensureEpisodeInventoryBackfill,
-    isEpisodeInventoryUnresolvedError,
+    EpisodeInventoryUnresolvedError,
 } from '../catalog/episode-sync';
 import { getFranchiseOrder } from '../catalog/franchise';
 import {
-    isAniKotoNoMatchError,
+    AniKotoNoMatchError,
     isAniKotoTransientError,
     anikotoProvider,
 } from '../providers/anikoto';
@@ -74,8 +74,8 @@ export async function animePageDeferred(userId: string, id: number) {
               .catch((cause) => {
                   if (
                       !isAniKotoTransientError(cause) &&
-                      !isAniKotoNoMatchError(cause) &&
-                      !isEpisodeInventoryUnresolvedError(cause)
+                      !(cause instanceof AniKotoNoMatchError) &&
+                      !(cause instanceof EpisodeInventoryUnresolvedError)
                   ) {
                       throw cause;
                   }

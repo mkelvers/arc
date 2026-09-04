@@ -137,18 +137,12 @@ export async function readArtwork(mapping: ArtworkMappings): Promise<Artwork | n
         return { backdrops, logos };
     });
 
-    if (artwork.some((source) => source === null)) {
+    const mergedArtwork = mergeArtwork(artwork);
+    if (!mergedArtwork.backdrops.length && !mergedArtwork.logos.length) {
         return null;
     }
 
-    return withSelections(
-        mapping,
-        mergeArtwork(
-            artwork.filter(
-                (source): source is Pick<Artwork, 'backdrops' | 'logos'> => source !== null
-            )
-        )
-    );
+    return withSelections(mapping, mergedArtwork);
 }
 
 async function fetchArtworkSource(match: StoredMapping) {

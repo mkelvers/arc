@@ -13,8 +13,6 @@ import { createCatalogSource } from '../catalog/anikoto-source';
 
 const catalog = createCatalogApplication(createCatalogSource());
 
-const franchiseRefreshIntervalMs = 7 * 24 * 60 * 60 * 1_000;
-
 async function refreshKnownFranchises(now: Date) {
     const rows = await db
         .select({
@@ -27,7 +25,7 @@ async function refreshKnownFranchises(now: Date) {
         .groupBy(animeRelease.malId, animeFranchise.fetchedAt);
     const malIds = rows.flatMap(({ malId, fetchedAt }) =>
         malId !== null &&
-        (!fetchedAt || now.getTime() - fetchedAt.getTime() >= franchiseRefreshIntervalMs)
+        (!fetchedAt || now.getTime() - fetchedAt.getTime() >= 7 * 24 * 60 * 60 * 1_000)
             ? [malId]
             : []
     );

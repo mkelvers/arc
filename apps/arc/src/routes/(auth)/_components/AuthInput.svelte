@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { HTMLInputAttributes } from 'svelte/elements';
     import { m } from '$lib/i18n.svelte';
-    import { Button } from '$lib/components/ui/button';
+    import Button from '$lib/components/ui/button/button.svelte';
 
     let {
         name,

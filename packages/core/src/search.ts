@@ -61,22 +61,22 @@ export function animeSearchText(titles: readonly string[]) {
 }
 
 function editDistance(left: string, right: string) {
-    const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+    let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+    let current = Array.from({ length: right.length + 1 }, () => 0);
 
     for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
-        const current = [leftIndex];
+        current[0] = leftIndex;
         for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
             current[rightIndex] = Math.min(
-                (current[rightIndex - 1] ?? 0) + 1,
-                (previous[rightIndex] ?? 0) + 1,
-                (previous[rightIndex - 1] ?? 0) +
-                    (left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1)
+                current[rightIndex - 1] + 1,
+                previous[rightIndex] + 1,
+                previous[rightIndex - 1] + (left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1)
             );
         }
-        previous.splice(0, previous.length, ...current);
+        [previous, current] = [current, previous];
     }
 
-    return previous[right.length] ?? right.length;
+    return previous[right.length];
 }
 
 function fuzzyDistance(query: string, candidate: string) {
@@ -91,6 +91,9 @@ function fuzzyDistance(query: string, candidate: string) {
                 distance,
                 editDistance(query, candidate.slice(index, index + length))
             );
+            if (distance === 0) {
+                return 0;
+            }
         }
     }
     return distance;

@@ -390,6 +390,25 @@ describe('TMDB anime artwork', () => {
         expect(artwork?.selectedBackdrop?.filePath).toBe('/backdrop.jpg');
     });
 
+    test('refetches artwork when a completed sync contains no images', async () => {
+        state.sync = [{ externalIdId: 100, allLanguages: true }];
+        state.payload = {
+            backdrops: [
+                {
+                    file_path: '/backdrop.jpg',
+                    width: 1920,
+                    height: 1080,
+                },
+            ],
+            logos: [],
+        };
+
+        const artwork = await getArtwork(anime);
+
+        expect(state.fetchCount).toBe(2);
+        expect(artwork?.selectedBackdrop?.filePath).toBe('/backdrop.jpg');
+    });
+
     test('can skip missing artwork for an explicitly non-blocking read', async () => {
         expect(await getArtwork(anime, { fetchMissing: false })).toBeNull();
         expect(state.fetchCount).toBe(0);

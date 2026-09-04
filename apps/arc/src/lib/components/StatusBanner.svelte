@@ -4,7 +4,7 @@
     import { prefersReducedMotion } from 'svelte/motion';
     import { cn } from '$lib/utils';
     import { m } from '$lib/i18n.svelte';
-    import { Button } from '$lib/components/ui/button';
+    import Button from '$lib/components/ui/button/button.svelte';
 
     interface Props {
         message: string;

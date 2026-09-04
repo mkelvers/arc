@@ -8,23 +8,19 @@ import type { CatalogSource } from './source';
 export function createSearchOperation(source: CatalogSource) {
     const searchIndex = createAnimeSearchIndex(db);
 
-    async function searchAnime(query: string) {
-        const key = query.trim().toLocaleLowerCase('en');
-        if (!key) {
+    return async function getSearchResults(query: string) {
+        const normalized = query.trim();
+        if (!normalized) {
             return [];
         }
-        const stored = await searchIndex.find(query);
-        if (stored.length) {
-            return stored;
-        }
-        const results = rankAnimeSearch(query, await source.search(query.trim()));
-        await searchIndex.store(results);
-        return results;
-    }
 
-    return async function getSearchResults(query: string) {
+        let results = await searchIndex.find(normalized);
+        if (!results.length) {
+            results = rankAnimeSearch(normalized, await source.search(normalized));
+            await searchIndex.store(results);
+        }
         return source.enrichSearchMetadata<AnimeSearchResult>(
-            await source.enrichAnimeCards<AnimeSearchResult>(await searchAnime(query))
+            await source.enrichAnimeCards<AnimeSearchResult>(results)
         );
     };
 }

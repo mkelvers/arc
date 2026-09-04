@@ -147,11 +147,7 @@ export async function getAnimeOverview(id: number): Promise<AniListAnimeOverview
     return parsed.data;
 }
 
-function retryDelay(attempts: number) {
-    return Math.min(6 * 60 * 60 * 1_000, 60_000 * 2 ** Math.min(attempts, 8));
-}
-
-async function requestWithLease(id: number, force: boolean) {
+export async function refreshAnimeRelease(id: number, options: { force?: boolean } = {}) {
     const owner = randomUUID();
     const now = new Date();
     await db
@@ -159,7 +155,7 @@ async function requestWithLease(id: number, force: boolean) {
         .values({ anilistId: id, nextAttemptAt: now })
         .onConflictDoNothing();
 
-    if (force) {
+    if (options.force) {
         await db
             .update(animeReleaseRequest)
             .set({ nextAttemptAt: now })
@@ -261,7 +257,10 @@ async function requestWithLease(id: number, force: boolean) {
             .update(animeReleaseRequest)
             .set({
                 attempts: claimed.attempts + 1,
-                nextAttemptAt: new Date(Date.now() + retryDelay(claimed.attempts)),
+                nextAttemptAt: new Date(
+                    Date.now() +
+                        Math.min(6 * 60 * 60 * 1_000, 60_000 * 2 ** Math.min(claimed.attempts, 8))
+                ),
                 leaseOwner: null,
                 leaseUntil: null,
                 lastError: message,
@@ -274,10 +273,6 @@ async function requestWithLease(id: number, force: boolean) {
             );
         throw cause;
     }
-}
-
-export function refreshAnimeRelease(id: number, options: { force?: boolean } = {}) {
-    return requestWithLease(id, options.force ?? false);
 }
 
 export async function storedAnimeRelease(id: number) {
