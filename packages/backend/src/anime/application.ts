@@ -1,10 +1,10 @@
-import { audioAvailabilityLabel, episodeAudioAvailabilityLabel } from '@arc/core/audio';
-import type { AudioMode } from '@arc/core/audio';
-import { currentAnimeSeason } from '@arc/core/season';
-import { withMovieBackdrop } from '@arc/core/catalog/movie-backdrop';
+import { audioAvailabilityLabel, episodeAudioAvailabilityLabel } from '@arc/core';
+import type { AudioMode } from '@arc/core';
+import { currentAnimeSeason } from '@arc/core';
+import { withMovieBackdrop } from '@arc/core';
 import { getHomepage } from './anilist/home';
 import { enrichAnimeCards } from './card-enrichment';
-import { toAnimeDetails } from '@arc/core/catalog/details';
+import { toAnimeDetails } from '@arc/core';
 import {
     getEpisodeRevision,
     getEpisodes,

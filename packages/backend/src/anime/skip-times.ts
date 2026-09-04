@@ -6,7 +6,7 @@ import {
     type SegmentTemplates,
     type SkipInterval,
     type SkipKind,
-} from '@arc/core/player/skip-times';
+} from '@arc/core';
 import { db } from '@arc/shared/db';
 import { animeEpisode, animeEpisodeSegmentTemplate } from '@arc/shared/db/schema';
 import { fetchAniSkip, validSkipInterval } from './aniskip';

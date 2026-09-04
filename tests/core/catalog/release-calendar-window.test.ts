@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { releaseCalendarWindow } from '@arc/core/catalog/release-calendar-window';
+import { releaseCalendarWindow } from '@arc/core';
 
 describe('release calendar refresh window', () => {
     test('pads the UTC week enough to cover local weeks across timezones', () => {

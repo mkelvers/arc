@@ -12,7 +12,7 @@
         AnimePageDeferredSchema,
         type AnimeArtwork,
         type AnimePageDeferred,
-    } from '@arc/core/contracts/anime';
+    } from '@arc/core';
     import { cn } from '$lib/utils';
     import type { PageData } from '../$types';
     import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';

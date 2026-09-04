@@ -2,8 +2,8 @@
     import { onDestroy, untrack } from 'svelte';
     import { CircleIcon, FunnelIcon, ListBulletsIcon, RadioButtonIcon } from 'phosphor-svelte';
 
-    import { browseSearchParams, type BrowseFilters } from '@arc/core/catalog/browse-filters';
-    import type { AnimeCard as AnimeCardModel } from '@arc/core/types';
+    import { browseSearchParams, type BrowseFilters } from '@arc/core';
+    import type { AnimeCard as AnimeCardModel } from '@arc/core';
     import emptyArtwork from '$lib/assets/browse-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';

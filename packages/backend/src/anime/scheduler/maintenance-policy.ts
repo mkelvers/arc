@@ -1,4 +1,4 @@
-import type { MaintenanceRequest } from '@arc/core/contracts/maintenance';
+import type { MaintenanceRequest } from '@arc/core';
 
 export function maintenancePriority(request: MaintenanceRequest) {
     if (request.kind === 'mapping_override' || request.kind === 'mapping_rediscover') {

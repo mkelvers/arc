@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { isDiscoverableAnime } from '@arc/core/catalog/discovery';
+import { isDiscoverableAnime } from '@arc/core';
 
 describe('anime catalog discovery', () => {
     test('admits normal TV and streaming anime with an established audience', () => {

@@ -2,10 +2,10 @@ import { and, eq, isNull, or } from 'drizzle-orm';
 import { load } from 'cheerio';
 import { z } from 'zod';
 
-import { audioAvailabilityLabel, type AudioMode } from '@arc/core/audio';
-import type { AnimeSeasonSelection } from '@arc/core/season';
-import type { AnimeCard } from '@arc/core/types';
-import { animeTitles, plainText } from '@arc/core/catalog/anilist-text';
+import { audioAvailabilityLabel, type AudioMode } from '@arc/core';
+import type { AnimeSeasonSelection } from '@arc/core';
+import type { AnimeCard } from '@arc/core';
+import { animeTitles, plainText } from '@arc/core';
 import type { AniListAnime } from '../anilist/types';
 import type { JsonValue } from '../../utils';
 import type {

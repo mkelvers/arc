@@ -3,7 +3,7 @@ import type {
     BrowseAnimeTaxonomyQuery,
     MediaFormat,
 } from '@arc/shared/graphql/generated/graphql';
-import { present } from '@arc/core/utils/array';
+import { present } from '../utils/array';
 import { animeTitles, mediaTitle, plainText } from './anilist-text';
 import { isDiscoverableAnime } from './discovery';
 import type { BrowseCatalogEntry } from './browse-types';

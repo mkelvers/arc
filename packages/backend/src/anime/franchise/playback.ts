@@ -1,5 +1,5 @@
-import { episodeAudioAvailabilityLabel, type AudioMode } from '@arc/core/audio';
-import type { FranchiseOrder } from '@arc/core/types';
+import { episodeAudioAvailabilityLabel, type AudioMode } from '@arc/core';
+import type { FranchiseOrder } from '@arc/core';
 import { watchEpisodeHref } from '../episodes/route';
 
 export type FranchisePlaybackEpisode = {

@@ -9,7 +9,7 @@ import {
     animeExternalIdLink,
     animeMappingOverride,
 } from '@arc/shared/db/schema';
-import { animeTitles } from '@arc/core/catalog/anilist-text';
+import { animeTitles } from '@arc/core';
 import type { AniListAnime } from '../anilist/types';
 import { type Mapping, type StoredMapping } from './types';
 
