@@ -1,3 +1,4 @@
+import { getEventListeners } from 'node:events';
 import { describe, expect, test } from 'bun:test';
 
 import {
@@ -6,12 +7,10 @@ import {
     episodeAudioModes,
     aniKotoMediaCandidates,
     attachEpisodeSubtitles,
-    fetchAniKotoResource,
     getAniKotoSimulcastPage,
     hasMixedAniKotoSeriesIds,
     isAniKotoDisguisedSegmentHost,
     isAniKotoTransientError,
-    isAniKotoNoMatchError,
     matchesAniKotoIdentity,
     matchesAniKotoIdentityOrTitle,
     matchesAniKotoRelatedIdentity,
@@ -30,7 +29,6 @@ import {
     removeSharedDubCaptions,
     resolveCandidates,
     unwrapAniKotoDisguisedSegment,
-    validateAniKotoMedia,
     serverMode,
     supportedMediaUrl,
     supportedSubtitleUrl,
@@ -58,7 +56,6 @@ describe('AniKoto provider rules', () => {
     test('classifies an unmatched AniList release as provider-unavailable', () => {
         const error = new AniKotoNoMatchError(208361);
 
-        expect(isAniKotoNoMatchError(error)).toBe(true);
         expect(isAniKotoTransientError(error)).toBe(false);
     });
 
@@ -509,43 +506,6 @@ describe('AniKoto provider rules', () => {
         ]);
     });
 
-    test('validates the HLS master, media playlist, and initial segment', async () => {
-        const requested: string[] = [];
-        await validateAniKotoMedia(
-            new URL('https://cdn.kryntal.top/episode/master.m3u8'),
-            async (target) => {
-                requested.push(target.toString());
-                if (target.pathname.endsWith('master.m3u8')) {
-                    return new Response(
-                        '#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nvideo/index.m3u8',
-                        {
-                            headers: {
-                                'content-type': 'application/vnd.apple.mpegurl',
-                            },
-                        }
-                    );
-                }
-                if (target.pathname.endsWith('index.m3u8')) {
-                    return new Response('#EXTM3U\n#EXTINF:4,\nsegment.ts', {
-                        headers: {
-                            'content-type': 'application/vnd.apple.mpegurl',
-                        },
-                    });
-                }
-                return new Response(new Uint8Array([0x47, 0x00, 0x01, 0x02]), {
-                    headers: {
-                        'content-type': 'video/mp2t',
-                    },
-                });
-            }
-        );
-        expect(requested).toEqual([
-            'https://cdn.kryntal.top/episode/master.m3u8',
-            'https://cdn.kryntal.top/episode/video/index.m3u8',
-            'https://cdn.kryntal.top/episode/video/segment.ts',
-        ]);
-    });
-
     test('keeps SUB source metadata when media validation is deferred', async () => {
         const originalFetch = globalThis.fetch;
         const mockedFetch: typeof fetch = Object.assign(
@@ -567,15 +527,6 @@ describe('AniKoto provider rules', () => {
                             },
                         ],
                     });
-                }
-                if (url.endsWith('/episode/master.m3u8')) {
-                    return new Response('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nvideo/index.m3u8');
-                }
-                if (url.endsWith('/episode/video/index.m3u8')) {
-                    return new Response('#EXTM3U\n#EXTINF:4,\nsegment.ts');
-                }
-                if (url.endsWith('/episode/video/segment.ts')) {
-                    return new Response(new Uint8Array([0x47, 0x00, 0x01, 0x02]));
                 }
                 throw new Error(`unexpected request: ${url}`);
             },
@@ -603,25 +554,6 @@ describe('AniKoto provider rules', () => {
         }
     });
 
-    test('retries transient media connection failures', async () => {
-        let attempts = 0;
-        const result = await fetchAniKotoResource(
-            new URL('https://cdn.kryntal.top/episode/master.m3u8'),
-            async () => {
-                attempts += 1;
-                if (attempts < 3) {
-                    throw Object.assign(
-                        new TypeError('The socket connection was closed unexpectedly'),
-                        { code: 'ECONNRESET' }
-                    );
-                }
-                return new Response('#EXTM3U');
-            }
-        );
-        expect(result.response.status).toBe(200);
-        expect(attempts).toBe(3);
-    });
-
     test('backs off the provider after a rate-limited request', async () => {
         const originalFetch = globalThis.fetch;
         let attempts = 0;
@@ -646,7 +578,7 @@ describe('AniKoto provider rules', () => {
         }
     });
 
-    test('unwraps JPEG-disguised HLS segments from current AniKoto shards', async () => {
+    test('unwraps JPEG-disguised HLS segments from current AniKoto shards', () => {
         const segment = new Uint8Array([0xff, 0xd8, 0xff, 0xd9, 0x47, 0x00, 0x01, 0x02]);
         expect(unwrapAniKotoDisguisedSegment(segment)).toEqual(
             new Uint8Array([0x47, 0x00, 0x01, 0x02])
@@ -654,46 +586,12 @@ describe('AniKoto provider rules', () => {
         expect(unwrapAniKotoDisguisedSegment(new Uint8Array([0x47, 0xff, 0xd9, 0x00]))).toEqual(
             new Uint8Array([0x47, 0xff, 0xd9, 0x00])
         );
-
-        await validateAniKotoMedia(
-            new URL('https://s1.akirax.buzz/episode/master.m3u8'),
-            async (target) => {
-                if (target.pathname.endsWith('master.m3u8')) {
-                    return new Response('#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nvideo/index.m3u8');
-                }
-                if (target.pathname.endsWith('index.m3u8')) {
-                    return new Response('#EXTM3U\n#EXTINF:4,\nhttps://s2.norami.top/segment.jpg');
-                }
-                return new Response(segment, {
-                    headers: {
-                        'content-type': 'image/jpeg',
-                    },
-                });
-            }
+        const prefixed = new Uint8Array([
+            0x49, 0x45, 0x4e, 0x44, 0xae, 0x42, 0x60, 0x82, 0x47, 0x00, 0x01, 0x02,
+        ]);
+        expect(unwrapAniKotoDisguisedSegment(prefixed.subarray(8))).toEqual(
+            new Uint8Array([0x47, 0x00, 0x01, 0x02])
         );
-    });
-
-    test('validates an MP4 range and cools down only the failed source URL', async () => {
-        const failed = new URL('https://cdn.kryntal.top/dead.mp4');
-        let failedAttempts = 0;
-        const deadFetch = async () => {
-            failedAttempts += 1;
-            return new Response('upstream failed', { status: 503 });
-        };
-        await expect(validateAniKotoMedia(failed, deadFetch)).rejects.toThrow();
-        await expect(validateAniKotoMedia(failed, deadFetch)).rejects.toThrow('cooling down');
-        expect(failedAttempts).toBe(1);
-
-        const sibling = new URL('https://cdn.kryntal.top/sibling.mp4');
-        await validateAniKotoMedia(sibling, async (_target, init) => {
-            expect(new Headers(init.headers).get('Range')).toBe('bytes=0-65535');
-            return new Response(new Uint8Array([0, 0, 0, 24, 0x66, 0x74, 0x79, 0x70]), {
-                status: 206,
-                headers: {
-                    'content-type': 'video/mp4',
-                },
-            });
-        });
     });
 
     test('resolves every candidate independently with four workers and preserves order', async () => {
@@ -719,23 +617,38 @@ describe('AniKoto provider rules', () => {
         expect(result.errors).toHaveLength(1);
     });
 
-    test('stops after every requested mode has a playable candidate', async () => {
-        const resolved: string[] = [];
+    test('releases abort listeners after resolving candidates', async () => {
+        const controller = new AbortController();
+        let workerSignal: AbortSignal = controller.signal;
         const result = await resolveCandidates(
-            ['sub-1', 'sub-2', 'dub-1', 'dub-2'],
-            async (candidate) => {
-                resolved.push(candidate);
-                await new Promise((resolve) => setTimeout(resolve, 1));
-                return candidate.endsWith('-1') ? candidate : null;
+            Array.from({ length: 100 }, (_, index) => index),
+            async (candidate, signal) => {
+                workerSignal = signal;
+                return candidate;
             },
-            {
-                concurrency: 1,
-                stopWhen: (results) => results[0] !== null && results[2] !== null,
-            }
+            { signal: controller.signal }
         );
 
-        expect(result.results).toEqual(['sub-1', null, 'dub-1', null]);
-        expect(resolved).toEqual(['sub-1', 'sub-2', 'dub-1']);
+        expect(result.results).toHaveLength(100);
+        expect(getEventListeners(workerSignal, 'abort')).toHaveLength(0);
+    });
+
+    test('stops stalled workers at the deadline without starting queued candidates', async () => {
+        const controller = new AbortController();
+        const started: number[] = [];
+        const pending = resolveCandidates(
+            [1, 2, 3],
+            (candidate) => {
+                started.push(candidate);
+                return new Promise<never>(() => undefined);
+            },
+            { concurrency: 2, signal: controller.signal }
+        );
+        controller.abort(new DOMException('Deadline reached', 'TimeoutError'));
+
+        expect(await pending).toEqual({ results: [null, null, null], errors: [] });
+        expect(started).toEqual([1, 2]);
+        expect(getEventListeners(controller.signal, 'abort')).toHaveLength(0);
     });
 
     test('rejects a finished series with an incomplete provider inventory', () => {

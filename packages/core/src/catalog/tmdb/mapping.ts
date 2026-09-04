@@ -24,8 +24,6 @@ import {
 } from './title';
 import { type Candidate, type Mapping, type StoredMapping } from './types';
 
-const tvEvidenceCandidateLimit = 6;
-
 interface RankedCandidate {
     candidate: Candidate;
     searchRank: number;
@@ -200,7 +198,7 @@ async function preferredTvMapping(
                 left.searchRank - right.searchRank ||
                 candidateScore(right.candidate, anime) - candidateScore(left.candidate, anime)
         )
-        .slice(0, tvEvidenceCandidateLimit - 1)
+        .slice(0, 5)
         .map(({ candidate }) => candidate);
     const expectedStart = animeDate(anime.startDate);
     const expectedEnd = animeDate(anime.endDate);

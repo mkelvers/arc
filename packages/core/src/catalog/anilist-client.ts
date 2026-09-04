@@ -60,7 +60,7 @@ async function refresh<TResult, TVariables>(
 ) {
     const operation = document.toString().match(/(?:query|mutation)\s+(\w+)/)?.[1] ?? 'anonymous';
     const data = await coordinatedAniListRequest(operation, () =>
-        graphql("https://graphql.anilist.co", document, variables, options)
+        graphql('https://graphql.anilist.co', document, variables, options)
     );
     const fetchedAt = new Date();
     const refreshAfter = new Date(

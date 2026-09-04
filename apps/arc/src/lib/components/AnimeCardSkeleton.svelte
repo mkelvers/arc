@@ -1,6 +1,7 @@
 <script lang="ts">
-    import { Card, CardMedia } from '$lib/components/ui/card';
-    import { Skeleton } from '$lib/components/ui/skeleton';
+    import Card from '$lib/components/ui/card/Card.svelte';
+    import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
+    import Skeleton from '$lib/components/ui/skeleton/Skeleton.svelte';
 
     interface Props {
         variant?: 'poster' | 'compact' | 'top';

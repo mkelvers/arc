@@ -184,5 +184,3 @@ export async function homePage(source: CatalogSource, userId: string, now = new 
         continueWatching,
     };
 }
-
-export type { HomeHero } from './source';

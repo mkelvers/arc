@@ -1,13 +1,21 @@
+<script module lang="ts">
+    import type { AnimeCard } from '@arc/core/client';
+
+    export type AnimeCardItem = AnimeCard & {
+        backdrop?: string | null;
+    };
+</script>
+
 <script lang="ts">
     import { PlayIcon, StarIcon } from 'phosphor-svelte';
 
     import { m } from '$lib/i18n.svelte';
     import { cn } from '$lib/utils';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
-    import { Card, CardMedia } from '$lib/components/ui/card';
+    import Card from '$lib/components/ui/card/Card.svelte';
+    import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
-    import type { AnimeCardItem } from './AnimeCard.types';
 
     interface Props {
         anime: AnimeCardItem;

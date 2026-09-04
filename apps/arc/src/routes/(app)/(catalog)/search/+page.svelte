@@ -9,7 +9,7 @@
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
-    import { Input } from '$lib/components/ui/input';
+    import Input from '$lib/components/ui/input/Input.svelte';
     import SearchResultsGroup from './_components/SearchResultsGroup.svelte';
     import { RecentSearches } from './recent.svelte';
     import type { PageProps } from './$types';

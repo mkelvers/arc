@@ -16,7 +16,7 @@ import { animeTitles } from './anilist-text';
 import { ensureInternalAnimeId } from './identity';
 import {
     anikotoProvider,
-    isAniKotoNoMatchError,
+    AniKotoNoMatchError,
     isAniKotoTransientError,
     recordAniKotoInventoryVerification,
 } from '../providers/anikoto';
@@ -60,12 +60,6 @@ export class EpisodeInventoryUnresolvedError extends Error {
     ) {
         super(`Episode metadata could not resolve the provider inventory for AniList ${anilistId}`);
     }
-}
-
-export function isEpisodeInventoryUnresolvedError(
-    cause: unknown
-): cause is EpisodeInventoryUnresolvedError {
-    return cause instanceof EpisodeInventoryUnresolvedError;
 }
 
 const inventoryRequests = new Map<number, ReturnType<typeof storedEpisodes>>();
@@ -150,7 +144,7 @@ async function fetchAndStore(
     try {
         providerEpisodes = await anikotoProvider.getEpisodes(anime);
     } catch (cause) {
-        if (!isAniKotoNoMatchError(cause)) {
+        if (!(cause instanceof AniKotoNoMatchError)) {
             throw cause;
         }
 
@@ -621,8 +615,8 @@ export function discoverEpisodeInventory(anime: AniListAnime) {
             );
             if (
                 !isAniKotoTransientError(cause) &&
-                !isAniKotoNoMatchError(cause) &&
-                !isEpisodeInventoryUnresolvedError(cause) &&
+                !(cause instanceof AniKotoNoMatchError) &&
+                !(cause instanceof EpisodeInventoryUnresolvedError) &&
                 !(
                     cause instanceof GraphQLRequestError &&
                     (cause.status === undefined || cause.status === 429 || cause.status >= 500)

@@ -11,13 +11,9 @@ import {
 import {
     discoverEpisodeInventory,
     episodeInventoryBackfillKey,
-    isEpisodeInventoryUnresolvedError,
+    EpisodeInventoryUnresolvedError,
 } from '../catalog/episode-sync';
-import {
-    AniKotoRequestError,
-    isAniKotoLocalCooldownError,
-    isAniKotoNoMatchError,
-} from '../providers/anikoto';
+import { AniKotoRequestError, AniKotoNoMatchError } from '../providers/anikoto';
 import { episodeMetadataRevision } from '../catalog/episode-policy';
 import { rediscoverMapping, setMetadataMappingOverride } from './mappings';
 import { MaintenanceRequestSchema, type MaintenanceRequest } from '../contracts/maintenance';
@@ -237,7 +233,7 @@ async function finishMaintenanceTask(
             );
         return 'completed' as const;
     } catch (cause) {
-        if (isAniKotoLocalCooldownError(cause)) {
+        if (cause instanceof AniKotoRequestError && cause.localCooldown) {
             const retryAt = new Date(Date.now() + (cause.retryAfterMs ?? 30_000));
             await db
                 .update(maintenanceTask)
@@ -258,7 +254,10 @@ async function finishMaintenanceTask(
             return 'retried' as const;
         }
 
-        if (isAniKotoNoMatchError(cause) || isEpisodeInventoryUnresolvedError(cause)) {
+        if (
+            cause instanceof AniKotoNoMatchError ||
+            cause instanceof EpisodeInventoryUnresolvedError
+        ) {
             const retryAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1_000);
             await db
                 .update(maintenanceTask)

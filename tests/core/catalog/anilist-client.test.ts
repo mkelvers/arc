@@ -54,8 +54,8 @@ describe('AniList GraphQL requests', () => {
 
         try {
             const result = graphql(server.url.href, document, {});
-            expect(result).rejects.toBeInstanceOf(GraphQLRequestError);
-            expect(result).rejects.toMatchObject({ message: 'Rate limited', status: 429 });
+            await expect(result).rejects.toBeInstanceOf(GraphQLRequestError);
+            await expect(result).rejects.toMatchObject({ message: 'Rate limited', status: 429 });
         } finally {
             await server.stop(true);
         }
@@ -84,7 +84,7 @@ describe('AniList GraphQL requests', () => {
         });
 
         try {
-            expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
+            await expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
                 status: 429,
                 retryAfterMs: 45_000,
             });
@@ -137,7 +137,7 @@ describe('AniList GraphQL requests', () => {
         });
 
         try {
-            expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
+            await expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
                 message: 'The GraphQL endpoint returned 502: <html>Unavailable</html>',
                 status: 502,
             });
@@ -153,7 +153,7 @@ describe('AniList GraphQL requests', () => {
         });
 
         try {
-            expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
+            await expect(graphql(server.url.href, document, {})).rejects.toMatchObject({
                 message: 'The GraphQL endpoint returned no data',
             });
         } finally {

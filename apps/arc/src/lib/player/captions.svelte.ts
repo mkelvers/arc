@@ -5,7 +5,6 @@ import {
     hlsTimelineOffsets,
     parseWebVtt,
     sameSubtitleCues,
-    streamsFor,
     subtitleOptionsFor,
     subtitleReferenceTracks,
     subtitleTracks,
@@ -155,7 +154,7 @@ export class Captions {
     }
 
     private offerAvailable(sources: Sources, mode: AudioMode) {
-        const source = streamsFor(sources, mode).find((candidate) => {
+        const source = (sources[mode] ?? []).find((candidate) => {
             const tracks = subtitleTracks(sources, mode, candidate);
             return tracks.own.length > 0 || tracks.sub !== null;
         });

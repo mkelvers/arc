@@ -49,11 +49,6 @@ const episodeSchema = z.object({
 });
 type TmdbEpisode = z.infer<typeof episodeSchema>;
 
-const requestConcurrency = 4;
-// Sparse per-episode endpoints are optional fallbacks. Bound them so one
-// long-running release cannot turn a refresh into thousands of requests.
-const episodeFallbackBudget = 24;
-
 async function mapConcurrent<T, R>(values: T[], map: (value: T, index: number) => Promise<R>) {
     const results = Array<R>(values.length);
     let next = 0;
@@ -64,9 +59,7 @@ async function mapConcurrent<T, R>(values: T[], map: (value: T, index: number) =
         }
     };
 
-    await Promise.all(
-        Array.from({ length: Math.min(requestConcurrency, values.length) }, () => worker())
-    );
+    await Promise.all(Array.from({ length: Math.min(4, values.length) }, worker));
 
     return results;
 }
@@ -442,7 +435,8 @@ export async function getEpisodeMetadata(
         );
         const needed = episodeDetailsNeeded(candidate, localizedText);
         const needsFallback = needed.details || needed.translations || needed.images;
-        const fetchFallback = needsFallback && fallbacks < episodeFallbackBudget;
+        // Bound optional per-episode fallbacks for long releases.
+        const fetchFallback = needsFallback && fallbacks < 24;
         if (fetchFallback) {
             fallbacks += 1;
         }

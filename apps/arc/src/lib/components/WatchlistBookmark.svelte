@@ -6,7 +6,7 @@
     import { cn } from '$lib/utils';
     import { watchlist, WatchlistAuthenticationError } from '$lib/watchlist.svelte';
     import Tooltip from './ui/Tooltip.svelte';
-    import { Button } from './ui/button';
+    import Button from './ui/button/button.svelte';
     import { m } from '$lib/i18n.svelte';
 
     interface Props {

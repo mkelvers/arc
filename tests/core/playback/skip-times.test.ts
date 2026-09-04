@@ -26,7 +26,7 @@ describe('fetchAniSkip', () => {
             )
         );
 
-        expect(fetchAniSkip(62_001, 17)).resolves.toEqual({
+        await expect(fetchAniSkip(62_001, 17)).resolves.toEqual({
             opening: null,
             ending: null,
             source: 'aniskip',
@@ -43,7 +43,7 @@ describe('fetchAniSkip', () => {
             )
         );
 
-        expect(fetchAniSkip(62_001, 17)).rejects.toThrow('AniSkip request failed with 503');
+        await expect(fetchAniSkip(62_001, 17)).rejects.toThrow('AniSkip request failed with 503');
     });
 });
 
