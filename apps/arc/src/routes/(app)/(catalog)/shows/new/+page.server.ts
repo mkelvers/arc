@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
-import { CatalogPageSchema } from '@arc/api-contract/anime';
+import { CatalogPageSchema } from '@arc/core/contracts/anime';
 import { parseBrowseFilters } from '@arc/core/catalog/browse-filters';
 import type { PageServerLoad } from './$types';
 

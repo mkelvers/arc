@@ -19,7 +19,6 @@
       "name": "@arc/api",
       "version": "0.0.1",
       "dependencies": {
-        "@arc/api-contract": "workspace:*",
         "@arc/backend": "workspace:*",
         "@arc/core": "workspace:*",
         "@arc/shared": "workspace:*",
@@ -38,7 +37,6 @@
       "name": "arc",
       "version": "0.0.1",
       "dependencies": {
-        "@arc/api-contract": "workspace:*",
         "@arc/core": "workspace:*",
         "@arc/shared": "workspace:*",
         "@fontsource-variable/dm-sans": "^5.3.0",
@@ -79,23 +77,10 @@
         "typescript": "~6.0.3",
       },
     },
-    "packages/api-contract": {
-      "name": "@arc/api-contract",
-      "version": "0.0.1",
-      "dependencies": {
-        "@arc/core": "workspace:*",
-        "zod": "^4.4.3",
-      },
-      "devDependencies": {
-        "@types/bun": "^1.4.0",
-        "typescript": "~6.0.3",
-      },
-    },
     "packages/backend": {
       "name": "@arc/backend",
       "version": "0.0.1",
       "dependencies": {
-        "@arc/api-contract": "workspace:*",
         "@arc/core": "workspace:*",
         "@arc/shared": "workspace:*",
         "@graphql-typed-document-node/core": "^3.2.0",
@@ -175,8 +160,6 @@
   },
   "packages": {
     "@arc/api": ["@arc/api@workspace:apps/api"],
-
-    "@arc/api-contract": ["@arc/api-contract@workspace:packages/api-contract"],
 
     "@arc/backend": ["@arc/backend@workspace:packages/backend"],
 

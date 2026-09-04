@@ -17,7 +17,6 @@
         "format:check": "oxfmt --check"
     },
     "dependencies": {
-        "@arc/api-contract": "workspace:*",
         "@arc/core": "workspace:*",
         "@arc/shared": "workspace:*",
         "@fontsource-variable/dm-sans": "^5.3.0",
