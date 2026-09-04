@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { goto } from '$app/navigation';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
     import FranchiseOrder from './FranchiseOrder.svelte';
@@ -43,8 +42,6 @@
     let extendedMetadataLoading = $state(true);
     let loadedAnimeId = $state<number | null>(null);
     let artworkLoading = $state(true);
-    let progressActionPending = $state(false);
-    let progressActionFailed = $state(false);
     const loading = $derived(artworkLoading || loadedAnimeId !== data.anime.id);
 
     async function loadDeferred() {
@@ -99,30 +96,6 @@
             if (loadedAnimeId === animeId) {
                 artworkLoading = false;
             }
-        }
-    }
-
-    async function updateWatchProgress() {
-        if (progressActionPending) {
-            return;
-        }
-
-        progressActionPending = true;
-        progressActionFailed = false;
-        try {
-            const response = await fetch(`/v1/anime/${data.anime.id}/progress/complete`, { method: 'POST' });
-            if (response.status === 401) {
-                await goto('/login');
-                return;
-            }
-            if (!response.ok) {
-                throw new Error(`Watch progress request failed with ${response.status}`);
-            }
-            await loadDeferred();
-        } catch {
-            progressActionFailed = true;
-        } finally {
-            progressActionPending = false;
         }
     }
 
@@ -186,24 +159,6 @@
                             >
                                 {m.anime_view_media()}
                             </a>
-                            <button
-                                type="button"
-                                role="menuitem"
-                                data-dropdown-close
-                                disabled={progressActionPending}
-                                class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none disabled:cursor-wait disabled:opacity-50"
-                                onclick={updateWatchProgress}
-                            >
-                                {m.anime_mark_complete()}
-                            </button>
-                            {#if progressActionFailed}
-                                <p
-                                    class="border-t border-white/10 px-4 py-3 text-xs text-status-error"
-                                    role="alert"
-                                >
-                                    {m.anime_watch_progress_failed()}
-                                </p>
-                            {/if}
                         </div>
                     {/snippet}
                 </Dropdown>
