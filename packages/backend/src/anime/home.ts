@@ -5,7 +5,7 @@ import { db } from '@arc/db';
 import { homeHeroSelection } from '@arc/db/schema';
 import { getHomeHeroCandidates } from './anilist/hero';
 import { storedAnimeRelease } from './anilist/releases';
-import { mediaTitle, present } from '@arc/core/catalog/anilist-text';
+import { mediaTitle } from '@arc/core/catalog/anilist-text';
 import { isDiscoverableAnime } from '@arc/core/catalog/discovery';
 import { getEpisodes } from './episodes';
 import { logger } from '@arc/backend/internal/logger';
@@ -99,7 +99,7 @@ async function eligibleHero(id: number): Promise<HomeHeroAnime | null> {
             audioLabel: audioAvailabilityLabel([
                 ...new Set(episodes.flatMap(({ audio }) => audio)),
             ]),
-            genres: present(details.genres),
+            genres: details.genres?.filter((genre) => genre !== null) ?? [],
             description: await resolveHeroSynopsis(details),
         };
     } catch (cause) {

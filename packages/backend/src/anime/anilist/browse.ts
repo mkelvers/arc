@@ -12,7 +12,7 @@ import {
 } from '@arc/shared/anilist/generated/graphql';
 import { GraphQLRequestError } from '#graphql';
 import { request } from './client';
-import { mediaTitle, plainText, present } from '@arc/core/catalog/anilist-text';
+import { mediaTitle, plainText } from '@arc/core/catalog/anilist-text';
 import { isDiscoverableAnime } from '@arc/core/catalog/discovery';
 import type { BrowseCatalogEntry } from '@arc/core/catalog/browse-types';
 
@@ -39,53 +39,55 @@ function browseEntries(
     mediaEntries: NonNullable<NonNullable<BrowseAnimePageQuery['Page']>['media']>,
     formats: readonly MediaFormat[] = ['TV', 'ONA']
 ) {
-    return present(mediaEntries).flatMap((media) => {
-        if (!isDiscoverableAnime(media, formats)) {
-            return [];
-        }
+    return mediaEntries
+        .filter((value) => value !== null)
+        .flatMap((media) => {
+            if (!isDiscoverableAnime(media, formats)) {
+                return [];
+            }
 
-        const imageUrl = media.coverImage?.extraLarge ?? media.coverImage?.large;
-        if (!imageUrl) {
-            return [];
-        }
+            const imageUrl = media.coverImage?.extraLarge ?? media.coverImage?.large;
+            if (!imageUrl) {
+                return [];
+            }
 
-        const title = mediaTitle(media);
-        const titles = [
-            title,
-            media.title?.english,
-            media.title?.romaji,
-            media.title?.native,
-            ...present(media.synonyms),
-        ]
-            .map((title) => title?.trim())
-            .filter(
-                (title, index, values): title is string =>
-                    Boolean(title) && values.indexOf(title) === index
-            );
-
-        return [
-            {
-                anilistId: media.id,
+            const title = mediaTitle(media);
+            const titles = [
                 title,
-                searchText: titles.join('\n'),
-                imageUrl,
-                synopsis: plainText(media.description),
-                genres: present(media.genres),
-                tags: present(media.tags).map(({ name }) => name),
-                format: media.format,
-                status: media.status,
-                source: media.source,
-                season: media.season,
-                seasonYear: media.seasonYear,
-                countryOfOrigin:
-                    z.string().nullable().safeParse(media.countryOfOrigin).data ?? null,
-                isAdult: media.isAdult !== false,
-                popularity: media.popularity,
-                duration: media.duration,
-                averageScore: media.averageScore,
-            } satisfies BrowseCatalogEntry,
-        ];
-    });
+                media.title?.english,
+                media.title?.romaji,
+                media.title?.native,
+                ...(media.synonyms?.filter((value) => value !== null) ?? []),
+            ]
+                .map((title) => title?.trim())
+                .filter(
+                    (title, index, values): title is string =>
+                        Boolean(title) && values.indexOf(title) === index
+                );
+
+            return [
+                {
+                    anilistId: media.id,
+                    title,
+                    searchText: titles.join('\n'),
+                    imageUrl,
+                    synopsis: plainText(media.description),
+                    genres: media.genres?.filter((genre) => genre !== null) ?? [],
+                    tags: (media.tags?.filter((tag) => tag !== null) ?? []).map(({ name }) => name),
+                    format: media.format,
+                    status: media.status,
+                    source: media.source,
+                    season: media.season,
+                    seasonYear: media.seasonYear,
+                    countryOfOrigin:
+                        z.string().nullable().safeParse(media.countryOfOrigin).data ?? null,
+                    isAdult: media.isAdult !== false,
+                    popularity: media.popularity,
+                    duration: media.duration,
+                    averageScore: media.averageScore,
+                } satisfies BrowseCatalogEntry,
+            ];
+        });
 }
 
 export async function getBrowsePage(
@@ -138,16 +140,24 @@ export async function getBrowseTaxonomy(forceRefresh = false) {
     const sortedUnique = (values: string[]) =>
         [...new Set(values)].sort((left, right) => left.localeCompare(right, 'en'));
     const taxonomy = {
-        genres: sortedUnique(present(response.GenreCollection)),
+        genres: sortedUnique(response.GenreCollection?.filter((value) => value !== null) ?? []),
         tags: sortedUnique(
-            present(response.tags)
+            (response.tags?.filter((value) => value !== null) ?? [])
                 .filter(({ isAdult }) => isAdult === false)
                 .map(({ name }) => name)
         ),
-        formats: present(response.formats?.enumValues).map(({ name }) => name),
-        statuses: present(response.statuses?.enumValues).map(({ name }) => name),
-        sources: present(response.sources?.enumValues).map(({ name }) => name),
-        seasons: present(response.seasons?.enumValues).map(({ name }) => name),
+        formats: (response.formats?.enumValues?.filter((value) => value !== null) ?? []).map(
+            ({ name }) => name
+        ),
+        statuses: (response.statuses?.enumValues?.filter((value) => value !== null) ?? []).map(
+            ({ name }) => name
+        ),
+        sources: (response.sources?.enumValues?.filter((value) => value !== null) ?? []).map(
+            ({ name }) => name
+        ),
+        seasons: (response.seasons?.enumValues?.filter((value) => value !== null) ?? []).map(
+            ({ name }) => name
+        ),
     } satisfies BrowseSourceTaxonomy;
 
     if (
