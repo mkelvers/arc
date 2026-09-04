@@ -4,6 +4,7 @@ import type { BrowseFilters } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
 import type { AnimeCard } from '@arc/shared/types';
 import { db } from '@arc/db';
+import type { BrowseCatalogEntry } from '@arc/core/catalog/browse-types';
 import {
     animeCatalog,
     animeCatalogRefresh,
@@ -15,12 +16,11 @@ import {
 import {
     getBrowsePage,
     type AniListBrowseFilters,
-    type BrowseCatalogEntry,
     type BrowseSourceTaxonomy,
 } from './anilist/browse';
 import { storedReleaseCards } from './anilist/releases';
 import { enrichAnimeCards } from './card-enrichment';
-import { popularCatalogPages } from './catalog-pagination';
+import { popularCatalogPages } from '@arc/core/catalog/browse-pagination';
 import { createAnimeSearchIndex } from './search-index';
 
 type CatalogPageSnapshot = {

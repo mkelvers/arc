@@ -1,6 +1,4 @@
-import type { BrowseCatalogEntry } from './anilist/browse';
-
-const catalogPageSize = 42;
+import type { BrowseCatalogEntry } from './browse-types';
 
 export function popularCatalogPages(entries: BrowseCatalogEntry[]) {
     const unique = new Map<number, BrowseCatalogEntry>();
@@ -17,8 +15,8 @@ export function popularCatalogPages(entries: BrowseCatalogEntry[]) {
             left.anilistId - right.anilistId
     );
     const pages: BrowseCatalogEntry[][] = [];
-    for (let offset = 0; offset < ordered.length; offset += catalogPageSize) {
-        pages.push(ordered.slice(offset, offset + catalogPageSize));
+    for (let offset = 0; offset < ordered.length; offset += 42) {
+        pages.push(ordered.slice(offset, offset + 42));
     }
 
     return pages;
