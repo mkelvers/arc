@@ -50,10 +50,6 @@ export type ReleaseCalendarEntry = {
     imageUrl: string | null;
 };
 
-export function deduplicateReleaseCalendarEntries(entries: ReleaseCalendarEntry[]) {
-    return [...new Map(entries.map((entry) => [entry.airingId, entry])).values()];
-}
-
 export function parseReleaseCalendarPage(response: unknown) {
     const parsed = releaseCalendarPageSchema.safeParse(response);
     if (!parsed.success) {
