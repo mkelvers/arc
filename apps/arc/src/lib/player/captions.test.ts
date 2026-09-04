@@ -42,17 +42,40 @@ const players: InstanceType<typeof Playback>[] = [];
 
 function playerFor(sources: Sources = { sub: streams }) {
     const player = new Playback(sources, null);
-    const video = {
+    const video = Object.assign(Object.create(null), {
         src: '',
         currentTime: 0,
         duration: 1439,
         paused: true,
-        removeAttribute() {
+        muted: false,
+        volume: 1,
+        seeking: false,
+        readyState: 4,
+        buffered: {
+            length: 0,
+            start() {
+                return 0;
+            },
+            end() {
+                return 0;
+            },
+        },
+        canPlayType() {
+            return '';
+        },
+        pause() {
+            video.paused = true;
+        },
+        play() {
+            video.paused = false;
+            return Promise.resolve();
+        },
+        removeAttribute(_name: string) {
             video.src = '';
         },
         load() {},
-    };
-    player.video = video as HTMLVideoElement;
+    });
+    player.video = video;
     players.push(player);
     return player;
 }
