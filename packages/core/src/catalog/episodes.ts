@@ -1,17 +1,9 @@
-import { and, eq } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
+import { asc, and, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@arc/shared/db';
 import { animeEpisode, animeEpisodeSync } from '@arc/shared/db/schema';
-import type { AniListAnime } from '@arc/core';
-import { storedEpisodes, storedRelatedReleaseTitles } from './episodes/model';
-import { episodesAvailableToWatch, episodeMetadataRefreshRequired } from '@arc/core';
-import { episodeRevision } from './episodes/revision';
-
-export async function getEpisodes(anime: AniListAnime) {
-    // Page reads use the last verified provider inventory; the page operation
-    // explicitly rediscovers only when the inventory or its metadata is incomplete.
-    return episodesAvailableToWatch(await storedEpisodes(anime), anime);
-}
+import { episodeMetadataRefreshRequired } from './episode-policy';
 
 export async function needsEpisodeMetadataRefresh(anilistId: number, metadataExternalIdId: number) {
     const [syncRows, episodeRows] = await Promise.all([
@@ -93,18 +85,56 @@ export async function getEpisodeRevision(anilistId: number) {
         .from(animeEpisodeSync)
         .where(eq(animeEpisodeSync.anilistId, anilistId))
         .limit(1);
-    if (!state) {
-        return null;
-    }
+    return state ? episodeRevision(state) : null;
+}
 
-    return episodeRevision(state);
+export function episodeRevision(state: {
+    sourceRevision: string | null;
+    mediaStatus: string | null;
+    nextAiringAt: Date | null;
+    nextAiringEpisode: number | null;
+    lastSuccessAt: Date | null;
+}) {
+    return createHash('sha256')
+        .update(
+            JSON.stringify({
+                sourceRevision: state.sourceRevision,
+                mediaStatus: state.mediaStatus,
+                nextAiringAt: state.nextAiringAt?.toISOString() ?? null,
+                nextAiringEpisode: state.nextAiringEpisode,
+                lastSuccessAt: state.lastSuccessAt?.toISOString() ?? null,
+            })
+        )
+        .digest('hex');
 }
 
 export async function getRelatedReleaseTitles(anilistIds: number[]) {
     const ids = [...new Set(anilistIds)].filter((id) => Number.isSafeInteger(id) && id > 0);
-    // Related titles are optional matching evidence. A watch request must not
-    // discover and synchronize every adjacent release merely to obtain them.
-    const stored = await storedRelatedReleaseTitles(ids);
+    if (!ids.length) {
+        return [];
+    }
 
-    return stored.map(({ episodes }) => episodes);
+    const rows = await db
+        .select({
+            anilistId: animeEpisode.anilistId,
+            number: animeEpisode.number,
+            title: animeEpisode.metadataTitle,
+            titleSource: animeEpisode.metadataTitleSource,
+        })
+        .from(animeEpisode)
+        .where(inArray(animeEpisode.anilistId, ids))
+        .orderBy(asc(animeEpisode.anilistId), asc(animeEpisode.number));
+    const releases = new Map<number, { number: number; title: string }[]>();
+
+    for (const row of rows) {
+        if (!row.titleSource || !row.title?.trim()) {
+            continue;
+        }
+
+        const release = releases.get(row.anilistId) ?? [];
+        release.push({ number: row.number, title: row.title });
+        releases.set(row.anilistId, release);
+    }
+
+    return [...releases].map(([, episodes]) => episodes);
 }

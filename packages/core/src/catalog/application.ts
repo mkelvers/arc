@@ -22,7 +22,7 @@ import {
 import { refreshPopularCatalog } from './refresh';
 import { currentAnimeSeason } from '../season';
 import { homePage } from './home';
-import { createReleaseCalendarOperations } from './release-calendar';
+import { refreshReleaseCalendar, releaseCalendar } from './release-calendar';
 import { createSearchOperation } from './search';
 import { createSimulcastOperations } from './simulcast';
 import type { BrowseSourceTaxonomy } from './browse-transform';
@@ -73,7 +73,6 @@ function audioModes(rows: Array<{ anilistId: number; audio: AudioMode[] }>) {
 
 export function createCatalogApplication(source: CatalogSource) {
     const search = createSearchOperation(source);
-    const releaseCalendar = createReleaseCalendarOperations(source);
     const simulcast = createSimulcastOperations(source);
 
     async function popularAnimePage(page: number, filters: BrowseFilters) {
@@ -220,8 +219,8 @@ export function createCatalogApplication(source: CatalogSource) {
         refreshCatalogSnapshots,
         refreshCatalogTaxonomy: () => source.browseTaxonomy(true).then(refreshCatalogTaxonomy),
         refreshCurrentSimulcast: simulcast.refreshCurrentSimulcast,
-        refreshReleaseCalendar: releaseCalendar.refreshReleaseCalendar,
-        releaseCalendar: releaseCalendar.releaseCalendar,
+        refreshReleaseCalendar: (now?: Date) => refreshReleaseCalendar(source.releaseCalendar, now),
+        releaseCalendar,
         simulcast: simulcast.simulcast,
     };
 }

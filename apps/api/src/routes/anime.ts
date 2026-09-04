@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { AnimeArtworkSchema, AnimeIdSchema } from '@arc/core';
+import { AnimeArtworkSchema, AnimeIdSchema, getEpisodeRevision } from '@arc/core';
 import {
     animePageDeferred,
     animePageArtwork,
@@ -12,7 +12,6 @@ import {
     watchPlayback,
     watchSegments,
 } from '@arc/backend/internal/anime/application';
-import { getEpisodeRevision } from '@arc/backend/internal/anime/episodes';
 import { middleware, validate, type ApiEnvironment } from '../http';
 import { playbackResponse } from './playback-response';
 

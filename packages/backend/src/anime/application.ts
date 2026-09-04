@@ -8,7 +8,7 @@ import {
     getRelatedReleaseTitles,
     getStoredAiringSchedule,
     needsEpisodeMetadataRefresh,
-} from './episodes';
+} from '@arc/core';
 import { episodesAvailableToWatch } from '@arc/core';
 import {
     discoverEpisodeInventory,
