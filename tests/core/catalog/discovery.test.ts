@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
-import { isDiscoverableAnime } from './discovery';
+import { isDiscoverableAnime } from '@arc/core/catalog/discovery';
 
-describe('anime discovery catalog', () => {
+describe('anime catalog discovery', () => {
     test('admits normal TV and streaming anime with an established audience', () => {
         expect(isDiscoverableAnime({ format: 'TV', popularity: 2_000, duration: 24 })).toBe(true);
         expect(isDiscoverableAnime({ format: 'ONA', popularity: 3_000, duration: null })).toBe(
@@ -24,7 +24,7 @@ describe('anime discovery catalog', () => {
     });
 
     test('admits movies only when the caller explicitly requests them', () => {
-        const movie = { format: 'MOVIE' as const, popularity: 20_000, duration: 110 };
+        const movie = { format: 'MOVIE' as const, popularity: 10_000, duration: 90 };
 
         expect(isDiscoverableAnime(movie)).toBe(false);
         expect(isDiscoverableAnime(movie, ['MOVIE'])).toBe(true);

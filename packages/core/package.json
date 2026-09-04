@@ -4,6 +4,7 @@
     "private": true,
     "type": "module",
     "exports": {
+        "./catalog/discovery": "./src/catalog/discovery.ts",
         "./catalog/identity": "./src/catalog/identity.ts"
     },
     "scripts": {
@@ -12,6 +13,7 @@
     },
     "dependencies": {
         "@arc/db": "workspace:*",
+        "@arc/shared": "workspace:*",
         "drizzle-orm": "catalog:"
     },
     "devDependencies": {

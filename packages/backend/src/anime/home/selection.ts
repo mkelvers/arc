@@ -1,5 +1,5 @@
 import type { MediaFormat } from '@arc/shared/anilist/generated/graphql';
-import { isDiscoverableAnime } from '../discovery';
+import { isDiscoverableAnime } from '@arc/core/catalog/discovery';
 
 export interface HomeHeroCandidate {
     anilistId: number;
