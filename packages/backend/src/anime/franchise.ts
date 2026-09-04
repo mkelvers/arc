@@ -8,7 +8,7 @@ import {
 import { db, type DatabaseTransaction } from '@arc/db';
 import { animeEpisode, animeFranchise, animeProviderMapping, animeRelease } from '@arc/db/schema';
 import { request } from './anilist/client';
-import { plainText, present } from '@arc/core/catalog/anilist-text';
+import { plainText } from '@arc/core/catalog/anilist-text';
 import { enrichAnimeCards } from './card-enrichment';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';
 import { FranchiseRecordSchema, verifiedFranchiseRecord } from './franchise/record';
@@ -38,7 +38,7 @@ async function fetchMetadata(entries: ChiakiEntry[]) {
             { refreshAfterMs: 7 * 24 * 60 * 60 * 1_000 }
         );
 
-        for (const media of present(result.Page?.media)) {
+        for (const media of result.Page?.media?.filter((value) => value !== null) ?? []) {
             if (media && media.idMal) {
                 metadata.set(media.idMal, media);
             }

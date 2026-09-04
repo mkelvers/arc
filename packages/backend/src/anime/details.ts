@@ -1,5 +1,4 @@
 import type { AniListAnime, AniListAnimeDetailsMedia } from './anilist/types';
-import { present } from '@arc/core/catalog/anilist-text';
 import { z } from 'zod';
 
 const storedAnimeDetailsSchema = z.looseObject({
@@ -154,7 +153,7 @@ function formatDescription(value: string | null) {
 function formatStaff(media: AniListAnimeDetailsMedia) {
     const credits = new Map<string, string[]>();
 
-    for (const edge of present(media.staff?.edges)) {
+    for (const edge of media.staff?.edges?.filter((value) => value !== null) ?? []) {
         const name = edge.node?.name?.full?.trim();
         const role = edge.role ? staffRoles.get(edge.role) : undefined;
 
@@ -167,7 +166,9 @@ function formatStaff(media: AniListAnimeDetailsMedia) {
 }
 
 function formatRankings(media: AniListAnimeDetailsMedia) {
-    const rankings = present(media.rankings).filter(({ type }) => type === 'POPULAR');
+    const rankings = (media.rankings?.filter((value) => value !== null) ?? []).filter(
+        ({ type }) => type === 'POPULAR'
+    );
     const seasonal = rankings.find(
         ({ season, year }) => season === media.season && year === media.seasonYear
     );
@@ -208,19 +209,21 @@ export function toAnimeDetails(
             `Anime ${media.id}`,
         bannerImage: media.bannerImage ?? null,
         description: formatDescription(description),
-        genres: present(media.genres),
+        genres: media.genres?.filter((genre) => genre !== null) ?? [],
         format: enumLabel(media.format),
         status: media.status,
         nextAiringEpisode,
         score: media.averageScore ?? 0,
         members: count.format(media.popularity ?? 0),
         favourites: count.format(media.favourites ?? 0),
-        themes: present(media.tags)
+        themes: (media.tags?.filter((tag) => tag !== null) ?? [])
             .filter((tag) => !tag.isGeneralSpoiler && !tag.isMediaSpoiler)
             .sort((a, b) => (b.rank ?? 0) - (a.rank ?? 0))
             .slice(0, 5)
             .map((tag) => tag.name),
-        studios: present(media.studios?.nodes).map((studio) => studio.name),
+        studios: (media.studios?.nodes?.filter((studio) => studio !== null) ?? []).map(
+            (studio) => studio.name
+        ),
         staff: formatStaff(media),
         rankings: formatRankings(media),
     };
