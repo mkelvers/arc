@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "target": "ES2023",
+        "strict": true,
+        "types": ["bun"],
+        "moduleResolution": "bundler",
+        "module": "preserve",
+        "skipLibCheck": true
+    },
+    "include": ["**/*.ts"]
+}
