@@ -12,7 +12,7 @@ import {
     playbackProgress,
 } from '@arc/shared/db/schema';
 import { toAnimeDetails } from '@arc/core';
-import { parseStoredAnimeDetails } from '../anime/details';
+import { parseStoredAnimeDetails } from '@arc/core';
 import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core';
 import { getStoredMedia } from '../anime/tmdb/media';
 import { updateWatchlistAfterPlayback } from '../watchlist/store';
