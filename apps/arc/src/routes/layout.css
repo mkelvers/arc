@@ -8,15 +8,15 @@
     --theme-header: #272727;
     --theme-header-hover: #151515;
     --theme-search: #151515;
-    --theme-search-recent: #213944;
+    --theme-search-recent: oklch(0.23 0.006 285);
     --theme-foreground: #fff;
     --theme-surface: oklch(0.17 0.006 285);
     --theme-muted: oklch(0.71 0.008 285);
     --theme-subtle: oklch(0.57 0.008 285);
     --theme-border: oklch(0.35 0.008 285);
     --theme-border-strong: oklch(0.5 0.008 285);
-    --theme-accent: #ff640a;
-    --theme-on-accent: #000;
+    --theme-accent: #0a5cff;
+    --theme-on-accent: #fff;
     --theme-status-error: #f04427;
     --theme-status-success: #2ca66f;
     --theme-on-status: oklch(0.13 0.01 48);
@@ -29,7 +29,7 @@
     --theme-watch-secondary: oklch(0.74 0.004 285);
     --theme-watch-muted: oklch(0.63 0.004 285);
     --theme-player-panel: oklch(0.18 0.012 285);
-    --theme-input-accent: oklch(0.72 0.13 205);
+    --theme-input-accent: var(--theme-accent);
     --theme-tooltip: #414141;
     --theme-tooltip-foreground: #ececec;
 
