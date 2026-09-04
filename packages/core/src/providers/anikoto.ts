@@ -1257,7 +1257,7 @@ async function findSeries(anime: AniListAnime) {
                 )
             )
     );
-    for (const candidate of ordered) {
+    for (const candidate of ordered.slice(0, 24)) {
         if (!matchesAniKotoFormat(candidate.format, anime.format)) {
             continue;
         }

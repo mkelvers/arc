@@ -137,7 +137,12 @@ export async function readArtwork(mapping: ArtworkMappings): Promise<Artwork | n
         return { backdrops, logos };
     });
 
-    return withSelections(mapping, mergeArtwork(artwork));
+    const mergedArtwork = mergeArtwork(artwork);
+    if (!mergedArtwork.backdrops.length && !mergedArtwork.logos.length) {
+        return null;
+    }
+
+    return withSelections(mapping, mergedArtwork);
 }
 
 async function fetchArtworkSource(match: StoredMapping) {
