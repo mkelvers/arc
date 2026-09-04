@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { WatchPlaybackSchema } from '@arc/api-contract/anime';
+    import { WatchPlaybackSchema } from '@arc/core/contracts/anime';
     import { audioModeOrder } from '@arc/core/audio';
     import type { AnimeEpisode } from '@arc/core/types';
     import type { Sources } from '$lib/player/media';

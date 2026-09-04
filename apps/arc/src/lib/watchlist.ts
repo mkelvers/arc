@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { WatchlistStateSchema, type WatchlistState } from '@arc/api-contract/watchlist';
+import { WatchlistStateSchema, type WatchlistState } from '@arc/core/contracts/watchlist';
 
 export const watchlistStates = [
     { value: 'watching', label: 'Watching' },

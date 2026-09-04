@@ -6,7 +6,7 @@ import {
     PageQuerySchema,
     ReleaseCalendarSchema,
     SearchQuerySchema,
-} from '@arc/api-contract/anime';
+} from '@arc/core/contracts/anime';
 import { parseBrowseFilters } from '@arc/core/catalog/browse-filters';
 import { catalogTaxonomy } from '@arc/core/catalog/storage';
 import { newAnimePage, popularAnimePage } from '@arc/backend/internal/anime/browse';

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { MaintenanceHealthSchema, MaintenanceRequestSchema } from './maintenance';
+import { MaintenanceHealthSchema, MaintenanceRequestSchema } from '@arc/core/contracts/maintenance';
 
 describe('maintenance wire contracts', () => {
     test('accepts metadata rediscovery and rejects playback providers', () => {
