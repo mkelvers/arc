@@ -1,4 +1,4 @@
-import type { BrowseFilters } from '@arc/shared/browse';
+import type { BrowseFilters } from '@arc/core/catalog/browse-filters';
 import type { BrowseCatalogEntry } from './browse-types';
 import { popularCatalogPages } from './browse-pagination';
 import { catalogSnapshotKey, refreshCatalogPage } from './storage';

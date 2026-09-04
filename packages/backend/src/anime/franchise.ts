@@ -1,6 +1,6 @@
 import { eq, inArray, sql } from 'drizzle-orm';
 
-import type { FranchiseOrder } from '@arc/shared/types';
+import type { FranchiseOrder } from '@arc/core/types';
 import {
     FranchiseMediaDocument,
     type FranchiseMediaQuery,

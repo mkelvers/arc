@@ -6,7 +6,7 @@ import {
     rankAnimeSearch,
     searchRelevance,
     type AnimeSearchResult,
-} from '@arc/shared/search';
+} from '@arc/core/search';
 import type * as schema from '@arc/db/schema';
 import { animeSearchIndex as animeSearchIndexTable } from '@arc/db/schema';
 

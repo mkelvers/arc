@@ -6,7 +6,7 @@ import {
     SegmentSaveResultSchema,
     skipTimesDraft,
     type EpisodeSkipTimes,
-} from '@arc/shared/player/skip-times';
+} from '@arc/core/player/skip-times';
 
 const times: EpisodeSkipTimes = {
     opening: {

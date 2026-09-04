@@ -1,4 +1,4 @@
-import { currentAnimeSeason } from '@arc/shared/season';
+import { currentAnimeSeason } from '@arc/core/season';
 import { eq, isNotNull } from 'drizzle-orm';
 import { db } from '@arc/db';
 import { animeFranchise, animeRelease } from '@arc/db/schema';

@@ -1,8 +1,8 @@
 import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 
-import type { BrowseFilters } from '@arc/shared/browse';
-import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
-import type { AnimeCard } from '@arc/shared/types';
+import type { BrowseFilters } from '@arc/core/catalog/browse-filters';
+import { audioAvailabilityLabel, type AudioMode } from '@arc/core/audio';
+import type { AnimeCard } from '@arc/core/types';
 import { db } from '@arc/db';
 import type { BrowseSourceTaxonomy } from '@arc/core/catalog/browse-transform';
 import {

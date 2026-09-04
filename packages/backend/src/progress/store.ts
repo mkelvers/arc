@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 
-import { audioAvailabilityLabel } from '@arc/shared/audio';
-import type { ContinueWatchingCard } from '@arc/shared/types';
+import { audioAvailabilityLabel } from '@arc/core/audio';
+import type { ContinueWatchingCard } from '@arc/core/types';
 import { db } from '@arc/db';
 import {
     anime as animeTable,

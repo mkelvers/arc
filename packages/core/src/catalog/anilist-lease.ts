@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, isNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '@arc/db';
 import { anilistRequestState } from '@arc/db/schema';
-import { GraphQLRequestError } from '@arc/shared/graphql-error';
+import { GraphQLRequestError } from '@arc/core/graphql/error';
 
 export async function coordinatedAniListRequest<Value>(
     operation: string,

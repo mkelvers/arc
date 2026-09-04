@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { present } from '@arc/shared/utils/array';
+import { present } from '@arc/core/utils/array';
 
 describe('shared array utilities', () => {
     test('removes null values from nullable arrays', () => {
