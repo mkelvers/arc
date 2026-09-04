@@ -63,7 +63,6 @@ describe('episode catalog synchronization', () => {
             {
                 previousSourceId: 42,
                 currentSourceId: null,
-                previousRevision: 'tmdb-episode-v4',
             }
         );
 
@@ -113,7 +112,6 @@ describe('episode catalog synchronization', () => {
             {
                 previousSourceId: null,
                 currentSourceId: 42,
-                previousRevision: null,
                 confirmedAirDates: new Map([[1, new Date('2026-08-01T16:00:00.000Z')]]),
             }
         );

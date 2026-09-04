@@ -28,12 +28,7 @@ import {
     reconcileEpisodeMetadata,
     type EpisodeMetadata as CatalogEpisodeMetadata,
 } from './episode-reconciliation';
-import {
-    canPreserveEpisodeMetadata,
-    episodeMetadataRevision,
-    episodeMetadataRevisionAfterSync,
-    nextRefreshAt,
-} from './episode-policy';
+import { canPreserveEpisodeMetadata, nextRefreshAt } from './episode-policy';
 import { availableEpisodeCount, providerEpisodeCount } from '../providers/inventory';
 import {
     episodesForRelease,
@@ -185,7 +180,6 @@ async function fetchAndStore(
         db
             .select({
                 metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
-                metadataRevision: animeEpisodeSync.metadataRevision,
                 lastSuccessAt: animeEpisodeSync.lastSuccessAt,
             })
             .from(animeEpisodeSync)
@@ -224,7 +218,7 @@ async function fetchAndStore(
               canPreserveEpisodeMetadata(
                   previousSync?.metadataExternalIdId ?? null,
                   resolvedMetadataSource.externalIdId
-              ) && previousSync?.metadataRevision === episodeMetadataRevision
+              )
                   ? storedText
                   : new Map()
           ).catch((cause) => {
@@ -273,7 +267,6 @@ async function fetchAndStore(
             tx
                 .select({
                     metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
-                    metadataRevision: animeEpisodeSync.metadataRevision,
                     sourceRevision: animeEpisodeSync.sourceRevision,
                     stableSince: animeEpisodeSync.stableSince,
                     lastSuccessAt: animeEpisodeSync.lastSuccessAt,
@@ -338,7 +331,6 @@ async function fetchAndStore(
                 {
                     previousSourceId: sync?.metadataExternalIdId ?? null,
                     currentSourceId: resolvedMetadataSource?.externalIdId ?? null,
-                    previousRevision: sync?.metadataRevision ?? null,
                     confirmedAirDates,
                 }
             )[0];
@@ -473,15 +465,6 @@ async function fetchAndStore(
             .where(eq(animeEpisode.anilistId, anime.id))
             .orderBy(animeEpisode.number);
         const revision = sourceRevision(persisted);
-        const metadataRevision = episodeMetadataRevisionAfterSync(
-            values.map(({ imageUrl, metadataTitle, overview }) => ({
-                image: imageUrl ?? null,
-                title: metadataTitle ?? '',
-                overview: overview ?? '',
-            })),
-            metadata !== null,
-            resolvedMetadataSource !== null || sync?.metadataExternalIdId !== null
-        );
 
         const stableSince =
             sync?.sourceRevision === revision && sync.stableSince ? sync.stableSince : now;
@@ -495,7 +478,6 @@ async function fetchAndStore(
                 sourceRevision: revision,
                 metadataExternalIdId:
                     resolvedMetadataSource?.externalIdId ?? sync?.metadataExternalIdId ?? null,
-                metadataRevision,
                 stableSince,
                 lastSuccessAt: now,
                 nextRefreshAt: nextRefreshAt(anime, stableSince),
@@ -510,7 +492,6 @@ async function fetchAndStore(
                     sourceRevision: revision,
                     metadataExternalIdId:
                         resolvedMetadataSource?.externalIdId ?? sync?.metadataExternalIdId ?? null,
-                    metadataRevision,
                     stableSince,
                     lastSuccessAt: now,
                     nextRefreshAt: nextRefreshAt(anime, stableSince),

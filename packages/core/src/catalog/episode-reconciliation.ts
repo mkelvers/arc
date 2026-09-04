@@ -2,11 +2,7 @@ import { and, eq } from 'drizzle-orm';
 
 import { db } from '@arc/shared/db';
 import { animeEpisode, animeEpisodeSync } from '@arc/shared/db/schema';
-import {
-    canPreserveEpisodeMetadata,
-    episodeMetadataRevision,
-    episodeMetadataRevisionAfterSync,
-} from './episode-policy';
+import { canPreserveEpisodeMetadata } from './episode-policy';
 import { preferredEpisodeAirDate } from './episode-release';
 
 export interface EpisodeMetadata {
@@ -37,13 +33,10 @@ export function reconcileEpisodeMetadata(
     options: {
         previousSourceId: number | null;
         currentSourceId: number | null;
-        previousRevision: string | null;
         confirmedAirDates?: ReadonlyMap<number, Date>;
     }
 ) {
-    const preserve =
-        canPreserveEpisodeMetadata(options.previousSourceId, options.currentSourceId) &&
-        (metadata === null || options.previousRevision === episodeMetadataRevision);
+    const preserve = canPreserveEpisodeMetadata(options.previousSourceId, options.currentSourceId);
 
     return episodes.map((episode) => {
         const current = metadata?.get(episode.episodeId);
@@ -93,7 +86,6 @@ export async function synchronizeEpisodeMetadata(
             tx
                 .select({
                     metadataExternalIdId: animeEpisodeSync.metadataExternalIdId,
-                    metadataRevision: animeEpisodeSync.metadataRevision,
                 })
                 .from(animeEpisodeSync)
                 .where(eq(animeEpisodeSync.anilistId, anilistId))
@@ -104,7 +96,6 @@ export async function synchronizeEpisodeMetadata(
         const values = reconcileEpisodeMetadata(episodes, metadata, {
             previousSourceId: sync?.metadataExternalIdId ?? null,
             currentSourceId,
-            previousRevision: sync?.metadataRevision ?? null,
             confirmedAirDates,
         });
 
@@ -128,33 +119,21 @@ export async function synchronizeEpisodeMetadata(
                 );
         }
 
-        const metadataRevision = episodeMetadataRevisionAfterSync(
-            values.map(({ imageUrl, metadataTitle, overview }) => ({
-                image: imageUrl,
-                title: metadataTitle ?? '',
-                overview: overview ?? '',
-            })),
-            metadata !== null,
-            currentSourceId !== null
-        );
         await tx
             .insert(animeEpisodeSync)
             .values({
                 anilistId,
                 metadataExternalIdId: currentSourceId,
-                metadataRevision,
             })
             .onConflictDoUpdate({
                 target: animeEpisodeSync.anilistId,
                 set: {
                     metadataExternalIdId: currentSourceId,
-                    metadataRevision,
                 },
             });
 
         return {
             episodes: values,
-            metadataRevision,
             synchronizedAt,
         };
     });

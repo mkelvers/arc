@@ -8,8 +8,6 @@ import {
     episodeInventoryNeedsDiscovery,
     episodeMetadataNeedsRefresh,
     episodeMetadataRefreshRequired,
-    episodeMetadataRevision,
-    episodeMetadataRevisionAfterSync,
     episodeRefreshRetryDelay,
     episodeRefreshReason,
     nextRefreshAt,
@@ -114,22 +112,7 @@ describe('episode refresh policy', () => {
         ).toBeFalse();
     });
 
-    test('refreshes episode metadata written by an obsolete enrichment revision', () => {
-        const complete = [
-            {
-                image: 'https://image.example/still.jpg',
-                title: 'Death and Loss',
-                overview: 'Wrong-language text stored by the old fallback.',
-            },
-        ];
-
-        expect(episodeMetadataNeedsRefresh(complete, true, null)).toBeTrue();
-        expect(episodeMetadataNeedsRefresh(complete, true, 'tmdb-episode-v1')).toBeTrue();
-        expect(episodeMetadataNeedsRefresh(complete, true, 'tmdb-episode-v2')).toBeTrue();
-        expect(episodeMetadataNeedsRefresh(complete, true, episodeMetadataRevision)).toBeFalse();
-    });
-
-    test('does not mark failed metadata enrichment as complete', () => {
+    test('checks metadata completeness only when a metadata source exists', () => {
         const complete = [
             {
                 image: 'https://image.example/still.jpg',
@@ -138,25 +121,22 @@ describe('episode refresh policy', () => {
             },
         ];
 
-        expect(episodeMetadataRevisionAfterSync(complete, false, true)).toBeNull();
-        expect(episodeMetadataRevisionAfterSync(complete, true, true)).toBe(
-            episodeMetadataRevision
-        );
-        expect(episodeMetadataRevisionAfterSync(complete, false, false)).toBeNull();
+        expect(episodeMetadataNeedsRefresh(complete, true)).toBeFalse();
+        expect(episodeMetadataNeedsRefresh(complete, false)).toBeFalse();
     });
 
     test('rediscovers metadata when persisted episode text is incomplete', () => {
         expect(
             episodeMetadataRefreshRequired(
                 [{ image: null, title: '', overview: '' }],
-                { metadataExternalIdId: 42, metadataRevision: episodeMetadataRevision },
+                { metadataExternalIdId: 42 },
                 42
             )
         ).toBeTrue();
         expect(
             episodeMetadataRefreshRequired(
                 [{ image: 'image', title: 'Title', overview: 'Overview' }],
-                { metadataExternalIdId: 42, metadataRevision: episodeMetadataRevision },
+                { metadataExternalIdId: 42 },
                 42
             )
         ).toBeFalse();

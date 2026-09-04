@@ -568,6 +568,13 @@
             "when": 1788290001000,
             "tag": "0080_notifications_and_anime_relations",
             "breakpoints": true
+        },
+        {
+            "idx": 81,
+            "version": "7",
+            "when": 1788533286000,
+            "tag": "0081_drop_episode_metadata_revision",
+            "breakpoints": true
         }
     ]
 }
