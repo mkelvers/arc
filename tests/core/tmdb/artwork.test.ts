@@ -8,7 +8,7 @@ import {
     animeRelease,
 } from '@arc/shared/db/schema';
 import type { AniListAnime } from '@arc/core';
-import type { StoredMapping } from './types';
+import type { StoredMapping } from '@arc/core/tmdb/pure';
 
 type ImageRow = {
     externalIdId: number;
@@ -177,7 +177,7 @@ mock.module('@arc/shared/db', () => ({
     excluded: () => undefined,
 }));
 
-mock.module('./client', () => ({
+mock.module('../../../packages/core/src/catalog/tmdb/client', () => ({
     create: () => ({
         GET: async (
             path: string,
@@ -210,12 +210,12 @@ mock.module('./client', () => ({
     imageUrl: (path: string) => `https://image.tmdb.org/t/p/original${path}`,
 }));
 
-mock.module('./mapping', () => ({
+mock.module('../../../packages/core/src/catalog/tmdb/mapping', () => ({
     NoConfidentTmdbMappingError: class NoConfidentTmdbMappingError extends Error {},
     resolveStored: async () => mapping,
 }));
 
-mock.module('./mapping-store', () => ({
+mock.module('../../../packages/core/src/catalog/tmdb/mapping-store', () => ({
     findMapping: async () => mapping,
     findArtworkMappings: async () => ({
         matches: [mapping],
@@ -223,13 +223,13 @@ mock.module('./mapping-store', () => ({
     }),
 }));
 
-mock.module('./poster', () => ({
+mock.module('../../../packages/core/src/catalog/tmdb/poster', () => ({
     getPoster: async () => null,
     readPoster: async () => null,
 }));
 
-const { getArtwork } = await import('./artwork');
-const { selectArtwork } = await import('./media');
+const { getArtwork } = await import('../../../packages/core/src/catalog/tmdb/artwork');
+const { selectArtwork } = await import('../../../packages/core/src/catalog/tmdb/media');
 
 const anime = { id: mapping.animeId } as AniListAnime;
 

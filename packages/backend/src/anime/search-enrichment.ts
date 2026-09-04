@@ -4,8 +4,7 @@ import { audioAvailabilityLabel, type AudioMode } from '@arc/core';
 import { inferSearchArtwork, type AnimeSearchResult, type SearchArtwork } from '@arc/core';
 import { db } from '@arc/shared/db';
 import { animeEpisode } from '@arc/shared/db/schema';
-import { imageUrl } from './tmdb/client';
-import { getStoredBackdropCandidates } from './tmdb/media';
+import { getStoredBackdropCandidates, imageUrl } from '@arc/core/tmdb';
 import { watchEpisodeHref } from '@arc/core';
 
 async function storedArtwork(anilistIds: number[]) {

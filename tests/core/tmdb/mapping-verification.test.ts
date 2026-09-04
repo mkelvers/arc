@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { mappingNeedsVerification } from './mapping-verification';
+import { mappingNeedsVerification } from '@arc/core/tmdb/pure';
 
 const now = Date.UTC(2026, 7, 1);
 

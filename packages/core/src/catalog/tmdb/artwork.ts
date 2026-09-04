@@ -3,8 +3,7 @@ import { z } from 'zod';
 
 import { db } from '@arc/shared/db';
 import { animeArtwork, animeArtworkPreference, animeArtworkSync } from '@arc/shared/db/schema';
-import { logger } from '@arc/backend/internal/logger';
-import type { AniListAnime } from '@arc/core';
+import type { AniListAnime } from '../anilist-types';
 import { create, imageUrl } from './client';
 import { NoConfidentTmdbMappingError, resolveStored } from './mapping';
 import { findArtworkMappings, type ArtworkMappings } from './mapping-store';
@@ -194,8 +193,7 @@ async function fetchArtworkSource(match: StoredMapping) {
                       query: allLanguagesQuery,
                   },
               })
-    ).catch((cause) => {
-        logger.debug(`TMDB all-language artwork request failed for ${match.id}`, cause);
+    ).catch(() => {
         return null;
     });
 
@@ -319,8 +317,7 @@ export async function getArtwork(
 
     let artwork = await readArtwork(artworkMappings);
     if (!artwork && (options.refresh || options.fetchMissing !== false)) {
-        artwork = await fetchArtwork(artworkMappings).catch((cause) => {
-            logger.debug(`TMDB artwork enrichment failed for AniList ${anime.id}`, cause);
+        artwork = await fetchArtwork(artworkMappings).catch(() => {
             return null;
         });
     }
@@ -328,8 +325,7 @@ export async function getArtwork(
         return null;
     }
     const selectedPoster = options.refresh
-        ? await getPoster(anime, match).catch((cause) => {
-              logger.debug(`TMDB poster enrichment failed for AniList ${anime.id}`, cause);
+        ? await getPoster(anime, match).catch(() => {
               return null;
           })
         : await readPoster(match);

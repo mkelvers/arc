@@ -1,8 +1,12 @@
-import { animeTitles } from '@arc/core';
-import type { AniListAnime } from '@arc/core';
-import { animeDate, dateTimestamp } from '@arc/core';
-import type { ProviderEpisode } from '@arc/core';
-import { episodeTitleKey, episodeTitleScore, isSpecialEpisodeReference } from '@arc/core';
+import { animeTitles } from '../anilist-text';
+import type { AniListAnime } from '../anilist-types';
+import { animeDate, dateTimestamp } from '../date';
+import type { ProviderEpisode } from '../../providers/types';
+import {
+    episodeTitleKey,
+    episodeTitleScore,
+    isSpecialEpisodeReference,
+} from '../../providers/matching';
 import { isSpecialRelease } from './title';
 import type { EpisodeCandidate } from './types';
 

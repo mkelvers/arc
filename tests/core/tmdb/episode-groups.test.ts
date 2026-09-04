@@ -5,7 +5,7 @@ import {
     releaseEpisodeGroup,
     releaseWindowEpisodeGroup,
     type EpisodeGroupBlock,
-} from './episode-groups';
+} from '@arc/core/tmdb/pure';
 import type { AniListAnime } from '@arc/core';
 
 function anime(episodes: number | null, start: [number, number, number]) {

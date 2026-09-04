@@ -8,8 +8,7 @@ import {
 } from '@arc/core';
 import { refreshFranchiseOrder } from '../franchise';
 import { ensureEpisodeInventoryBackfill } from '../episodes/sync';
-import { findMapping } from '../tmdb/mapping-store';
-import { getArtwork } from '../tmdb/artwork';
+import { findMapping, getArtwork } from '@arc/core/tmdb';
 import { rediscoverMapping } from './mappings';
 import { logger } from '../../logger';
 import { createCatalogSource } from '../catalog-source';

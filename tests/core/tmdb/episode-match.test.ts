@@ -5,9 +5,9 @@ import {
     matchBestEpisodeMetadata,
     matchEpisodeMetadata,
     providerReleaseWindow,
-} from './episode-match';
+} from '@arc/core/tmdb/pure';
 import type { AniListAnime } from '@arc/core';
-import type { EpisodeCandidate } from './types';
+import type { EpisodeCandidate } from '@arc/core/tmdb/pure';
 
 function anime(
     value: Partial<AniListAnime> & {

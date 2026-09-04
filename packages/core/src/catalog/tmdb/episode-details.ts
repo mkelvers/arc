@@ -1,4 +1,4 @@
-import { episodeTitleScore } from '@arc/core';
+import { episodeTitleScore } from '../../providers/matching';
 import type { EpisodeCandidate } from './types';
 
 interface EpisodeDetail {
