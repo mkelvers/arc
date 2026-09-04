@@ -7,7 +7,7 @@ import {
 } from '@arc/shared/graphql/generated/graphql';
 import { db, type DatabaseTransaction } from '@arc/shared/db';
 import { animeEpisode, animeFranchise, animeProviderMapping, animeRelease } from '@arc/shared/db/schema';
-import { request } from './anilist/client';
+import { request } from '@arc/core';
 import { plainText } from '@arc/core';
 import { enrichAnimeCards } from './card-enrichment';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';

@@ -2,7 +2,7 @@ import { audioAvailabilityLabel, episodeAudioAvailabilityLabel } from '@arc/core
 import type { AudioMode } from '@arc/core';
 import { currentAnimeSeason } from '@arc/core';
 import { withMovieBackdrop } from '@arc/core';
-import { getHomepage } from './anilist/home';
+import { getHomepage } from '@arc/core';
 import { enrichAnimeCards } from './card-enrichment';
 import { toAnimeDetails } from '@arc/core';
 import {
@@ -32,7 +32,7 @@ import { resolveAnimeSynopsis } from './synopsis';
 import { getArtwork } from './tmdb/artwork';
 import { findMapping } from './tmdb/mapping-store';
 import { getStoredMedia, refreshArtwork, selectArtwork, setLogoSize } from './tmdb/media';
-import { getAnimeOverview, getAnimeRelease, storedAnimeRelease } from './anilist/releases';
+import { getAnimeOverview, getAnimeRelease, storedAnimeRelease } from '@arc/core';
 import {
     getContinueWatchingCards,
     getEpisodePlaybackProgress,

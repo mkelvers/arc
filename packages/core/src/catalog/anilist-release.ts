@@ -3,30 +3,29 @@ import { randomUUID } from 'node:crypto';
 import { and, eq, inArray, isNotNull, isNull, lte, or } from 'drizzle-orm';
 
 import {
-    AnimeOverviewDocument,
     AnimeDocument,
+    AnimeOverviewDocument,
     AnimeScheduleDocument,
     WatchlistAnimeDocument,
 } from '@arc/shared/graphql/generated/graphql';
-import type { AnimeCard } from '@arc/core';
 import { db } from '@arc/shared/db';
-import { animeEpisodeSync, animeRelation, animeRelease, animeReleaseRequest } from '@arc/shared/db/schema';
-import { graphql } from '../../graphql';
-import { ensureInternalAnimeId } from '@arc/core';
-import { animeTitles, plainText } from '@arc/core';
-import { request as requestAniList } from './client';
-import { coordinatedAniListRequest } from '@arc/core';
+import {
+    animeEpisodeSync,
+    animeRelation,
+    animeRelease,
+    animeReleaseRequest,
+} from '@arc/shared/db/schema';
+import type { AnimeCard } from '../types';
+import { ensureInternalAnimeId } from './identity';
+import { animeTitles, plainText } from './anilist-text';
 import {
     AniListAnimeOverviewSchema,
     AniListAnimeSchema,
     AniListScheduleSchema,
     type AniListAnime,
     type AniListAnimeOverview,
-} from '@arc/core';
-import { batches } from '../../utils';
-
-const releaseSchemaRevision = 1;
-const requestLeaseMs = 30_000;
+} from './anilist-types';
+import { request } from './anilist-client';
 
 function releaseValues(media: AniListAnime, sourceFetchedAt = new Date()) {
     return {
@@ -43,7 +42,7 @@ function releaseValues(media: AniListAnime, sourceFetchedAt = new Date()) {
             ? new Date(media.nextAiringEpisode.airingAt * 1_000)
             : null,
         nextAiringEpisode: media.nextAiringEpisode?.episode ?? null,
-        schemaRevision: releaseSchemaRevision,
+        schemaRevision: 1,
         sourceFetchedAt,
         updatedAt: sourceFetchedAt,
     };
@@ -90,14 +89,14 @@ export async function hydrateAnimeReleases(anilistIds: number[]) {
     const ids = [...new Set(anilistIds)].filter((id) => Number.isSafeInteger(id) && id > 0);
     const stored: number[] = [];
 
-    for (const batch of batches(ids, 50)) {
-        const response = await requestAniList(WatchlistAnimeDocument, { ids: batch });
-        const media = (response.Page?.media?.filter((value) => value !== null) ?? []).flatMap(
-            (entry) => {
-                const parsed = AniListAnimeSchema.safeParse(entry);
-                return parsed.success ? [parsed.data] : [];
-            }
-        );
+    for (let index = 0; index < ids.length; index += 50) {
+        const response = await request(WatchlistAnimeDocument, {
+            ids: ids.slice(index, index + 50),
+        });
+        const media = (response.Page?.media ?? []).flatMap((entry) => {
+            const parsed = AniListAnimeSchema.safeParse(entry);
+            return parsed.success ? [parsed.data] : [];
+        });
 
         for (const anime of media) {
             await storeAnimeRelease(anime);
@@ -123,9 +122,7 @@ export async function hydrateMissingAnimeReleases(anilistIds: number[]) {
 }
 
 async function fetchAnimeRelease(id: number) {
-    const response = await coordinatedAniListRequest('Anime', () =>
-        graphql('https://graphql.anilist.co', AnimeDocument, { id }, { timeoutMs: 8_000 })
-    );
+    const response = await request(AnimeDocument, { id }, { forceRefresh: true });
     const parsed = AniListAnimeSchema.safeParse(response.Media);
 
     if (!parsed.success || parsed.data.id !== id) {
@@ -139,9 +136,7 @@ async function fetchAnimeRelease(id: number) {
 }
 
 export async function getAnimeOverview(id: number): Promise<AniListAnimeOverview> {
-    const response = await coordinatedAniListRequest('AnimeOverview', () =>
-        graphql('https://graphql.anilist.co', AnimeOverviewDocument, { id }, { timeoutMs: 8_000 })
-    );
+    const response = await request(AnimeOverviewDocument, { id }, { forceRefresh: true });
     const parsed = AniListAnimeOverviewSchema.safeParse(response.Media);
 
     if (!parsed.success || parsed.data.id !== id) {
@@ -181,14 +176,14 @@ async function requestWithLease(id: number, force: boolean) {
     }
 
     let claimed: { attempts: number } | undefined;
-    const deadline = Date.now() + requestLeaseMs + 12_000;
+    const deadline = Date.now() + 30_000 + 12_000;
     while (!claimed && Date.now() < deadline) {
         const claimNow = new Date();
         [claimed] = await db
             .update(animeReleaseRequest)
             .set({
                 leaseOwner: owner,
-                leaseUntil: new Date(claimNow.getTime() + requestLeaseMs),
+                leaseUntil: new Date(claimNow.getTime() + 30_000),
                 lastError: null,
             })
             .where(
@@ -321,9 +316,7 @@ export async function refreshAnimeSchedule(id: number) {
         return refreshAnimeRelease(id, { force: true });
     }
 
-    const response = await coordinatedAniListRequest('AnimeSchedule', () =>
-        graphql('https://graphql.anilist.co', AnimeScheduleDocument, { id }, { timeoutMs: 8_000 })
-    );
+    const response = await request(AnimeScheduleDocument, { id }, { forceRefresh: true });
     const schedule = AniListScheduleSchema.safeParse(response.Media);
     if (!schedule.success || schedule.data.id !== id) {
         throw new Error(`AniList returned invalid schedule metadata for ${id}`, {
@@ -389,6 +382,7 @@ export async function storedReleaseCards(ids: number[]): Promise<AnimeCard[]> {
             if (!image) {
                 return [];
             }
+
             const card: AnimeCard = {
                 id: row.id,
                 href: `/anime/${row.id}`,

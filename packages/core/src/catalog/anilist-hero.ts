@@ -3,8 +3,8 @@ import { asc, notInArray, sql } from 'drizzle-orm';
 import { HomeHeroCandidatesDocument } from '@arc/shared/graphql/generated/graphql';
 import { db } from '@arc/shared/db';
 import { homeHeroCandidate } from '@arc/shared/db/schema';
-import { request } from './client';
-import { eligibleHomeHeroCandidates } from '@arc/core';
+import { eligibleHomeHeroCandidates } from './home-selection';
+import { request } from './anilist-client';
 
 export async function refreshHomeHeroCandidates(now = new Date()) {
     const response = await request(
@@ -12,35 +12,37 @@ export async function refreshHomeHeroCandidates(now = new Date()) {
         { seasonYear: now.getUTCFullYear() },
         { refreshAfterMs: 6 * 60 * 60 * 1_000, forceRefresh: true }
     );
-    const candidates = (response.Page?.media?.filter((value) => value !== null) ?? []).flatMap(
-        (media, index) => {
-            if (
-                media.averageScore === null ||
-                media.popularity === null ||
-                media.favourites === null ||
-                media.seasonYear === null
-            ) {
-                return [];
-            }
-
-            return [
-                {
-                    anilistId: media.id,
-                    averageScore: media.averageScore,
-                    trendingRank: index + 1,
-                    popularity: media.popularity,
-                    format: media.format,
-                    duration: media.duration,
-                    favourites: media.favourites,
-                    seasonYear: media.seasonYear,
-                    genres: media.genres?.filter((genre) => genre !== null) ?? [],
-                    hasPrequel: (
-                        media.relations?.edges?.filter((value) => value !== null) ?? []
-                    ).some(({ relationType }) => relationType === 'PREQUEL'),
-                },
-            ];
+    const candidates = (response.Page?.media ?? []).flatMap((media, index) => {
+        if (
+            media?.averageScore === null ||
+            media?.averageScore === undefined ||
+            media.popularity === null ||
+            media.popularity === undefined ||
+            media.favourites === null ||
+            media.favourites === undefined ||
+            media.seasonYear === null ||
+            media.seasonYear === undefined
+        ) {
+            return [];
         }
-    );
+
+        return [
+            {
+                anilistId: media.id,
+                averageScore: media.averageScore,
+                trendingRank: index + 1,
+                popularity: media.popularity,
+                format: media.format,
+                duration: media.duration,
+                favourites: media.favourites,
+                seasonYear: media.seasonYear,
+                genres: media.genres?.filter((genre): genre is string => genre !== null) ?? [],
+                hasPrequel: (media.relations?.edges ?? []).some(
+                    (edge) => edge?.relationType === 'PREQUEL'
+                ),
+            },
+        ];
+    });
 
     const eligible = eligibleHomeHeroCandidates(candidates, now);
     if (!eligible.length) {
@@ -82,19 +84,13 @@ export async function refreshHomeHeroCandidates(now = new Date()) {
     }));
 }
 
-export async function getHomeHeroCandidates(now = new Date()) {
-    const stored = await db
+export async function getHomeHeroCandidates() {
+    return db
         .select({
             anilistId: homeHeroCandidate.anilistId,
             averageScore: homeHeroCandidate.averageScore,
             trendingRank: homeHeroCandidate.trendingRank,
-            fetchedAt: homeHeroCandidate.fetchedAt,
         })
         .from(homeHeroCandidate)
         .orderBy(asc(homeHeroCandidate.trendingRank));
-    void now;
-    return stored.map(({ fetchedAt, ...candidate }) => {
-        void fetchedAt;
-        return candidate;
-    });
 }

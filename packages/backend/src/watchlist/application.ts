@@ -1,4 +1,4 @@
-import { hydrateMissingAnimeReleases, storedReleaseCards } from '../anime/anilist/releases';
+import { hydrateMissingAnimeReleases, storedReleaseCards } from '@arc/core';
 import { animeTitles } from '@arc/core';
 import { enrichAnimeCards } from '../anime/card-enrichment';
 import { parseStoredAnimeDetails } from '@arc/core';

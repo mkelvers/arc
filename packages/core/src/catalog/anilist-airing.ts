@@ -1,7 +1,6 @@
 import { AiringAnimePageDocument } from '@arc/shared/graphql/generated/graphql';
-import { batches } from '#utils';
-import { request } from './client';
-import { parseAiringMedia, type AiringAnime, type AiringPageEntry } from '@arc/core';
+import { parseAiringMedia, type AiringAnime, type AiringPageEntry } from './airing';
+import { request } from './anilist-client';
 
 async function getAiringPages(
     ids: number[] | undefined,
@@ -16,7 +15,11 @@ async function getAiringPages(
         return anime;
     }
 
-    const idBatches = ids ? batches(ids, 250) : [undefined];
+    const idBatches: Array<number[] | undefined> = ids
+        ? Array.from({ length: Math.ceil(ids.length / 250) }, (_, index) =>
+              ids.slice(index * 250, index * 250 + 250)
+          )
+        : [undefined];
     for (const batch of idBatches) {
         for (let page = 1; ; page += 1) {
             const response = await request(
@@ -26,11 +29,9 @@ async function getAiringPages(
             );
 
             for (const media of response.Page?.media ?? []) {
-                if (!media) {
-                    continue;
+                if (media) {
+                    anime.push(parseAiringMedia(media, now));
                 }
-
-                anime.push(parseAiringMedia(media, now));
             }
 
             if (!response.Page?.pageInfo?.hasNextPage) {
@@ -47,15 +48,16 @@ async function getAiringPages(
             if (latestAiredPage <= 1) {
                 continue;
             }
-            const [schedulePage] = await getAiringPages(
+
+            const [schedulePageResult] = await getAiringPages(
                 [release.id],
                 now,
                 forceRefresh,
                 latestAiredPage
             );
-            if (schedulePage?.latestAiredAt) {
-                release.latestAiredAt = schedulePage.latestAiredAt;
-                release.latestAiredEpisode = schedulePage.latestAiredEpisode;
+            if (schedulePageResult?.latestAiredAt) {
+                release.latestAiredAt = schedulePageResult.latestAiredAt;
+                release.latestAiredEpisode = schedulePageResult.latestAiredEpisode;
             }
         }
     }
