@@ -7,7 +7,7 @@ import type {
 import {
     transformBrowseEntries,
     transformBrowseTaxonomy,
-} from '@arc/core/catalog/browse-transform';
+} from '@arc/core';
 
 describe('AniList browse transformation', () => {
     test('filters undiscoverable media and shapes catalog entries', () => {

@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { AnimeIdSchema } from '@arc/core/contracts/anime';
-import { WatchlistSelectionSchema, WatchlistUpdateSchema } from '@arc/core/contracts/watchlist';
+import { AnimeIdSchema } from '@arc/core';
+import { WatchlistSelectionSchema, WatchlistUpdateSchema } from '@arc/core';
 import {
     exportWatchlist,
     getWatchlistPage,

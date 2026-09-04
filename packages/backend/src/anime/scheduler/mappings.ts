@@ -2,7 +2,7 @@ import { and, eq, inArray, isNull } from 'drizzle-orm';
 
 import { db } from '@arc/shared/db';
 import { animeExternalId, animeExternalIdLink, animeMappingOverride } from '@arc/shared/db/schema';
-import { animeTitles } from '@arc/core/catalog/anilist-text';
+import { animeTitles } from '@arc/core';
 import { enqueueEpisodeInventoryBackfill } from '../episodes/sync';
 import { storedAnimeRelease } from '../anilist/releases';
 import { create as createTmdbClient } from '../tmdb/client';

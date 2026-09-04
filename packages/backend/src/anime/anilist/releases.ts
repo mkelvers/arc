@@ -8,14 +8,14 @@ import {
     AnimeScheduleDocument,
     WatchlistAnimeDocument,
 } from '@arc/shared/graphql/generated/graphql';
-import type { AnimeCard } from '@arc/core/types';
+import type { AnimeCard } from '@arc/core';
 import { db } from '@arc/shared/db';
 import { animeEpisodeSync, animeRelation, animeRelease, animeReleaseRequest } from '@arc/shared/db/schema';
 import { graphql } from '../../graphql';
-import { ensureInternalAnimeId } from '@arc/core/catalog/identity';
-import { animeTitles, plainText } from '@arc/core/catalog/anilist-text';
+import { ensureInternalAnimeId } from '@arc/core';
+import { animeTitles, plainText } from '@arc/core';
 import { request as requestAniList } from './client';
-import { coordinatedAniListRequest } from '@arc/core/catalog/anilist-lease';
+import { coordinatedAniListRequest } from '@arc/core';
 import {
     AniListAnimeOverviewSchema,
     AniListAnimeSchema,

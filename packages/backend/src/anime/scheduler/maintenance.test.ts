@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { MaintenanceRequestSchema } from '@arc/core/contracts/maintenance';
+import { MaintenanceRequestSchema } from '@arc/core';
 import { maintenancePriority } from './maintenance-policy';
 
 describe('maintenance task boundary', () => {

@@ -1,10 +1,10 @@
 import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 
-import type { BrowseFilters } from '@arc/core/catalog/browse-filters';
-import { audioAvailabilityLabel, type AudioMode } from '@arc/core/audio';
-import type { AnimeCard } from '@arc/core/types';
+import type { BrowseFilters } from '@arc/core';
+import { audioAvailabilityLabel, type AudioMode } from '@arc/core';
+import type { AnimeCard } from '@arc/core';
 import { db } from '@arc/shared/db';
-import type { BrowseSourceTaxonomy } from '@arc/core/catalog/browse-transform';
+import type { BrowseSourceTaxonomy } from '@arc/core';
 import {
     animeCatalog,
     animeCatalogRefresh,
@@ -15,12 +15,12 @@ import {
 import { getBrowsePage, type AniListBrowseFilters } from './anilist/browse';
 import { storedReleaseCards } from './anilist/releases';
 import { enrichAnimeCards } from './card-enrichment';
-import { catalogPage as queryCatalogPage } from '@arc/core/catalog/query';
+import { catalogPage as queryCatalogPage } from '@arc/core';
 import {
     catalogSnapshotKey,
     catalogTaxonomy,
     refreshCatalogPage as persistCatalogPage,
-} from '@arc/core/catalog/storage';
+} from '@arc/core';
 
 async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
     const queryKey = catalogSnapshotKey(filters, page);

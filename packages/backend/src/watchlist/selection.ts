@@ -1,6 +1,6 @@
 import type { WatchlistState } from '@arc/shared/db/schema';
-import { audioAvailabilityLabel, type AudioMode } from '@arc/core/audio';
-import type { AnimeCard } from '@arc/core/types';
+import { audioAvailabilityLabel, type AudioMode } from '@arc/core';
+import type { AnimeCard } from '@arc/core';
 
 export type WatchlistSelection = {
     state: WatchlistState | 'all';

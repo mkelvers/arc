@@ -6,7 +6,7 @@ import {
     activeSkip,
     type EpisodeSkipTimes,
     type SegmentTemplates,
-} from '@arc/core/player/skip-times';
+} from '@arc/core';
 
 interface PlayerInput {
     animeId: number;

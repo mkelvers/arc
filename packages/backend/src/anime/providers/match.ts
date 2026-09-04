@@ -1,4 +1,4 @@
-import { animeTitles } from '@arc/core/catalog/anilist-text';
+import { animeTitles } from '@arc/core';
 import type { AniListAnime } from '../anilist/types';
 import type { ProviderEpisodeReference } from './types';
 

@@ -4,7 +4,9 @@
     "private": true,
     "type": "module",
     "exports": {
+        ".": "./src/index.ts",
         "./db": "./src/db/index.ts",
+        "./graphql/error": "./src/graphql/error.ts",
         "./db/schema": "./src/db/schema/index.ts",
         "./graphql/generated/*": "./src/graphql/generated/*.ts"
     },

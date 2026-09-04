@@ -1,7 +1,7 @@
 import { isAPIError } from 'better-auth/api';
 import { Hono } from 'hono';
 
-import { AccountRegistrationSchema } from '@arc/core/contracts/account';
+import { AccountRegistrationSchema } from '@arc/core';
 import {
     InvalidInvitationError,
     InvitationCompletionError,

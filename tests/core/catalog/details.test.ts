@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { toAnimeDetails } from '@arc/core/catalog/details';
+import { toAnimeDetails } from '@arc/core';
 
 describe('anime detail shaping', () => {
     test('hides a stale next airing event', () => {

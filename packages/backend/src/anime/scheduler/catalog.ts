@@ -1,4 +1,4 @@
-import { currentAnimeSeason } from '@arc/core/season';
+import { currentAnimeSeason } from '@arc/core';
 import { eq, isNotNull } from 'drizzle-orm';
 import { db } from '@arc/shared/db';
 import { animeFranchise, animeRelease } from '@arc/shared/db/schema';
@@ -7,7 +7,7 @@ import { getBrowseTaxonomy } from '../anilist/browse';
 import { refreshHomeHeroCandidates } from '../anilist/hero';
 import { refreshHomepage } from '../anilist/home';
 import { getBrowsePage } from '../anilist/browse';
-import { refreshCatalogSnapshots as refreshPopularCatalog } from '@arc/core/catalog/refresh';
+import { refreshCatalogSnapshots as refreshPopularCatalog } from '@arc/core';
 import { refreshFranchiseOrder } from '../franchise';
 import { refreshCurrentSimulcast } from '../simulcast';
 import { ensureEpisodeInventoryBackfill } from '../episodes/sync';

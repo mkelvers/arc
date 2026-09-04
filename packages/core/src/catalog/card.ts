@@ -1,5 +1,4 @@
-import type { AnimeCard } from '@arc/core/types';
-import { present } from '@arc/core/utils/array';
+import type { AnimeCard } from '../types';
 import { mediaTitle, plainText } from './anilist-text';
 
 interface CardMedia {
@@ -37,7 +36,7 @@ export function animeCard(media: CardMedia): AnimeCard | null {
         format: media.format ?? null,
         status: media.status ?? null,
         score: media.averageScore ?? 0,
-        genres: present(media.genres),
+        genres: media.genres?.filter((genre): genre is string => genre !== null) ?? [],
         synopsis: plainText(media.description),
     };
 }

@@ -1,4 +1,4 @@
-import type { SessionResponse } from '@arc/core/contracts/auth';
+import type { SessionResponse } from '@arc/core';
 
 type AuthSession = NonNullable<SessionResponse>;
 

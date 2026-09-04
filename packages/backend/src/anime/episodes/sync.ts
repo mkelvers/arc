@@ -12,8 +12,8 @@ import { logger } from '@arc/backend/internal/logger';
 import { GraphQLRequestError } from '../../graphql';
 import type { AniListAnime } from '../anilist/types';
 import { refreshAnimeRelease } from '../anilist/releases';
-import { animeTitles } from '@arc/core/catalog/anilist-text';
-import { ensureInternalAnimeId } from '@arc/core/catalog/identity';
+import { animeTitles } from '@arc/core';
+import { ensureInternalAnimeId } from '@arc/core';
 import {
     anikotoProvider,
     isAniKotoNoMatchError,

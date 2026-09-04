@@ -1,7 +1,7 @@
 import { ReleaseCalendarPageDocument } from '@arc/shared/graphql/generated/graphql';
 import { request } from './client';
-import { parseReleaseCalendarPage } from '@arc/core/catalog/release-calendar-parser';
-import type { ReleaseCalendarEntry } from '@arc/core/catalog/release-calendar-parser';
+import { parseReleaseCalendarPage } from '@arc/core';
+import type { ReleaseCalendarEntry } from '@arc/core';
 
 const pageSize = 50;
 const refreshAfterMs = 15 * 60 * 1_000;

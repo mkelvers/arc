@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private';
-import { WatchlistPageResponseSchema } from '@arc/core/contracts/watchlist';
+import { WatchlistPageResponseSchema } from '@arc/core';
 import { WatchlistSelectionSchema } from '$lib/watchlist';
 import type { PageServerLoad } from './$types';
 
