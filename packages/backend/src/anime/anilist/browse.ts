@@ -13,7 +13,11 @@ import {
 import { GraphQLRequestError } from '#graphql';
 import { request } from './client';
 import { mediaTitle, plainText, present } from './text';
-import { discoveryFormats, discoveryMinimumPopularity, isDiscoverableAnime } from '../discovery';
+import {
+    discoveryFormats,
+    discoveryMinimumPopularity,
+    isDiscoverableAnime,
+} from '@arc/core/catalog/discovery';
 
 export interface AniListBrowseFilters extends Omit<
     BrowseFilters,
