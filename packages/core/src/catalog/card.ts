@@ -1,5 +1,5 @@
-import type { AnimeCard } from '@arc/core/types';
-import { present } from '@arc/core/utils/array';
+import type { AnimeCard } from '../types';
+import { present } from '../utils/array';
 import { mediaTitle, plainText } from './anilist-text';
 
 interface CardMedia {

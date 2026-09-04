@@ -2,7 +2,7 @@ import {
     WatchlistStateResponseSchema,
     WatchlistStatesResponseSchema,
     type WatchlistState,
-} from '@arc/core/contracts/watchlist';
+} from '@arc/core';
 
 export class WatchlistAuthenticationError extends Error {}
 

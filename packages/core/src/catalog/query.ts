@@ -1,7 +1,7 @@
 import { and, arrayContains, asc, desc, eq, inArray, sql } from 'drizzle-orm';
-import type { BrowseFilters } from '@arc/core/catalog/browse-filters';
-import { audioAvailabilityLabel, type AudioMode } from '@arc/core/audio';
-import type { AnimeCard } from '@arc/core/types';
+import type { BrowseFilters } from './browse-filters';
+import { audioAvailabilityLabel, type AudioMode } from '../audio';
+import type { AnimeCard } from '../types';
 import { db } from '@arc/shared/db';
 import { animeCatalog, animeEpisode } from '@arc/shared/db/schema';
 

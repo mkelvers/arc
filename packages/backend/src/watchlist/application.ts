@@ -1,5 +1,5 @@
 import { hydrateMissingAnimeReleases, storedReleaseCards } from '../anime/anilist/releases';
-import { animeTitles } from '@arc/core/catalog/anilist-text';
+import { animeTitles } from '@arc/core';
 import { enrichAnimeCards } from '../anime/card-enrichment';
 import { parseStoredAnimeDetails } from '../anime/details';
 import { storedAudioModes } from '../anime/episodes/model';

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { parseReleaseCalendarPage } from '@arc/core/catalog/release-calendar-parser';
+import { parseReleaseCalendarPage } from '@arc/core';
 
 const media = {
     id: 101,

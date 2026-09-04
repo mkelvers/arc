@@ -1,6 +1,6 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
-    import type { ContinueWatchingCard } from '@arc/core/types';
+    import type { ContinueWatchingCard } from '@arc/core';
     import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
     import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
     import XIcon from 'phosphor-svelte/lib/XIcon';

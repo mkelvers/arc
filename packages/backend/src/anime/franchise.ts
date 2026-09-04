@@ -1,6 +1,6 @@
 import { eq, inArray, sql } from 'drizzle-orm';
 
-import type { FranchiseOrder } from '@arc/core/types';
+import type { FranchiseOrder } from '@arc/core';
 import {
     FranchiseMediaDocument,
     type FranchiseMediaQuery,
@@ -8,7 +8,7 @@ import {
 import { db, type DatabaseTransaction } from '@arc/shared/db';
 import { animeEpisode, animeFranchise, animeProviderMapping, animeRelease } from '@arc/shared/db/schema';
 import { request } from './anilist/client';
-import { plainText } from '@arc/core/catalog/anilist-text';
+import { plainText } from '@arc/core';
 import { enrichAnimeCards } from './card-enrichment';
 import { fetchOrder, type ChiakiEntry } from './franchise/chiaki';
 import { FranchiseRecordSchema, verifiedFranchiseRecord } from './franchise/record';

@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
-import type { BrowseFilters } from '@arc/core/catalog/browse-filters';
-import { present } from '@arc/core/utils/array';
+import type { BrowseFilters } from './browse-filters';
+import { present } from '../utils/array';
 import type { BrowseCatalogEntry } from './browse-types';
 import { db } from '@arc/shared/db';
 import { animeCatalog, animeCatalogRefresh, animeCatalogTaxonomy } from '@arc/shared/db/schema';

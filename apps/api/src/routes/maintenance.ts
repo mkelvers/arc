@@ -8,7 +8,7 @@ import {
     MaintenanceHealthSchema,
     MaintenanceRequestSchema,
     MaintenanceTaskSchema,
-} from '@arc/core/contracts/maintenance';
+} from '@arc/core';
 import {
     enqueueMaintenance,
     getMaintenanceTask,

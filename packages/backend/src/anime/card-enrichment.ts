@@ -1,4 +1,4 @@
-import type { AnimeCard } from '@arc/core/types';
+import type { AnimeCard } from '@arc/core';
 import { withAnimeCardSynopses } from './synopsis';
 import { getStoredPosters } from './tmdb/poster';
 

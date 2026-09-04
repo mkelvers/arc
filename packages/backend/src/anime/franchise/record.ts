@@ -1,4 +1,4 @@
-import type { FranchiseOrder } from '@arc/core/types';
+import type { FranchiseOrder } from '@arc/core';
 import { z } from 'zod';
 
 const franchiseOrderSchema = z

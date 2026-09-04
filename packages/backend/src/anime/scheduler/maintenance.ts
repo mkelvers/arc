@@ -16,7 +16,7 @@ import {
 } from '../providers/anikoto';
 import { episodeMetadataRevision } from '../episodes/policy';
 import { rediscoverMapping, setMetadataMappingOverride } from './mappings';
-import { MaintenanceRequestSchema, type MaintenanceRequest } from '@arc/core/contracts/maintenance';
+import { MaintenanceRequestSchema, type MaintenanceRequest } from '@arc/core';
 import { reconcileAllAiringReleases } from './reconciliation';
 import { maintenancePriority } from './maintenance-policy';
 

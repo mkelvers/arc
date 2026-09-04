@@ -1,12 +1,12 @@
 import { asc, desc, eq, lt } from 'drizzle-orm';
 
-import { audioAvailabilityLabel } from '@arc/core/audio';
+import { audioAvailabilityLabel } from '@arc/core';
 import { db } from '@arc/shared/db';
 import { homeHeroSelection } from '@arc/shared/db/schema';
 import { getHomeHeroCandidates } from './anilist/hero';
 import { storedAnimeRelease } from './anilist/releases';
-import { mediaTitle } from '@arc/core/catalog/anilist-text';
-import { isDiscoverableAnime } from '@arc/core/catalog/discovery';
+import { mediaTitle } from '@arc/core';
+import { isDiscoverableAnime } from '@arc/core';
 import { getEpisodes } from './episodes';
 import { logger } from '@arc/backend/internal/logger';
 import { resolveHeroSynopsis } from './synopsis';
@@ -14,7 +14,7 @@ import {
     homeHeroRotationStart,
     rotatedHomeHeroCandidates,
     selectHomeHero,
-} from '@arc/core/catalog/home-selection';
+} from '@arc/core';
 import { getArtwork } from './tmdb/artwork';
 
 interface HomeHeroAnime {

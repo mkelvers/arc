@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { NotificationSchema } from '@arc/core/contracts/notifications';
+import { NotificationSchema } from '@arc/core';
 
 describe('notification contracts', () => {
     test('accepts episode and dub availability entries', () => {
