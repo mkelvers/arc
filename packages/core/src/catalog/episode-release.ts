@@ -1,7 +1,6 @@
-import { animeDate, dateTimestamp } from '@arc/core';
-import type { ProviderEpisode } from '@arc/core';
-import type { EpisodeMetadata } from '../tmdb/types';
-import type { AniListAnime } from '@arc/core';
+import { animeDate, dateTimestamp } from './date';
+import type { ProviderEpisode } from '../providers/types';
+import type { AniListAnime } from './anilist-types';
 
 export function providerConfirmsEpisode(
     episodes: readonly ProviderEpisode[],
@@ -38,7 +37,7 @@ export function preferredEpisodeAirDate(
         : metadataAirDate;
 }
 
-function metadataDate(metadata: EpisodeMetadata | undefined) {
+function metadataDate(metadata: { airDate: string; rawAirDate?: string | null } | undefined) {
     if (!metadata) {
         return null;
     }
@@ -93,7 +92,7 @@ function declaredReleaseWindow(episodes: ProviderEpisode[], expected: number) {
 export function episodesForRelease(
     anime: AniListAnime,
     episodes: ProviderEpisode[],
-    metadata: Map<string, EpisodeMetadata> | null
+    metadata: Map<string, { airDate: string; rawAirDate?: string | null }> | null
 ) {
     const expected = anime.episodes;
     if (!expected || expected <= 0) {
