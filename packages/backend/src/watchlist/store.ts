@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import type { PlaybackProgressInput } from '../progress/input';
-import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core';
+import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core/server';
 import { db } from '@arc/shared/db';
 import {
     anime,

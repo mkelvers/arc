@@ -23,7 +23,7 @@ import {
     request,
     storedAnimeRelease,
     type AniListBrowseFilters,
-} from '@arc/core';
+} from '@arc/core/server';
 import { getAniKotoSimulcastPage } from './providers/anikoto';
 import { enrichAnimeCards } from './card-enrichment';
 import { withAnimeSearchMetadata } from './search-enrichment';

@@ -1,9 +1,9 @@
-import { createHash } from 'node:crypto';
 import { asc, and, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@arc/shared/db';
 import { animeEpisode, animeEpisodeSync } from '@arc/shared/db/schema';
 import { episodeMetadataRefreshRequired } from './episode-policy';
+import { episodeRevision } from './episode-revision';
 
 export async function needsEpisodeMetadataRefresh(anilistId: number, metadataExternalIdId: number) {
     const [syncRows, episodeRows] = await Promise.all([
@@ -86,26 +86,6 @@ export async function getEpisodeRevision(anilistId: number) {
         .where(eq(animeEpisodeSync.anilistId, anilistId))
         .limit(1);
     return state ? episodeRevision(state) : null;
-}
-
-export function episodeRevision(state: {
-    sourceRevision: string | null;
-    mediaStatus: string | null;
-    nextAiringAt: Date | null;
-    nextAiringEpisode: number | null;
-    lastSuccessAt: Date | null;
-}) {
-    return createHash('sha256')
-        .update(
-            JSON.stringify({
-                sourceRevision: state.sourceRevision,
-                mediaStatus: state.mediaStatus,
-                nextAiringAt: state.nextAiringAt?.toISOString() ?? null,
-                nextAiringEpisode: state.nextAiringEpisode,
-                lastSuccessAt: state.lastSuccessAt?.toISOString() ?? null,
-            })
-        )
-        .digest('hex');
 }
 
 export async function getRelatedReleaseTitles(anilistIds: number[]) {

@@ -6,7 +6,8 @@ import {
 } from '@arc/shared/graphql/generated/graphql';
 import type { WatchlistState } from '@arc/shared/db/schema';
 import { batches, positiveInteger, record, text, type JsonValue } from '../utils';
-import { animeTitles, request } from '@arc/core';
+import { animeTitles } from '@arc/core';
+import { request } from '@arc/core/server';
 
 interface TransferTitles {
     preferred?: string;

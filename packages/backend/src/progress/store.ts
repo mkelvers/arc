@@ -13,7 +13,7 @@ import {
 } from '@arc/shared/db/schema';
 import { toAnimeDetails } from '@arc/core';
 import { parseStoredAnimeDetails } from '@arc/core';
-import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core';
+import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core/server';
 import { getStoredMedia } from '@arc/core/tmdb';
 import { updateWatchlistAfterPlayback } from '../watchlist/store';
 import { formatDuration } from '../utils';
