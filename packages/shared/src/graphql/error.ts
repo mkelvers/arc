@@ -19,10 +19,3 @@ export class GraphQLRequestError extends Error {
         this.retryAfterMs = retryAfterMs;
     }
 }
-
-export function isGraphQLTransientError(cause: unknown) {
-    return (
-        cause instanceof GraphQLRequestError &&
-        (cause.status === undefined || cause.status === 429 || cause.status >= 500)
-    );
-}
