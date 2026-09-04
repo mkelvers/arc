@@ -5,7 +5,7 @@ import { db } from '@arc/db';
 import { animeSynopsis } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { getAnimeRelease, storedAnimeRelease } from './anilist/releases';
-import { mediaTitle, plainText } from './anilist/text';
+import { mediaTitle, plainText } from '@arc/core/catalog/anilist-text';
 import type { AniListAnime } from './anilist/types';
 import { create } from './tmdb/client';
 import { NoConfidentTmdbMappingError, resolveStored } from './tmdb/mapping';

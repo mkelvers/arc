@@ -4,7 +4,7 @@ import { HomeHeroCandidatesDocument } from '@arc/shared/anilist/generated/graphq
 import { db } from '@arc/db';
 import { homeHeroCandidate } from '@arc/db/schema';
 import { request } from './client';
-import { present } from './text';
+import { present } from '@arc/core/catalog/anilist-text';
 import { eligibleHomeHeroCandidates } from '@arc/core/catalog/home-selection';
 
 export async function refreshHomeHeroCandidates(now = new Date()) {

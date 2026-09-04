@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import type { JsonValue } from '#utils';
-import { plainText } from './text';
+import { plainText } from '@arc/core/catalog/anilist-text';
 
 const releaseCalendarPageSchema = z.object({
     Page: z.object({
