@@ -6,7 +6,8 @@ import { getAnimeRelease } from '../anilist/releases';
 import { getBrowseTaxonomy } from '../anilist/browse';
 import { refreshHomeHeroCandidates } from '../anilist/hero';
 import { refreshHomepage } from '../anilist/home';
-import { refreshPopularAnime } from '../browse';
+import { getBrowsePage } from '../anilist/browse';
+import { refreshCatalogSnapshots as refreshPopularCatalog } from '@arc/core/catalog/refresh';
 import { refreshFranchiseOrder } from '../franchise';
 import { refreshCurrentSimulcast } from '../simulcast';
 import { ensureEpisodeInventoryBackfill } from '../episodes/sync';
@@ -75,7 +76,24 @@ async function rediscoverRelatedMappings(release: Awaited<ReturnType<typeof getA
 export async function refreshCatalogSnapshots(now = new Date()) {
     const { season, year } = currentAnimeSeason(now);
     await refreshHomepage(season, year);
-    await refreshPopularAnime();
+    await refreshPopularCatalog(
+        {
+            query: '',
+            genre: null,
+            tag: null,
+            format: null,
+            status: null,
+            source: null,
+            season: null,
+            year: null,
+            country: null,
+            safe: true,
+            sort: 'popularity',
+            order: 'desc',
+        },
+        (filters, page, perPage, forceRefresh) =>
+            getBrowsePage(filters, page, perPage, forceRefresh)
+    );
     await refreshCurrentSimulcast(now);
     await getBrowseTaxonomy(true);
     const heroCandidates = await refreshHomeHeroCandidates(now);
