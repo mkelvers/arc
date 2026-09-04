@@ -9,7 +9,7 @@ import {
     playbackProgress,
 } from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
-import { GraphQLRequestError } from '@arc/core';
+import { GraphQLRequestError } from '@arc/shared/graphql/error';
 import type { AniListAnime } from '@arc/core';
 import { refreshAnimeRelease } from '@arc/core';
 import { animeTitles } from '@arc/core';

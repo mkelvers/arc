@@ -11,7 +11,6 @@
         "test": "bun test --pass-with-no-tests"
     },
     "dependencies": {
-        "@graphql-typed-document-node/core": "^3.2.0",
         "@arc/shared": "workspace:*",
         "drizzle-orm": "catalog:",
         "zod": "^4.4.3"

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { graphql, GraphQLRequestError } from '@arc/core';
+import { graphql, GraphQLRequestError } from '@arc/shared/graphql';
 
 interface Result {
     viewer: { id: number };
