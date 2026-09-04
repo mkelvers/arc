@@ -1,4 +1,4 @@
-import type { AniListAnime } from '@arc/core';
+import type { AniListAnime } from './anilist-types';
 import { z } from 'zod';
 
 const storedAnimeDetailsSchema = z.looseObject({

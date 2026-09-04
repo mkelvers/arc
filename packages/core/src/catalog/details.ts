@@ -75,7 +75,9 @@ function formatDescription(value: string | null) {
 function formatStaff(media: AniListAnimeDetailsMedia) {
     const credits = new Map<string, string[]>();
 
-    for (const edge of media.staff?.edges?.filter((edge): edge is NonNullable<typeof edge> => edge !== null) ?? []) {
+    for (const edge of media.staff?.edges?.filter(
+        (edge): edge is NonNullable<typeof edge> => edge !== null
+    ) ?? []) {
         const name = edge.node?.name?.full?.trim();
         const role = edge.role ? staffRoles.get(edge.role) : undefined;
 
@@ -88,7 +90,10 @@ function formatStaff(media: AniListAnimeDetailsMedia) {
 }
 
 function formatRankings(media: AniListAnimeDetailsMedia) {
-    const rankings = media.rankings?.filter((ranking): ranking is NonNullable<typeof ranking> => ranking !== null).filter(({ type }) => type === 'POPULAR') ?? [];
+    const rankings =
+        media.rankings
+            ?.filter((ranking): ranking is NonNullable<typeof ranking> => ranking !== null)
+            .filter(({ type }) => type === 'POPULAR') ?? [];
     const seasonal = rankings.find(
         ({ season, year }) => season === media.season && year === media.seasonYear
     );
@@ -138,7 +143,10 @@ export function toAnimeDetails(
             .sort((left, right) => (right.rank ?? 0) - (left.rank ?? 0))
             .slice(0, 5)
             .map((tag) => tag.name),
-        studios: media.studios?.nodes?.filter((studio): studio is NonNullable<typeof studio> => studio !== null).map((studio) => studio.name) ?? [],
+        studios:
+            media.studios?.nodes
+                ?.filter((studio): studio is NonNullable<typeof studio> => studio !== null)
+                .map((studio) => studio.name) ?? [],
         staff: formatStaff(media),
         rankings: formatRankings(media),
     };

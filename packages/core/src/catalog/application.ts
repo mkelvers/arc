@@ -2,7 +2,6 @@ import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 
 import { db } from '@arc/shared/db';
 import {
-    animeCatalog,
     animeCatalogRefresh,
     animeEpisode,
     animeEpisodeTarget,

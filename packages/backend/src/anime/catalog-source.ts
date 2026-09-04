@@ -15,15 +15,19 @@ import {
     mediaTitle,
     isDiscoverableAnime,
 } from '@arc/core';
-import { request } from './anilist/client';
-import { getBrowsePage, getBrowseTaxonomy, type AniListBrowseFilters } from './anilist/browse';
-import { discoverReleaseCalendar } from './anilist/release-calendar';
-import { storedAnimeRelease } from './anilist/releases';
-import { getEpisodes } from './episodes';
+import {
+    discoverReleaseCalendar,
+    getBrowsePage,
+    getBrowseTaxonomy,
+    getEpisodes,
+    request,
+    storedAnimeRelease,
+    type AniListBrowseFilters,
+} from '@arc/core';
 import { getAniKotoSimulcastPage } from './providers/anikoto';
 import { enrichAnimeCards } from './card-enrichment';
 import { withAnimeSearchMetadata } from './search-enrichment';
-import { getArtwork } from './tmdb/artwork';
+import { getArtwork } from '@arc/core/tmdb';
 import { resolveHeroSynopsis } from './synopsis';
 import { getContinueWatchingCards } from '../progress/store';
 import { logger } from '../logger';

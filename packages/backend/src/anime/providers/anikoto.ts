@@ -1059,7 +1059,10 @@ async function requestJson(
 }
 
 async function providerMediaId(anilistId: number) {
-    const [{ db }, schema] = await Promise.all([import('@arc/shared/db'), import('@arc/shared/db/schema')]);
+    const [{ db }, schema] = await Promise.all([
+        import('@arc/shared/db'),
+        import('@arc/shared/db/schema'),
+    ]);
     const [override] = await db
         .select({ id: schema.animeMappingOverride.externalId })
         .from(schema.animeMappingOverride)
@@ -1107,7 +1110,10 @@ async function providerMediaId(anilistId: number) {
 }
 
 async function saveProviderMediaId(anilistId: number, id: string) {
-    const [{ db }, schema] = await Promise.all([import('@arc/shared/db'), import('@arc/shared/db/schema')]);
+    const [{ db }, schema] = await Promise.all([
+        import('@arc/shared/db'),
+        import('@arc/shared/db/schema'),
+    ]);
     const [override] = await db
         .select({ id: schema.animeMappingOverride.externalId })
         .from(schema.animeMappingOverride)
@@ -1165,7 +1171,10 @@ export async function recordAniKotoInventoryVerification(
     }
 
     const now = new Date();
-    const [{ db }, schema] = await Promise.all([import('@arc/shared/db'), import('@arc/shared/db/schema')]);
+    const [{ db }, schema] = await Promise.all([
+        import('@arc/shared/db'),
+        import('@arc/shared/db/schema'),
+    ]);
     await db
         .update(schema.animeProviderMapping)
         .set({

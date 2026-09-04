@@ -2,10 +2,7 @@ import { createCatalogApplication } from '@arc/core';
 import { eq, isNotNull } from 'drizzle-orm';
 import { db } from '@arc/shared/db';
 import { animeFranchise, animeRelease } from '@arc/shared/db/schema';
-import {
-    getAnimeRelease,
-    refreshHomeHeroCandidates,
-} from '@arc/core';
+import { getAnimeRelease, refreshHomeHeroCandidates } from '@arc/core';
 import { refreshFranchiseOrder } from '../franchise';
 import { ensureEpisodeInventoryBackfill } from '../episodes/sync';
 import { findMapping, getArtwork } from '@arc/core/tmdb';

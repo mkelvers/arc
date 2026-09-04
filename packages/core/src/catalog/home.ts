@@ -16,7 +16,7 @@ import {
     selectHomeHero,
     type HomeHeroCandidate,
 } from './home-selection';
-import type { CatalogSource, HomeHero } from './source';
+import type { CatalogSource } from './source';
 
 function audioModes(rows: Array<{ anilistId: number; audio: AudioMode[] }>) {
     const modes = new Map<number, Set<AudioMode>>();
