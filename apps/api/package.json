@@ -10,7 +10,6 @@
         "test": "bun test"
     },
     "dependencies": {
-        "@arc/api-contract": "workspace:*",
         "@arc/backend": "workspace:*",
         "@arc/core": "workspace:*",
         "@arc/shared": "workspace:*",

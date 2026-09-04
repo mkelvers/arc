@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import { AnimeArtworkSchema, AnimeIdSchema } from '@arc/api-contract/anime';
+import { AnimeArtworkSchema, AnimeIdSchema } from '@arc/core/contracts/anime';
 import {
     animePageDeferred,
     animePageArtwork,
