@@ -21,6 +21,7 @@ export * from './catalog/release-calendar-parser';
 export * from './catalog/release-calendar-window';
 export * from './catalog/search-index';
 export * from './catalog/storage';
+export * from './catalog/stored-anime-details';
 export * from './contracts';
 export * from './player/skip-times';
 export * from './search';
