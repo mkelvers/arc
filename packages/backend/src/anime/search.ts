@@ -2,7 +2,7 @@ import { rankAnimeSearch } from '@arc/shared/search';
 import { SearchAnimePageDocument } from '@arc/shared/anilist/generated/graphql';
 import { db } from '@arc/db';
 import { request } from './anilist/client';
-import { animeCard } from './anilist/models';
+import { animeCard } from '@arc/core/catalog/card';
 import { animeTitles } from '@arc/core/catalog/anilist-text';
 import { createAnimeSearchIndex } from './search-index';
 import { enrichAnimeCards } from './card-enrichment';
