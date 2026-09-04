@@ -10,6 +10,7 @@
         "./season": "./src/season.ts",
         "./types": "./src/types.ts",
         "./player/skip-times": "./src/player/skip-times.ts",
+        "./utils/array": "./src/utils/array.ts",
         "./anilist/generated/*": "./src/anilist/generated/*.ts"
     },
     "scripts": {
