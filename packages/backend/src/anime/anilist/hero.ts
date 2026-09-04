@@ -1,6 +1,6 @@
 import { asc, notInArray, sql } from 'drizzle-orm';
 
-import { HomeHeroCandidatesDocument } from '@arc/shared/anilist/generated/graphql';
+import { HomeHeroCandidatesDocument } from '@arc/shared/graphql/generated/graphql';
 import { db } from '@arc/db';
 import { homeHeroCandidate } from '@arc/db/schema';
 import { request } from './client';

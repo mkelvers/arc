@@ -2,7 +2,7 @@ import type {
     AnimeOverviewQuery,
     AnimeQuery,
     AnimeScheduleQuery,
-} from '@arc/shared/anilist/generated/graphql';
+} from '@arc/shared/graphql/generated/graphql';
 import { z } from 'zod';
 
 export type AniListAnime = NonNullable<AnimeQuery['Media']>;
