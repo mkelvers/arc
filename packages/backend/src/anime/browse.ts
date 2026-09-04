@@ -20,7 +20,7 @@ import { enrichAnimeCards } from './card-enrichment';
 import { popularCatalogPages } from '@arc/core/catalog/browse-pagination';
 import { catalogPage as queryCatalogPage } from '@arc/core/catalog/query';
 import {
-    catalogRefreshKey,
+    catalogSnapshotKey,
     catalogTaxonomy,
     refreshCatalogPage as persistCatalogPage,
 } from '@arc/core/catalog/storage';
@@ -30,15 +30,6 @@ type CatalogPageSnapshot = {
     animeIds: number[];
     hasNextPage: boolean;
 };
-
-export function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
-    return JSON.stringify({
-        discoveryCatalogRevision: 2,
-        ...filters,
-        query: filters.query.toLocaleLowerCase('en'),
-        page,
-    });
-}
 
 export async function refreshCatalogPage(
     queryKey: string,
@@ -126,7 +117,7 @@ export async function refreshCatalogPage(
 }
 
 async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
-    const queryKey = catalogRefreshKey(filters, page);
+    const queryKey = catalogSnapshotKey(filters, page);
     const [stored] = await db
         .select({
             animeIds: animeCatalogRefresh.animeIds,
@@ -278,7 +269,7 @@ export async function refreshPopularAnime() {
     const refreshedAt = new Date();
     for (const [index, page] of pages.entries()) {
         await persistCatalogPage(
-            catalogRefreshKey(filters, index + 1),
+            catalogSnapshotKey(filters, index + 1),
             page,
             index < pages.length - 1,
             refreshedAt
@@ -286,7 +277,7 @@ export async function refreshPopularAnime() {
     }
 
     if (!pages.length) {
-        await persistCatalogPage(catalogRefreshKey(filters, 1), [], false, refreshedAt);
+        await persistCatalogPage(catalogSnapshotKey(filters, 1), [], false, refreshedAt);
     }
 
     return {
