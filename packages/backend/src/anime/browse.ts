@@ -4,7 +4,6 @@ import type { BrowseFilters } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
 import type { AnimeCard } from '@arc/shared/types';
 import { db } from '@arc/db';
-import type { BrowseCatalogEntry } from '@arc/core/catalog/browse-types';
 import type { BrowseSourceTaxonomy } from '@arc/core/catalog/browse-transform';
 import {
     animeCatalog,
@@ -16,18 +15,12 @@ import {
 import { getBrowsePage, type AniListBrowseFilters } from './anilist/browse';
 import { storedReleaseCards } from './anilist/releases';
 import { enrichAnimeCards } from './card-enrichment';
-import { popularCatalogPages } from '@arc/core/catalog/browse-pagination';
 import { catalogPage as queryCatalogPage } from '@arc/core/catalog/query';
 import {
     catalogSnapshotKey,
     catalogTaxonomy,
     refreshCatalogPage as persistCatalogPage,
 } from '@arc/core/catalog/storage';
-
-type CatalogPageSnapshot = {
-    animeIds: number[];
-    hasNextPage: boolean;
-};
 
 async function ensureFreshCatalog(filters: AniListBrowseFilters, page: number) {
     const queryKey = catalogSnapshotKey(filters, page);
@@ -109,51 +102,6 @@ async function loadPage(filters: BrowseFilters, page: number) {
 export async function popularAnimePage(page: number, filters: BrowseFilters) {
     const { sourceTaxonomy: _, ...result } = await loadPage(filters, page);
     return { ...result, loadedAt: new Date().toISOString() };
-}
-
-export async function refreshPopularAnime() {
-    const filters: AniListBrowseFilters = {
-        query: '',
-        genre: null,
-        tag: null,
-        format: null,
-        status: null,
-        source: null,
-        season: null,
-        year: null,
-        country: null,
-        safe: true,
-        sort: 'popularity',
-        order: 'desc',
-    };
-    const entries: BrowseCatalogEntry[] = [];
-    for (let page = 1; ; page += 1) {
-        const result = await getBrowsePage(filters, page, 42, true);
-        entries.push(...result.anime);
-        if (!result.hasNextPage) {
-            break;
-        }
-    }
-
-    const pages = popularCatalogPages(entries);
-    const refreshedAt = new Date();
-    for (const [index, page] of pages.entries()) {
-        await persistCatalogPage(
-            catalogSnapshotKey(filters, index + 1),
-            page,
-            index < pages.length - 1,
-            refreshedAt
-        );
-    }
-
-    if (!pages.length) {
-        await persistCatalogPage(catalogSnapshotKey(filters, 1), [], false, refreshedAt);
-    }
-
-    return {
-        animeIds: pages[0]?.map(({ anilistId }) => anilistId) ?? [],
-        hasNextPage: pages.length > 1,
-    } satisfies CatalogPageSnapshot;
 }
 
 export async function newAnimePage(page: number, filters: BrowseFilters) {
