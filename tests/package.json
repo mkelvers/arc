@@ -4,10 +4,12 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "check": "tsc --noEmit",
         "test": "bun test"
     },
     "dependencies": {
-        "@arc/core": "workspace:*"
+        "@arc/core": "workspace:*",
+        "@arc/shared": "workspace:*"
     },
     "devDependencies": {
         "@types/bun": "^1.4.0"
