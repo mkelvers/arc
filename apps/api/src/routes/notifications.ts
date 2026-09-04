@@ -1,11 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 
-import {
-    getNotifications,
-    getUnreadNotificationCount,
-    markNotificationRead,
-} from '@arc/backend/notifications';
+import { getNotifications, getUnreadNotificationCount, markNotificationRead } from '@arc/core';
 import { middleware, type ApiEnvironment } from '../http';
 
 const idSchema = z.object({ id: z.uuid() });

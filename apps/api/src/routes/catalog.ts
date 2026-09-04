@@ -8,7 +8,7 @@ import {
     SearchQuerySchema,
 } from '@arc/core';
 import { parseBrowseFilters } from '@arc/core';
-import { clearPlaybackProgress } from '@arc/backend/progress';
+import { clearPlaybackProgress } from '@arc/core';
 import { middleware, validate, type ApiEnvironment } from '../http';
 import { catalogApplication } from '../catalog';
 

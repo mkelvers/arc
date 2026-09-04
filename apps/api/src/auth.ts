@@ -3,7 +3,7 @@ import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer, username } from 'better-auth/plugins';
 
-import { hasInvitationClaim } from '@arc/backend';
+import { hasInvitationClaim } from '@arc/core';
 import { db } from '@arc/shared/db';
 import * as schema from '@arc/shared/db/schema';
 

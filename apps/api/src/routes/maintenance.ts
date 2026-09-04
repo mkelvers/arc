@@ -8,12 +8,10 @@ import {
     MaintenanceHealthSchema,
     MaintenanceRequestSchema,
     MaintenanceTaskSchema,
-} from '@arc/core';
-import {
     enqueueMaintenance,
     getMaintenanceTask,
-} from '@arc/backend/internal/anime/scheduler/maintenance';
-import { animeSchedulerHealth } from '@arc/backend/internal/anime/scheduler/run';
+    animeSchedulerHealth,
+} from '@arc/core';
 import { validate } from '../http';
 
 const TaskParamSchema = z.object({ taskId: z.uuid() });

@@ -1,10 +1,13 @@
 import { Hono } from 'hono';
 
-import { PlaybackProgressSchema, SegmentRequestSchema } from '@arc/core';
-import { validSkipInterval } from '@arc/backend/internal/anime/aniskip';
-import { saveEpisodeSegment } from '@arc/backend/internal/anime/skip-times';
-import { parsePlaybackProgress } from '@arc/backend/internal/progress/input';
-import { savePlaybackProgress } from '@arc/backend/progress';
+import {
+    parsePlaybackProgress,
+    PlaybackProgressSchema,
+    saveEpisodeSegment,
+    savePlaybackProgress,
+    SegmentRequestSchema,
+    validSkipInterval,
+} from '@arc/core';
 import { middleware, validate, type ApiEnvironment } from '../http';
 import { proxyStreamRequest, StreamProxyError } from '../stream';
 
