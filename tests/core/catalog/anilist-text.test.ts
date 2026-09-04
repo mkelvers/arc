@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { animeTitles, plainText } from '@arc/core/catalog/anilist-text';
+import { animeTitles, plainText } from '@arc/core';
 
 describe('AniList catalog text', () => {
     test('preserves source priority while removing blank and duplicate titles', () => {

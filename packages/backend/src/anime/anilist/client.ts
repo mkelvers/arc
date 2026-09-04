@@ -8,7 +8,7 @@ import { anilistQuerySnapshot } from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { graphql } from '../../graphql';
 import { record, type JsonValue } from '../../utils';
-import { coordinatedAniListRequest } from '@arc/core/catalog/anilist-lease';
+import { coordinatedAniListRequest } from '@arc/core';
 
 interface RequestOptions {
     refreshAfterMs?: number;

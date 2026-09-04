@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { FranchiseOrder } from '@arc/core/types';
+import type { FranchiseOrder } from '@arc/core';
 import { FranchiseRecordSchema, verifiedFranchiseRecord } from './record';
 
 const order: FranchiseOrder = { types: [], entries: [] };

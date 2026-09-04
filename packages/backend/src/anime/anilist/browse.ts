@@ -1,4 +1,4 @@
-import type { BrowseFilters } from '@arc/core/catalog/browse-filters';
+import type { BrowseFilters } from '@arc/core';
 import {
     BrowseAnimePageDocument,
     BrowseAnimeTaxonomyDocument,
@@ -13,7 +13,7 @@ import { request } from './client';
 import {
     transformBrowseEntries,
     transformBrowseTaxonomy,
-} from '@arc/core/catalog/browse-transform';
+} from '@arc/core';
 
 export interface AniListBrowseFilters extends Omit<
     BrowseFilters,
