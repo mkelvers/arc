@@ -2,7 +2,7 @@
     import { goto } from '$app/navigation';
     import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
     import { CaretDownIcon, DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
-    import { NotificationsResponseSchema, type Notification } from '@arc/core';
+    import { NotificationsResponseSchema, type Notification } from '@arc/core/browser';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import { cn } from '$lib/utils';

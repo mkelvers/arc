@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { AnimeCardPageSchema, type AnimeCard } from '@arc/core';
+import { AnimeCardPageSchema, type AnimeCard } from '@arc/core/browser';
 
 const card = {
     id: 1,

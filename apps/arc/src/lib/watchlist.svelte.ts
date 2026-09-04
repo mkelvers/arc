@@ -2,7 +2,7 @@ import {
     WatchlistStateResponseSchema,
     WatchlistStatesResponseSchema,
     type WatchlistState,
-} from '@arc/core';
+} from '@arc/core/browser';
 
 export class WatchlistAuthenticationError extends Error {}
 
@@ -10,6 +10,7 @@ class WatchlistClient {
     private states = $state<Partial<Record<number, WatchlistState>>>({});
     loaded = $state(false);
     private activeLoad: Promise<void> | null = null;
+    private mutations = new Map<number, Promise<void>>();
 
     state(animeId: number) {
         return this.states[animeId] ?? null;
@@ -57,7 +58,7 @@ class WatchlistClient {
         await this.load();
     }
 
-    async set(animeId: number, state: WatchlistState, title?: string) {
+    private async setNow(animeId: number, state: WatchlistState, title?: string) {
         const response = await fetch(`/v1/watchlist/${animeId}`, {
             method: 'PUT',
             headers: {
@@ -79,7 +80,7 @@ class WatchlistClient {
         return result.state;
     }
 
-    async remove(animeId: number) {
+    private async removeNow(animeId: number) {
         const response = await fetch(`/v1/watchlist/${animeId}`, {
             method: 'DELETE',
             headers: {
@@ -92,15 +93,41 @@ class WatchlistClient {
         this.states = remaining;
     }
 
+    private enqueue<T>(animeId: number, mutation: () => Promise<T>) {
+        const previous = this.mutations.get(animeId) ?? Promise.resolve();
+        const request = previous.then(mutation, mutation);
+        const settled = request.then(
+            () => undefined,
+            () => undefined
+        );
+        this.mutations.set(animeId, settled);
+        void settled.then(() => {
+            if (this.mutations.get(animeId) === settled) {
+                this.mutations.delete(animeId);
+            }
+        });
+        return request;
+    }
+
+    set(animeId: number, state: WatchlistState, title?: string) {
+        return this.enqueue(animeId, () => this.setNow(animeId, state, title));
+    }
+
+    remove(animeId: number) {
+        return this.enqueue(animeId, () => this.removeNow(animeId));
+    }
+
     async toggle(animeId: number, title: string) {
         await this.load();
 
-        if (this.state(animeId)) {
-            await this.remove(animeId);
-            return null;
-        }
+        return this.enqueue(animeId, async () => {
+            if (this.state(animeId)) {
+                await this.removeNow(animeId);
+                return null;
+            }
 
-        return this.set(animeId, 'plan_to_watch', title);
+            return this.setNow(animeId, 'plan_to_watch', title);
+        });
     }
 
     private assertSuccessful(response: Response) {

@@ -2,7 +2,7 @@
     import type { Player } from '$lib/player/controller.svelte';
     import { formatTime, isHd } from '$lib/player/media';
     import { subtitleSizeOrder, subtitleSizes } from '$lib/player/subtitle-settings.svelte';
-    import type { SkipKind } from '@arc/core';
+    import type { SkipKind } from '@arc/core/browser';
     import { cn } from '$lib/utils';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
     import { m } from '$lib/i18n.svelte';

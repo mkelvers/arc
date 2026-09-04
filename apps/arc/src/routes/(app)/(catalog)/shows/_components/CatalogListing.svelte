@@ -2,8 +2,8 @@
     import { onDestroy, untrack } from 'svelte';
     import { CircleIcon, FunnelIcon, ListBulletsIcon, RadioButtonIcon } from 'phosphor-svelte';
 
-    import { browseSearchParams, type BrowseFilters } from '@arc/core';
-    import type { AnimeCard as AnimeCardModel } from '@arc/core';
+    import { browseSearchParams, type BrowseFilters } from '@arc/core/browser';
+    import type { AnimeCard as AnimeCardModel } from '@arc/core/browser';
     import emptyArtwork from '$lib/assets/browse-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
@@ -127,6 +127,7 @@
         }
 
         const controller = new AbortController();
+        const requestListing = loadedListing;
         activeRequest = controller;
         loading = true;
         loadError = false;
@@ -139,10 +140,16 @@
                 signal: controller.signal,
                 retryOnce: paginationStrategy === 'gated',
             });
+            if (loadedListing !== requestListing) {
+                return;
+            }
             const update = appendCatalogPage(anime, page, result);
             anime = update.anime;
             nextPage = update.nextPage;
         } catch (cause) {
+            if (loadedListing !== requestListing) {
+                return;
+            }
             if (!(cause instanceof DOMException) || cause.name !== 'AbortError') {
                 console.warn(`${kind} page ${page} could not be loaded`, cause);
                 loadError = paginationStrategy === 'gated';
@@ -154,6 +161,12 @@
                 paginationGate.complete();
             }
         }
+    }
+
+    function retryLoadMore() {
+        loadError = false;
+        paginationGate.reset();
+        void loadMore();
     }
 
     $effect(() => {
@@ -312,6 +325,14 @@
             <div bind:this={sentinel} class="flex min-h-24 w-full items-center justify-center" aria-live="polite">
                 {#if loading}
                     <LoadingSpinner label={m.catalog_loading()} />
+                {:else if loadError}
+                    <button
+                        type="button"
+                        class="min-h-10 px-4 text-xs font-bold text-accent uppercase transition-[filter,transform] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
+                        onclick={retryLoadMore}
+                    >
+                        {m.retry()}
+                    </button>
                 {:else}
                     <span class="sr-only">{m.catalog_auto_loading()}</span>
                 {/if}

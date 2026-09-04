@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { redirect, type Handle } from '@sveltejs/kit';
 
-import { SessionResponseSchema } from '@arc/core';
+import { SessionResponseSchema } from '@arc/core/browser';
 
 export const handle: Handle = async ({ event, resolve }) => {
     if (!event.route.id) {

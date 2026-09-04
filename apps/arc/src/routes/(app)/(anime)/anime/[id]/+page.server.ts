@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
-import { AnimePageOverviewSchema } from '@arc/core';
+import { AnimePageOverviewSchema } from '@arc/core/browser';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, depends, request, fetch }) => {

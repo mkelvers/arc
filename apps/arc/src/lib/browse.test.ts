@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { browseSearchParams, parseBrowseFilters, type BrowseFilters } from '@arc/core';
+import { browseSearchParams, parseBrowseFilters, type BrowseFilters } from '@arc/core/browser';
 
 describe('browse filters', () => {
     test('uses safe popularity defaults for a clean URL', () => {

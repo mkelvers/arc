@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private';
-import { NotificationsResponseSchema } from '@arc/core';
+import { NotificationsResponseSchema } from '@arc/core/browser';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ request, fetch }) => ({

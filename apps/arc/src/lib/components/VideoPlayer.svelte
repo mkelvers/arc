@@ -1,10 +1,10 @@
 <script lang="ts">
-    import type { AnimeEpisode } from '@arc/core';
+    import type { AnimeEpisode } from '@arc/core/browser';
     import EpisodeGridCard from './EpisodeGridCard.svelte';
     import { Player } from '$lib/player/controller.svelte';
     import { subtitleBackgrounds, subtitleSizes, subtitleTextColors } from '$lib/player/subtitle-settings.svelte';
     import type { Sources } from '$lib/player/media';
-    import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/core';
+    import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/core/browser';
     import { beforeNavigate } from '$app/navigation';
     import { onMount, untrack } from 'svelte';
     import { CaretLeftIcon } from 'phosphor-svelte';

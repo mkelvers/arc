@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
-import { SearchResponseSchema } from '@arc/core';
+import { SearchResponseSchema } from '@arc/core/browser';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ url, request, fetch }) => {

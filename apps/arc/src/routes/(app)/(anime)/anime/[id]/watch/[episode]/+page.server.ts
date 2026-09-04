@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { error, redirect } from '@sveltejs/kit';
 
-import { WatchPageSchema, WatchPlaybackSchema, WatchSegmentsSchema } from '@arc/core';
+import { WatchPageSchema, WatchPlaybackSchema, WatchSegmentsSchema } from '@arc/core/browser';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, request, fetch }) => {

@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { error, fail, redirect } from '@sveltejs/kit';
 
-import { HomePageSchema } from '@arc/core';
+import { HomePageSchema } from '@arc/core/browser';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ request, fetch }) => {

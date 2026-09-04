@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { AnimeCard as AnimeCardModel } from '@arc/core';
+    import type { AnimeCard as AnimeCardModel } from '@arc/core/browser';
     import { cn } from '$lib/utils';
     import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
     import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';

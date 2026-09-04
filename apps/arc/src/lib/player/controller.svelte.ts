@@ -2,7 +2,7 @@ import { alignSkipTimes, alignTime, isControl, shortcut, unalignTime, type Sourc
 import { Playback } from './playback.svelte';
 import { PlaybackProgress } from './progress-client';
 import { SegmentEditor } from './segments.svelte';
-import { activeSkip, type EpisodeSkipTimes, type SegmentTemplates } from '@arc/core';
+import { activeSkip, type EpisodeSkipTimes, type SegmentTemplates } from '@arc/core/browser';
 
 interface PlayerInput {
     animeId: number;

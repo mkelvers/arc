@@ -6,7 +6,7 @@ import {
     SegmentSaveResultSchema,
     skipTimesDraft,
     type EpisodeSkipTimes,
-} from '@arc/core';
+} from '@arc/core/browser';
 
 const times: EpisodeSkipTimes = {
     opening: {

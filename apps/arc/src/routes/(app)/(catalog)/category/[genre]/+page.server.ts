@@ -1,8 +1,8 @@
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
-import { CatalogPageSchema, CatalogTaxonomySchema } from '@arc/core';
-import { browseSearchParams, parseBrowseFilters } from '@arc/core';
+import { CatalogPageSchema, CatalogTaxonomySchema } from '@arc/core/browser';
+import { browseSearchParams, parseBrowseFilters } from '@arc/core/browser';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, request, fetch }) => {

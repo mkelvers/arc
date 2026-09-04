@@ -1,5 +1,5 @@
-import { audioModeOrder, type AudioMode } from '@arc/core';
-import type { EpisodeSkipTimes } from '@arc/core';
+import { audioModeOrder, type AudioMode } from '@arc/core/browser';
+import type { EpisodeSkipTimes } from '@arc/core/browser';
 
 export type {
     SubtitleBackground,

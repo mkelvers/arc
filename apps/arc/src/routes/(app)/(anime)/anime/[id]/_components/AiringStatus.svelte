@@ -1,6 +1,6 @@
 <script lang="ts">
     import { invalidate } from '$app/navigation';
-    import { EpisodeRevisionSchema } from '@arc/core';
+    import { EpisodeRevisionSchema } from '@arc/core/browser';
 
     import { m } from '$lib/i18n.svelte';
 

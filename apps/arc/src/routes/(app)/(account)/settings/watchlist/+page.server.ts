@@ -1,6 +1,6 @@
 import { env } from '$env/dynamic/private';
-import { ApiErrorSchema } from '@arc/core';
-import { WatchlistImportResponseSchema } from '@arc/core';
+import { ApiErrorSchema } from '@arc/core/browser';
+import { WatchlistImportResponseSchema } from '@arc/core/browser';
 import { fail, type RequestEvent } from '@sveltejs/kit';
 import type { Actions } from './$types';
 

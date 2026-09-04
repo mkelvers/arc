@@ -1,6 +1,6 @@
 import type { z } from 'zod';
 
-import type { ReleaseCalendarSchema } from '@arc/core';
+import type { ReleaseCalendarSchema } from '@arc/core/browser';
 
 export type ReleaseCalendarEvent = z.infer<typeof ReleaseCalendarSchema>['events'][number];
 

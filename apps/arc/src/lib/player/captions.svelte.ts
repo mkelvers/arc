@@ -1,4 +1,4 @@
-import type { AudioMode } from '@arc/core';
+import type { AudioMode } from '@arc/core/browser';
 import {
     alignSubtitleCues,
     fetchHlsTimeline,

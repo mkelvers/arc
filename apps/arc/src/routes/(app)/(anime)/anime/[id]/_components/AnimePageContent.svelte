@@ -12,7 +12,7 @@
         AnimePageDeferredSchema,
         type AnimeArtwork,
         type AnimePageDeferred,
-    } from '@arc/core';
+    } from '@arc/core/browser';
     import { cn } from '$lib/utils';
     import type { PageData } from '../$types';
     import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
@@ -40,12 +40,14 @@
     let loadedBackdrop = $state<string | null>(null);
     let visibleEpisodeCount = $state(28);
     let extendedMetadataLoading = $state(true);
+    let deferredError = $state(false);
     let loadedAnimeId = $state<number | null>(null);
     let artworkLoading = $state(true);
     const loading = $derived(artworkLoading || loadedAnimeId !== data.anime.id);
 
-    async function loadDeferred() {
+    async function loadDeferred(animeId: number) {
         extendedMetadataLoading = true;
+        deferredError = false;
         page.episodes = pending as Promise<AnimePageDeferred['episodes']>;
         page.watchAction = pending as Promise<AnimePageDeferred['watchAction']>;
         page.audioLabel = pending as Promise<string>;
@@ -57,6 +59,9 @@
                 throw new Error(`Deferred anime page request failed with ${response.status}`);
             }
             const result = AnimePageDeferredSchema.parse(await response.json());
+            if (loadedAnimeId !== animeId) {
+                return;
+            }
             enrichedAnime = result.anime;
             page.episodes = Promise.resolve(result.episodes);
             page.watchAction = Promise.resolve(result.watchAction);
@@ -65,6 +70,10 @@
             visibleEpisodeCount = 28;
             extendedMetadataLoading = false;
         } catch {
+            if (loadedAnimeId !== animeId) {
+                return;
+            }
+            deferredError = true;
             extendedMetadataLoading = false;
             page.episodes = Promise.resolve([]);
             page.watchAction = Promise.resolve({
@@ -101,11 +110,14 @@
 
     $effect(() => {
         if (loadedAnimeId !== data.anime.id) {
-            loadedAnimeId = data.anime.id;
+            const animeId = data.anime.id;
+            loadedAnimeId = animeId;
+            enrichedAnime = null;
             extendedMetadataLoading = true;
+            deferredError = false;
             artworkLoading = true;
             page.artwork = Promise.resolve(null);
-            void Promise.all([loadDeferred(), loadArtwork()]);
+            void Promise.all([loadDeferred(animeId), loadArtwork()]);
         }
     });
 
@@ -393,7 +405,18 @@
                     aria-live="polite"
                 >
                     <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
-                    {#if episodes.length}
+                    {#if deferredError}
+                        <div class="mx-auto max-w-md py-10 text-center" role="alert">
+                            <p class="text-sm text-muted">{m.anime_load_error()}</p>
+                            <button
+                                type="button"
+                                class="mt-4 min-h-10 bg-accent px-4 text-xs font-bold text-on-accent uppercase transition-[filter,transform] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
+                                onclick={() => loadedAnimeId && void loadDeferred(loadedAnimeId)}
+                            >
+                                {m.retry()}
+                            </button>
+                        </div>
+                    {:else if episodes.length}
                         <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
                             {#each episodes.slice(0, visibleEpisodeCount) as episode}
                                 <EpisodeGridCard

@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { error, fail } from '@sveltejs/kit';
 
-import { MediaPageSchema } from '@arc/core';
+import { MediaPageSchema } from '@arc/core/browser';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, request, fetch }) => {

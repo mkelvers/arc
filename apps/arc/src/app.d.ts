@@ -1,4 +1,4 @@
-import type { SessionResponse } from '@arc/core';
+import type { SessionResponse } from '@arc/core/browser';
 
 type AuthSession = NonNullable<SessionResponse>;
 

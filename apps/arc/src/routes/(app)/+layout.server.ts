@@ -1,5 +1,5 @@
 import { env } from '$env/dynamic/private';
-import { CatalogTaxonomySchema } from '@arc/core';
+import { CatalogTaxonomySchema } from '@arc/core/browser';
 import { z } from 'zod';
 import type { LayoutServerLoad } from './$types';
 

@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { AnimeSearchResult } from '@arc/core';
+import type { AnimeSearchResult } from '@arc/core/browser';
 import {
     distinctSearchArtwork,
     inferSearchArtwork,
     rankAnimeSearch,
     searchRelevance,
-} from '@arc/core';
+} from '@arc/core/browser';
 
 const result = (title: string, popularity: number): AnimeSearchResult => ({
     id: popularity,

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { availableAnimeSeasons, currentAnimeSeason, parseAnimeSeason } from '@arc/core';
+import { availableAnimeSeasons, currentAnimeSeason, parseAnimeSeason } from '@arc/core/browser';
 
 describe('anime seasons', () => {
     test.each([

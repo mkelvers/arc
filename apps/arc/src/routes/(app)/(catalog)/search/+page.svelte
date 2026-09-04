@@ -2,7 +2,7 @@
     import { afterNavigate, replaceState } from '$app/navigation';
     import { onMount, untrack } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
-    import { distinctSearchArtwork, AnimeSearchResultSchema, type AnimeSearchResult } from '@arc/core';
+    import { distinctSearchArtwork, AnimeSearchResultSchema, type AnimeSearchResult } from '@arc/core/browser';
     import emptyArtwork from '$lib/assets/search-empty.png';
     import errorArtwork from '$lib/assets/error-state.png';
     import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
@@ -27,6 +27,7 @@
         results: [],
         failed: false,
     });
+    let searchRequestId = 0;
     const loading = $derived(pending || query.trim() !== searchState.query);
 
     const topResults = $derived(
@@ -48,7 +49,7 @@
         },
     ]);
 
-    async function loadResults(next: string, controller: AbortController) {
+    async function loadResults(next: string, controller: AbortController, requestId: number) {
         try {
             const response = await fetch(`/v1/search?q=${encodeURIComponent(next)}`, {
                 headers: {
@@ -65,10 +66,13 @@
             if (!parsed.success) {
                 throw new TypeError('Search request returned an invalid response');
             }
+            if (requestId !== searchRequestId) {
+                return;
+            }
 
             searchState = { query: next, results: parsed.data, failed: false };
         } catch (cause) {
-            if (cause instanceof DOMException && cause.name === 'AbortError') {
+            if (requestId !== searchRequestId || (cause instanceof DOMException && cause.name === 'AbortError')) {
                 return;
             }
 
@@ -111,6 +115,7 @@
 
     $effect(() => {
         const next = query.trim();
+        const requestId = ++searchRequestId;
         if (next === searchState.query) {
             return;
         }
@@ -127,7 +132,7 @@
         }
 
         const controller = new AbortController();
-        const timeout = setTimeout(() => void loadResults(next, controller), 250);
+        const timeout = setTimeout(() => void loadResults(next, controller, requestId), 250);
 
         return () => {
             clearTimeout(timeout);
