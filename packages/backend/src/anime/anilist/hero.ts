@@ -4,7 +4,6 @@ import { HomeHeroCandidatesDocument } from '@arc/shared/anilist/generated/graphq
 import { db } from '@arc/db';
 import { homeHeroCandidate } from '@arc/db/schema';
 import { request } from './client';
-import { present } from '@arc/core/catalog/anilist-text';
 import { eligibleHomeHeroCandidates } from '@arc/core/catalog/home-selection';
 
 export async function refreshHomeHeroCandidates(now = new Date()) {
@@ -13,33 +12,35 @@ export async function refreshHomeHeroCandidates(now = new Date()) {
         { seasonYear: now.getUTCFullYear() },
         { refreshAfterMs: 6 * 60 * 60 * 1_000, forceRefresh: true }
     );
-    const candidates = present(response.Page?.media).flatMap((media, index) => {
-        if (
-            media.averageScore === null ||
-            media.popularity === null ||
-            media.favourites === null ||
-            media.seasonYear === null
-        ) {
-            return [];
-        }
+    const candidates = (response.Page?.media?.filter((value) => value !== null) ?? []).flatMap(
+        (media, index) => {
+            if (
+                media.averageScore === null ||
+                media.popularity === null ||
+                media.favourites === null ||
+                media.seasonYear === null
+            ) {
+                return [];
+            }
 
-        return [
-            {
-                anilistId: media.id,
-                averageScore: media.averageScore,
-                trendingRank: index + 1,
-                popularity: media.popularity,
-                format: media.format,
-                duration: media.duration,
-                favourites: media.favourites,
-                seasonYear: media.seasonYear,
-                genres: present(media.genres),
-                hasPrequel: present(media.relations?.edges).some(
-                    ({ relationType }) => relationType === 'PREQUEL'
-                ),
-            },
-        ];
-    });
+            return [
+                {
+                    anilistId: media.id,
+                    averageScore: media.averageScore,
+                    trendingRank: index + 1,
+                    popularity: media.popularity,
+                    format: media.format,
+                    duration: media.duration,
+                    favourites: media.favourites,
+                    seasonYear: media.seasonYear,
+                    genres: media.genres?.filter((genre) => genre !== null) ?? [],
+                    hasPrequel: (
+                        media.relations?.edges?.filter((value) => value !== null) ?? []
+                    ).some(({ relationType }) => relationType === 'PREQUEL'),
+                },
+            ];
+        }
+    );
 
     const eligible = eligibleHomeHeroCandidates(candidates, now);
     if (!eligible.length) {

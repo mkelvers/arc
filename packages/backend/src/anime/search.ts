@@ -3,7 +3,7 @@ import { SearchAnimePageDocument } from '@arc/shared/anilist/generated/graphql';
 import { db } from '@arc/db';
 import { request } from './anilist/client';
 import { animeCard } from './anilist/models';
-import { animeTitles, present } from '@arc/core/catalog/anilist-text';
+import { animeTitles } from '@arc/core/catalog/anilist-text';
 import { createAnimeSearchIndex } from './search-index';
 import { enrichAnimeCards } from './card-enrichment';
 import { withAnimeSearchMetadata } from './search-enrichment';
@@ -16,29 +16,33 @@ async function requestSearch(search: string) {
         { search, page: 1, perPage: 50 },
         { refreshAfterMs: 24 * 60 * 60 * 1_000 }
     );
-    const results = present(response.Page?.media).flatMap((entry) => {
-        const card = animeCard(entry);
-        if (!card) {
-            return [];
-        }
+    const results = (response.Page?.media?.filter((value) => value !== null) ?? []).flatMap(
+        (entry) => {
+            const card = animeCard(entry);
+            if (!card) {
+                return [];
+            }
 
-        return [
-            {
-                ...card,
-                titles: animeTitles(entry),
-                format: entry.format ?? null,
-                popularity: entry.popularity ?? 0,
-                backdrop: null,
-                artworkGroup: null,
-                relatedIds: present(entry.relations?.edges).flatMap((edge) =>
-                    (edge?.relationType === 'PREQUEL' || edge?.relationType === 'SEQUEL') &&
-                    edge.node
-                        ? [edge.node.id]
-                        : []
-                ),
-            },
-        ];
-    });
+            return [
+                {
+                    ...card,
+                    titles: animeTitles(entry),
+                    format: entry.format ?? null,
+                    popularity: entry.popularity ?? 0,
+                    backdrop: null,
+                    artworkGroup: null,
+                    relatedIds: (
+                        entry.relations?.edges?.filter((value) => value !== null) ?? []
+                    ).flatMap((edge) =>
+                        (edge?.relationType === 'PREQUEL' || edge?.relationType === 'SEQUEL') &&
+                        edge.node
+                            ? [edge.node.id]
+                            : []
+                    ),
+                },
+            ];
+        }
+    );
     const ranked = rankAnimeSearch(search, results);
     await searchIndex.store(ranked);
     return ranked;
