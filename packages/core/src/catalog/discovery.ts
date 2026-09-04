@@ -1,10 +1,5 @@
 import type { MediaFormat } from '@arc/shared/anilist/generated/graphql';
 
-export const discoveryCatalogRevision = 2;
-export const discoveryFormats = ['TV', 'ONA'] as const satisfies readonly MediaFormat[];
-export const discoveryMinimumPopularity = 2_000;
-export const discoveryMinimumDuration = 15;
-
 interface DiscoveryMedia {
     format: MediaFormat | null;
     popularity: number | null;
@@ -13,13 +8,13 @@ interface DiscoveryMedia {
 
 export function isDiscoverableAnime(
     media: DiscoveryMedia,
-    formats: readonly MediaFormat[] = discoveryFormats
+    formats: readonly MediaFormat[] = ['TV', 'ONA']
 ) {
     return (
         media.format !== null &&
         formats.includes(media.format) &&
         media.popularity !== null &&
-        media.popularity >= discoveryMinimumPopularity &&
-        (media.duration === null || media.duration >= discoveryMinimumDuration)
+        media.popularity >= 2_000 &&
+        (media.duration === null || media.duration >= 15)
     );
 }

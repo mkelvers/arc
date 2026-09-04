@@ -13,11 +13,7 @@ import {
 import { GraphQLRequestError } from '#graphql';
 import { request } from './client';
 import { mediaTitle, plainText, present } from './text';
-import {
-    discoveryFormats,
-    discoveryMinimumPopularity,
-    isDiscoverableAnime,
-} from '@arc/core/catalog/discovery';
+import { isDiscoverableAnime } from '@arc/core/catalog/discovery';
 
 export interface AniListBrowseFilters extends Omit<
     BrowseFilters,
@@ -60,7 +56,7 @@ export interface BrowseCatalogEntry {
 
 function browseEntries(
     mediaEntries: NonNullable<NonNullable<BrowseAnimePageQuery['Page']>['media']>,
-    formats: readonly MediaFormat[] = discoveryFormats
+    formats: readonly MediaFormat[] = ['TV', 'ONA']
 ) {
     return present(mediaEntries).flatMap((media) => {
         if (!isDiscoverableAnime(media, formats)) {
@@ -119,7 +115,7 @@ export async function getBrowsePage(
 ) {
     const sort: MediaSort = filters.sort === 'score' ? 'SCORE' : 'POPULARITY';
     const formats: readonly MediaFormat[] =
-        filters.format === 'MOVIE' ? ['MOVIE'] : discoveryFormats;
+        filters.format === 'MOVIE' ? ['MOVIE'] : ['TV', 'ONA'];
     const response = await request(
         BrowseAnimePageDocument,
         {
@@ -135,7 +131,7 @@ export async function getBrowsePage(
             isAdult: filters.safe ? false : undefined,
             sort: [filters.order === 'desc' ? `${sort}_DESC` : sort],
             discoveryFormats: [...formats],
-            minimumPopularity: discoveryMinimumPopularity - 1,
+            minimumPopularity: 1_999,
             page,
             perPage,
         },
