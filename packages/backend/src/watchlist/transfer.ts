@@ -6,7 +6,7 @@ import {
 } from '@arc/shared/anilist/generated/graphql';
 import type { WatchlistState } from '@arc/db/schema';
 import { batches, positiveInteger, record, text, type JsonValue } from '../utils';
-import { animeTitles, present } from '../anime/anilist/text';
+import { animeTitles, present } from '@arc/core/catalog/anilist-text';
 
 interface TransferTitles {
     preferred?: string;

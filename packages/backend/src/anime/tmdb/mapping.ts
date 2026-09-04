@@ -1,4 +1,4 @@
-import { animeTitles } from '../anilist/text';
+import { animeTitles } from '@arc/core/catalog/anilist-text';
 import type { AniListAnime } from '../anilist/types';
 import { animeDate } from '../date';
 import { logger } from '@arc/backend/internal/logger';

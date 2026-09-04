@@ -1,5 +1,5 @@
 import type { AnimeCard } from '@arc/shared/types';
-import { mediaTitle, plainText, present } from './text';
+import { mediaTitle, plainText, present } from '@arc/core/catalog/anilist-text';
 
 interface CardMedia {
     id: number;

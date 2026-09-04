@@ -3,7 +3,7 @@ import { SearchAnimePageDocument } from '@arc/shared/anilist/generated/graphql';
 import { db } from '@arc/db';
 import { request } from './anilist/client';
 import { animeCard } from './anilist/models';
-import { animeTitles, present } from './anilist/text';
+import { animeTitles, present } from '@arc/core/catalog/anilist-text';
 import { createAnimeSearchIndex } from './search-index';
 import { enrichAnimeCards } from './card-enrichment';
 import { withAnimeSearchMetadata } from './search-enrichment';
