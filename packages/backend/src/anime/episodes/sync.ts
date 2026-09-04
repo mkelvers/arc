@@ -32,8 +32,8 @@ import {
     episodeMetadataRevisionAfterSync,
     nextRefreshAt,
     providerEpisodeCount,
-} from './policy';
-import { episodesForRelease, preferredEpisodeAirDate, providerConfirmsEpisode } from './release';
+} from '@arc/core';
+import { episodesForRelease, preferredEpisodeAirDate, providerConfirmsEpisode } from '@arc/core';
 
 export class TargetEpisodeUnavailableError extends Error {
     constructor(
