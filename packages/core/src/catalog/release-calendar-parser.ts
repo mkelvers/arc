@@ -1,7 +1,5 @@
 import { z } from 'zod';
-
-import type { JsonValue } from '#utils';
-import { plainText } from '@arc/core/catalog/anilist-text';
+import { mediaTitle, plainText } from './anilist-text';
 
 const releaseCalendarPageSchema = z.object({
     Page: z.object({
@@ -56,7 +54,7 @@ export function deduplicateReleaseCalendarEntries(entries: ReleaseCalendarEntry[
     return [...new Map(entries.map((entry) => [entry.airingId, entry])).values()];
 }
 
-export function parseReleaseCalendarPage(response: JsonValue) {
+export function parseReleaseCalendarPage(response: unknown) {
     const parsed = releaseCalendarPageSchema.safeParse(response);
     if (!parsed.success) {
         throw new Error('AniList returned invalid release calendar data', {
@@ -75,11 +73,7 @@ export function parseReleaseCalendarPage(response: JsonValue) {
                 anilistId: entry.media.id,
                 episode: entry.episode,
                 airingAt: new Date(entry.airingAt * 1_000),
-                title:
-                    entry.media.title?.english ??
-                    entry.media.title?.romaji ??
-                    entry.media.title?.native ??
-                    `Anime ${entry.media.id}`,
+                title: mediaTitle(entry.media),
                 synopsis: entry.media.description
                     ? plainText(entry.media.description) || null
                     : null,

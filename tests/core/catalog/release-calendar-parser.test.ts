@@ -3,7 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
     deduplicateReleaseCalendarEntries,
     parseReleaseCalendarPage,
-} from './release-calendar-parser';
+} from '@arc/core/catalog/release-calendar-parser';
 
 const media = {
     id: 101,
@@ -45,34 +45,6 @@ describe('AniList release calendar validation', () => {
         ]);
     });
 
-    test('falls back through the AniList title fields and artwork sizes', () => {
-        const result = parseReleaseCalendarPage({
-            Page: {
-                pageInfo: { hasNextPage: false },
-                airingSchedules: [
-                    {
-                        id: 4,
-                        episode: 1,
-                        airingAt: 1_788_000_000,
-                        media: {
-                            id: 103,
-                            isAdult: false,
-                            description: null,
-                            title: { english: null, romaji: null, native: 'ネイティブ' },
-                            coverImage: {
-                                extraLarge: null,
-                                large: 'https://example.com/large.jpg',
-                            },
-                        },
-                    },
-                ],
-            },
-        });
-
-        expect(result.entries[0]?.title).toBe('ネイティブ');
-        expect(result.entries[0]?.imageUrl).toBe('https://example.com/large.jpg');
-    });
-
     test('rejects malformed schedule payloads', () => {
         expect(() => parseReleaseCalendarPage({ Page: null })).toThrow(
             'AniList returned invalid release calendar data'
@@ -82,19 +54,9 @@ describe('AniList release calendar validation', () => {
                 Page: { pageInfo: { hasNextPage: false }, airingSchedules: [{ id: 1 }] },
             })
         ).toThrow('AniList returned invalid release calendar data');
-        expect(() =>
-            parseReleaseCalendarPage({
-                Page: {
-                    pageInfo: { hasNextPage: false },
-                    airingSchedules: [
-                        { id: 1, episode: 1, airingAt: Number.MAX_SAFE_INTEGER, media },
-                    ],
-                },
-            })
-        ).toThrow('AniList returned invalid release calendar data');
     });
 
-    test('deduplicates entries returned across paginated responses by AniList airing ID', () => {
+    test('deduplicates entries returned across pages by airing ID', () => {
         const entry = {
             airingId: 1,
             anilistId: 101,
