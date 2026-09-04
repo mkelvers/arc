@@ -8,7 +8,7 @@ import { anilistQuerySnapshot } from '@arc/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { graphql } from '../../graphql';
 import { record, type JsonValue } from '../../utils';
-import { coordinatedAniListRequest } from './durable-request-policy';
+import { coordinatedAniListRequest } from '@arc/core/catalog/anilist-lease';
 import { shouldUseQuerySnapshot } from '@arc/core/catalog/snapshot-policy';
 
 interface RequestOptions {
