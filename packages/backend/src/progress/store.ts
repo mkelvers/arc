@@ -17,7 +17,7 @@ import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core';
 import { getStoredMedia } from '../anime/tmdb/media';
 import { updateWatchlistAfterPlayback } from '../watchlist/store';
 import { formatDuration } from '../utils';
-import { watchEpisodeHref } from '../anime/episodes/route';
+import { watchEpisodeHref } from '@arc/core';
 import type { PlaybackProgressInput } from './input';
 import { selectPlaybackProgress } from './continue';
 

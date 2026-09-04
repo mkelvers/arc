@@ -27,7 +27,7 @@ import {
     anikotoProvider,
 } from './providers/anikoto';
 import { getEpisodeSkipTimes, getSegmentTemplates } from './skip-times';
-import { watchEpisodeNumber } from './episodes/route';
+import { watchEpisodeNumber } from '@arc/core';
 import { resolveAnimeSynopsis } from './synopsis';
 import { getArtwork } from './tmdb/artwork';
 import { findMapping } from './tmdb/mapping-store';

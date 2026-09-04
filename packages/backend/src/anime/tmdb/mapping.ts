@@ -1,6 +1,6 @@
 import { animeTitles } from '@arc/core';
 import type { AniListAnime } from '@arc/core';
-import { animeDate } from '../date';
+import { animeDate } from '@arc/core';
 import { logger } from '@arc/backend/internal/logger';
 import { episodeTitleKey } from '../providers/match';
 import { create } from './client';

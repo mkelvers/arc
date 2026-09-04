@@ -1,5 +1,5 @@
 import type { AniListAnime } from '@arc/core';
-import { animeDate } from '../date';
+import { animeDate } from '@arc/core';
 import type { ProviderEpisode } from '../providers/types';
 import { episodeTitleKey, episodeTitleScore, normalizedProviderTitle } from '../providers/match';
 import { releaseSequence } from './title';
