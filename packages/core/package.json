@@ -7,6 +7,7 @@
         "./catalog/discovery": "./src/catalog/discovery.ts",
         "./catalog/browse-pagination": "./src/catalog/browse-pagination.ts",
         "./catalog/browse-types": "./src/catalog/browse-types.ts",
+        "./catalog/anilist-text": "./src/catalog/anilist-text.ts",
         "./catalog/home-selection": "./src/catalog/home-selection.ts",
         "./catalog/identity": "./src/catalog/identity.ts",
         "./catalog/movie-backdrop": "./src/catalog/movie-backdrop.ts",

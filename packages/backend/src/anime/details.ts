@@ -1,5 +1,5 @@
 import type { AniListAnime, AniListAnimeDetailsMedia } from './anilist/types';
-import { present } from './anilist/text';
+import { present } from '@arc/core/catalog/anilist-text';
 import { z } from 'zod';
 
 const storedAnimeDetailsSchema = z.looseObject({
