@@ -13,6 +13,12 @@ Arc code should be direct, shallow, local, and unsurprising. Prefer the smallest
 
 Prefer code that performs the operation over code that calls another function that performs it. Keep ownership visible.
 
+### Non-negotiable: inline one-use literals
+
+Never extract a one-use set of literals into exported constants. Inline values such as catalog formats, thresholds, revisions, limits, and simple configuration directly where they are used. Names like `discoveryCatalogRevision`, `discoveryFormats`, `discoveryMinimumPopularity`, and `discoveryMinimumDuration` add no value when they have one caller and no independent interface.
+
+Only name a value when it is reused, configurable, protects a non-obvious protocol/security/persistence/timing rule, or represents a substantial algorithm. “It makes the code shorter” is never sufficient.
+
 ```ts
 if (event.url.pathname.startsWith('/api/')) {
     return new Response('Unauthorized', { status: 401 });

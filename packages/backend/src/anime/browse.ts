@@ -3,12 +3,6 @@ import { and, arrayContains, asc, desc, eq, gte, inArray, lte, sql } from 'drizz
 import type { BrowseFilters } from '@arc/shared/browse';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/shared/audio';
 import type { AnimeCard } from '@arc/shared/types';
-import {
-    discoveryCatalogRevision,
-    discoveryFormats,
-    discoveryMinimumDuration,
-    discoveryMinimumPopularity,
-} from '@arc/core/catalog/discovery';
 import { db } from '@arc/db';
 import {
     animeCatalog,
@@ -36,7 +30,7 @@ type CatalogPageSnapshot = {
 
 export function browseRefreshKey(filters: AniListBrowseFilters, page: number) {
     return JSON.stringify({
-        discoveryCatalogRevision,
+        discoveryCatalogRevision: 2,
         ...filters,
         query: filters.query.toLocaleLowerCase('en'),
         page,
@@ -61,7 +55,7 @@ export async function refreshCatalogPage(
                 .values(
                     anime.map((entry) => ({
                         ...entry,
-                        discoveryRevision: discoveryCatalogRevision,
+                        discoveryRevision: 2,
                         sourceFetchedAt: fetchedAt,
                     }))
                 )
@@ -248,10 +242,10 @@ function catalogConditions(filters: BrowseFilters) {
             : undefined,
         filters.format === 'MOVIE'
             ? eq(animeCatalog.format, 'MOVIE')
-            : inArray(animeCatalog.format, [...discoveryFormats]),
-        sql`${animeCatalog.popularity} >= ${discoveryMinimumPopularity}`,
-        sql`(${animeCatalog.duration} is null or ${animeCatalog.duration} >= ${discoveryMinimumDuration})`,
-        eq(animeCatalog.discoveryRevision, discoveryCatalogRevision),
+            : inArray(animeCatalog.format, ['TV', 'ONA']),
+        sql`${animeCatalog.popularity} >= 2000`,
+        sql`(${animeCatalog.duration} is null or ${animeCatalog.duration} >= 15)`,
+        eq(animeCatalog.discoveryRevision, 2),
         filters.safe ? eq(animeCatalog.isAdult, false) : undefined,
         filters.genre ? arrayContains(animeCatalog.genres, [filters.genre]) : undefined,
         filters.tag ? arrayContains(animeCatalog.tags, [filters.tag]) : undefined,
