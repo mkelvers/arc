@@ -9,9 +9,14 @@ export async function coordinatedAniListRequest<Value>(
     load: () => Promise<Value>
 ) {
     const owner = randomUUID();
-    await db.insert(anilistRequestState).values({ name: 'global' }).onConflictDoNothing();
+    await db
+        .insert(anilistRequestState)
+        .values({
+            name: 'global',
+        })
+        .onConflictDoNothing();
 
-    for (;;) {
+    while (true) {
         const now = new Date();
         const [claimed] = await db
             .update(anilistRequestState)

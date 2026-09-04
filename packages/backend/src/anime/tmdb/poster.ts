@@ -107,10 +107,13 @@ async function savePoster(
         fetchedAt: new Date(),
     };
 
-    await db.insert(animeReleasePoster).values(values).onConflictDoUpdate({
-        target: animeReleasePoster.animeId,
-        set: values,
-    });
+    await db
+        .insert(animeReleasePoster)
+        .values(values)
+        .onConflictDoUpdate({
+            target: animeReleasePoster.animeId,
+            set: values,
+        });
 
     return poster
         ? {
