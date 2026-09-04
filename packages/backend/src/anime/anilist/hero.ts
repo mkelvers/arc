@@ -5,7 +5,7 @@ import { db } from '@arc/db';
 import { homeHeroCandidate } from '@arc/db/schema';
 import { request } from './client';
 import { present } from './text';
-import { eligibleHomeHeroCandidates } from '../home/selection';
+import { eligibleHomeHeroCandidates } from '@arc/core/catalog/home-selection';
 
 export async function refreshHomeHeroCandidates(now = new Date()) {
     const response = await request(
