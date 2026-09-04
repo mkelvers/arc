@@ -6,12 +6,12 @@ import {
     PageQuerySchema,
     ReleaseCalendarSchema,
     SearchQuerySchema,
+    releaseCalendar,
 } from '@arc/core';
 import { parseBrowseFilters } from '@arc/core';
 import { catalogTaxonomy } from '@arc/core';
 import { newAnimePage, popularAnimePage } from '@arc/backend/internal/anime/browse';
 import { homePage } from '@arc/backend/internal/anime/application';
-import { releaseCalendar } from '@arc/backend/internal/anime/release-calendar';
 import { simulcast } from '@arc/backend/internal/anime/simulcast';
 import { getSearchResults } from '@arc/backend/internal/anime/search';
 import { clearPlaybackProgress } from '@arc/backend/progress';

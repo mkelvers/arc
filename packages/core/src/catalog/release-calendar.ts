@@ -2,12 +2,15 @@ import { asc, and, eq, gte, lt } from 'drizzle-orm';
 
 import { db } from '@arc/shared/db';
 import { animeAiringSchedule, schedulerHeartbeat } from '@arc/shared/db/schema';
-import { releaseCalendarWindow } from '@arc/core';
-import { discoverReleaseCalendar } from './anilist/release-calendar';
+import type { ReleaseCalendarEntry } from './release-calendar-parser';
+import { releaseCalendarWindow } from './release-calendar-window';
 
-export async function refreshReleaseCalendar(now = new Date()) {
+export async function refreshReleaseCalendar(
+    discover: (from: Date, to: Date) => Promise<ReleaseCalendarEntry[]>,
+    now = new Date()
+) {
     const { from, to } = releaseCalendarWindow(now);
-    const entries = await discoverReleaseCalendar(from, to);
+    const entries = await discover(from, to);
     const sourceFetchedAt = new Date();
 
     await db.transaction(async (tx) => {
