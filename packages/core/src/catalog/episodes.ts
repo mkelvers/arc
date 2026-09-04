@@ -3,7 +3,6 @@ import { asc, and, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@arc/shared/db';
 import { animeEpisode, animeEpisodeSync } from '@arc/shared/db/schema';
-import type { AniListAnime } from './anilist-types';
 import { episodeMetadataRefreshRequired } from './episode-policy';
 
 export async function needsEpisodeMetadataRefresh(anilistId: number, metadataExternalIdId: number) {
