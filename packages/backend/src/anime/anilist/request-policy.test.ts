@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
-import { GraphQLRequestError } from '#graphql';
-import { anilistRetryDelay } from './request-policy';
+import { GraphQLRequestError } from '@arc/shared/graphql-error';
+import { anilistRetryDelay } from '@arc/core/catalog/anilist-request-policy';
 
 describe('AniList retry policy', () => {
     test('preserves AniList Retry-After for rate limits', () => {

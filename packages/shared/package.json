@@ -5,6 +5,7 @@
     "type": "module",
     "exports": {
         "./audio": "./src/audio.ts",
+        "./graphql-error": "./src/graphql-error.ts",
         "./browse": "./src/browse.ts",
         "./search": "./src/search.ts",
         "./season": "./src/season.ts",

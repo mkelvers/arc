@@ -15,7 +15,7 @@ import { graphql } from '../../graphql';
 import { ensureInternalAnimeId } from '@arc/core/catalog/identity';
 import { animeTitles, plainText } from '@arc/core/catalog/anilist-text';
 import { request as requestAniList } from './client';
-import { coordinatedAniListRequest } from './durable-request-policy';
+import { coordinatedAniListRequest } from '@arc/core/catalog/anilist-lease';
 import {
     AniListAnimeOverviewSchema,
     AniListAnimeSchema,

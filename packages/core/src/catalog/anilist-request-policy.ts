@@ -1,4 +1,4 @@
-import { GraphQLRequestError } from '../../graphql';
+import { GraphQLRequestError } from '@arc/shared/graphql-error';
 
 export function anilistRetryDelay(cause: unknown) {
     if (!(cause instanceof GraphQLRequestError)) {
