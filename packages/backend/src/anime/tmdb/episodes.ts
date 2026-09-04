@@ -1,6 +1,6 @@
 import type { AniListAnime } from '@arc/core';
 import { z } from 'zod';
-import { animeDate } from '../date';
+import { animeDate } from '@arc/core';
 import type { ProviderEpisode } from '../providers/types';
 import type { JsonValue } from '#utils';
 import { create, imageUrl } from './client';

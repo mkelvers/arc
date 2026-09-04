@@ -1,5 +1,5 @@
 import type { AniListAnime } from '@arc/core';
-import { animeDate } from '../date';
+import { animeDate } from '@arc/core';
 import { isSpecialRelease, releaseSequence } from './title';
 
 interface Season {

@@ -6,7 +6,7 @@ import { db } from '@arc/shared/db';
 import { animeEpisode } from '@arc/shared/db/schema';
 import { imageUrl } from './tmdb/client';
 import { getStoredBackdropCandidates } from './tmdb/media';
-import { watchEpisodeHref } from './episodes/route';
+import { watchEpisodeHref } from '@arc/core';
 
 async function storedArtwork(anilistIds: number[]) {
     const rows = await getStoredBackdropCandidates(anilistIds);

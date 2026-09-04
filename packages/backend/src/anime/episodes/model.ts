@@ -7,7 +7,7 @@ import { db } from '@arc/shared/db';
 import { animeEpisode } from '@arc/shared/db/schema';
 import { formatDuration } from '../../utils';
 import type { AniListAnime } from '@arc/core';
-import { watchEpisodeHref } from './route';
+import { watchEpisodeHref } from '@arc/core';
 
 function episodeModel(
     episode: typeof animeEpisode.$inferSelect,
