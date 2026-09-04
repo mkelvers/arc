@@ -1,5 +1,5 @@
 import type { AudioMode } from '@arc/core';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 
 export interface ProviderEpisode {
     id: string;

@@ -11,7 +11,7 @@ import {
     animeReleasePoster,
 } from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import { create, imageUrl } from './client';
 import { findMapping } from './mapping-store';
 import {
@@ -107,10 +107,13 @@ async function savePoster(
         fetchedAt: new Date(),
     };
 
-    await db.insert(animeReleasePoster).values(values).onConflictDoUpdate({
-        target: animeReleasePoster.animeId,
-        set: values,
-    });
+    await db
+        .insert(animeReleasePoster)
+        .values(values)
+        .onConflictDoUpdate({
+            target: animeReleasePoster.animeId,
+            set: values,
+        });
 
     return poster
         ? {

@@ -9,7 +9,7 @@ import {
     releaseSequence,
     seriesTitle,
 } from './title';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 
 describe('TMDB title matching', () => {
     test('searches related release titles for a shared aggregate mapping', () => {

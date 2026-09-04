@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { AniListAnimeSchema } from './types';
+import { AniListAnimeSchema } from '@arc/core';
 
 const legacyRelease = {
     id: 1,

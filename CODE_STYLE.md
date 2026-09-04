@@ -39,6 +39,8 @@ if (event.url.pathname.startsWith('/api/')) {
 
 Do not add one-use aliases, obvious expression helpers, pass-through functions, object facades, forwarding handlers, speculative abstractions, or files that hide a few obvious lines.
 
+When a database or fluent call has multiple operations, put each operation on its own line and expand object arguments. Prefer explicit `while (true)` loops over the compressed `for (;;) {` form.
+
 Use a local when it distinguishes values, snapshots data across an async boundary, narrows a type, or names a non-obvious algorithmic intermediate. Do not use one only to shorten a property path.
 
 ## Control flow

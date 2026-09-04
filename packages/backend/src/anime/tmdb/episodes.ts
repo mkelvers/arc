@@ -1,4 +1,4 @@
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import { z } from 'zod';
 import { animeDate } from '../date';
 import type { ProviderEpisode } from '../providers/types';
