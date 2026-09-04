@@ -22,6 +22,7 @@ const catalogUrl = 'https://anikotoapi.site';
 const providerName = 'anikoto';
 const mediaHostSuffixes = [
     'akirax.buzz',
+    'anizara.store',
     'kryntal.top',
     'lostproject.club',
     'megaplay.buzz',
@@ -727,16 +728,6 @@ export function removeSharedDubCaptions(
         ...stream,
         subtitles: stream.subtitles.filter(({ url }) => !subCaptionUrls.has(url)),
     }));
-}
-
-/** Some AniKoto servers expose the same episode without repeating its VTT.
- * Reuse the episode's validated SUB caption file for that media candidate;
- * never invent a caption URL from another episode or provider. */
-export function attachEpisodeSubtitles(streams: readonly ProviderStream[]) {
-    const subtitles = streams.find((stream) => stream.subtitles.length > 0)?.subtitles ?? [];
-    return streams.map((stream) =>
-        stream.subtitles.length > 0 || subtitles.length === 0 ? stream : { ...stream, subtitles }
-    );
 }
 
 export async function resolveCandidates<T, R>(
@@ -1452,12 +1443,6 @@ async function getStreams(
                 tasks[index]?.mode === mode && stream ? [stream] : []
             )
         );
-    }
-
-    // A SUB source without an English track is not a valid subtitled playback
-    // candidate. Keep trying other AniKoto servers instead of exposing silent video.
-    if (result.sub?.length) {
-        result.sub = attachEpisodeSubtitles(result.sub);
     }
 
     if (result.dub?.length) {

@@ -333,15 +333,19 @@ export class Playback {
         video.load();
 
         if (!source) {
+            await this.tryNextSource(source);
             return;
         }
 
-        void this.captions.load(
-            this.sources,
-            this.mode,
-            this.activeSources[this.sourceIndex],
-            source
-        );
+        // A URL in provider metadata is not proof that its captions can load.
+        // Validate them before starting SUB playback, and fail over as a unit.
+        if (this.mode === 'sub' && this.captions.enabled) {
+            if (!(await this.loadCaptions(source, this.activeSource)) || source !== this.src) {
+                return;
+            }
+        } else {
+            void this.loadCaptions(source, this.activeSource);
+        }
         void this.loadSegmentOffsets(source, this.activeSource);
 
         if (!isHlsSource(source)) {
@@ -440,6 +444,18 @@ export class Playback {
         await this.tryNextSource(source);
     }
 
+    private async loadCaptions(source: string, active: Stream | undefined) {
+        const loaded = await this.captions.load(this.sources, this.mode, active, source);
+        if (loaded === null || source !== this.src) {
+            return false;
+        }
+        if (!loaded && this.captions.enabled && this.mode === 'sub') {
+            await this.tryNextSource(source);
+            return false;
+        }
+        return true;
+    }
+
     async switchSource(mode: AudioMode, selected: Stream) {
         if (!this.sources[mode] || !this.sources[mode]?.includes(selected)) {
             return;
@@ -456,7 +472,12 @@ export class Playback {
                 source.server === selected.server &&
                 source.url === selected.url
         );
-        this.sourceIndex = selectedIndex >= 0 ? selectedIndex : 0;
+        if (selectedIndex > 0) {
+            this.sourceChain = [
+                this.sourceChain[selectedIndex],
+                ...this.sourceChain.filter((_, index) => index !== selectedIndex),
+            ];
+        }
         preferences.save('audio-mode', mode);
         await this.reloadSource();
     }
@@ -499,7 +520,7 @@ export class Playback {
         }
 
         if (this.src) {
-            void this.captions.load(this.sources, this.mode, current, this.src);
+            void this.loadCaptions(this.src, current);
         }
     }
 
@@ -529,6 +550,11 @@ export class Playback {
                     await this.reloadSource();
                 } finally {
                     this.changingSource = false;
+                    const pending = this.pendingSourceFailure;
+                    this.pendingSourceFailure = null;
+                    if (pending === this.src) {
+                        void this.tryNextSource(pending);
+                    }
                 }
                 return;
             }

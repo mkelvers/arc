@@ -43,6 +43,7 @@ export class Captions {
         this.request = null;
         this.source = '';
         this.cues = [];
+        this.mode = 'off';
         this.loaded = {};
         this.options = subtitleOptionsFor([]);
     }
@@ -84,7 +85,9 @@ export class Captions {
 
     private async fetchCues(url: string, signal: AbortSignal) {
         try {
-            const response = await fetch(url, { signal });
+            const response = await fetch(url, {
+                signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
+            });
             if (!response.ok) {
                 return null;
             }
@@ -180,7 +183,7 @@ export class Captions {
 
         if (!active || (own.length === 0 && !sub)) {
             this.offerAvailable(sources, mode);
-            return;
+            return false;
         }
 
         try {
@@ -190,7 +193,7 @@ export class Captions {
             const subCues = sub ? await this.fetchCues(sub.url, request.signal) : null;
 
             if (stale()) {
-                return;
+                return null;
             }
 
             const kinds: SubtitleKind[] = [];
@@ -217,7 +220,7 @@ export class Captions {
                     offsets = null;
                 }
                 if (stale()) {
-                    return;
+                    return null;
                 }
                 this.loaded.translated = offsets?.length
                     ? alignSubtitleCues(subCues, offsets)
@@ -238,13 +241,17 @@ export class Captions {
             if (!kinds.length) {
                 console.warn('Subtitle track could not be loaded or aligned');
             }
+            return mode === 'sub'
+                ? kinds.includes('full') || kinds.includes('sdh')
+                : kinds.length > 0;
         } catch (cause) {
             if (stale()) {
-                return;
+                return null;
             }
 
             this.offerAvailable(sources, mode);
             console.warn('Subtitle track could not be loaded or aligned', cause);
+            return false;
         }
     }
 }
