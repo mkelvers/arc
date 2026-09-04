@@ -33,7 +33,7 @@ import {
     nextRefreshAt,
     providerEpisodeCount,
 } from '@arc/core';
-import { episodesForRelease, preferredEpisodeAirDate, providerConfirmsEpisode } from './release';
+import { episodesForRelease, preferredEpisodeAirDate, providerConfirmsEpisode } from '@arc/core';
 
 export class TargetEpisodeUnavailableError extends Error {
     constructor(

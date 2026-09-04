@@ -1,13 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 
 import type { ProviderEpisode } from '@arc/core';
-import type { EpisodeMetadata } from '../tmdb/types';
 import {
     confirmedEpisodeAirDate,
     episodesForRelease,
     preferredEpisodeAirDate,
     providerConfirmsEpisode,
-} from './release';
+} from '@arc/core';
 import type { AniListAnime } from '@arc/core';
 
 function anime(episodes: number, start: [number, number, number], end: [number, number, number]) {
@@ -36,7 +35,7 @@ function source(numbers: number[]): ProviderEpisode[] {
 }
 
 function metadata(episodes: ProviderEpisode[], dates: string[]) {
-    return new Map<string, EpisodeMetadata>(
+    return new Map(
         episodes.map((episode, index) => [
             episode.id,
             {
