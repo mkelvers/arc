@@ -6,7 +6,7 @@ import { db } from '@arc/db';
 import { animeCatalog, animeCatalogRefresh, animeCatalogTaxonomy } from '@arc/db/schema';
 import { createAnimeSearchIndex } from './search-index';
 
-export function catalogRefreshKey(filters: Omit<BrowseFilters, 'audio'>, page: number) {
+export function catalogSnapshotKey(filters: Omit<BrowseFilters, 'audio'>, page: number) {
     return JSON.stringify({
         discoveryCatalogRevision: 2,
         ...filters,
