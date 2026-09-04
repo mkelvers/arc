@@ -1,8 +1,8 @@
 import { asc, desc, eq, lt } from 'drizzle-orm';
 
 import { audioAvailabilityLabel } from '@arc/core/audio';
-import { db } from '@arc/db';
-import { homeHeroSelection } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { homeHeroSelection } from '@arc/shared/db/schema';
 import { getHomeHeroCandidates } from './anilist/hero';
 import { storedAnimeRelease } from './anilist/releases';
 import { mediaTitle } from '@arc/core/catalog/anilist-text';

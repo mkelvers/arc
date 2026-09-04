@@ -3,13 +3,13 @@ import { alias } from 'drizzle-orm/pg-core';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 
-import { db } from '@arc/db';
+import { db } from '@arc/shared/db';
 import {
     animeArtworkSource,
     animeExternalId,
     animeExternalIdLink,
     animeReleasePoster,
-} from '@arc/db/schema';
+} from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import type { AniListAnime } from '../anilist/types';
 import { create, imageUrl } from './client';

@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 
 import { and, eq, gt, isNotNull, isNull, or } from 'drizzle-orm';
 
-import { db } from '@arc/db';
-import { invitations, users } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { invitations, users } from '@arc/shared/db/schema';
 
 export class InvalidInvitationError extends Error {
     constructor() {

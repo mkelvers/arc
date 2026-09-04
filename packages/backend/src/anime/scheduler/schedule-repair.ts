@@ -1,5 +1,5 @@
-import { db } from '@arc/db';
-import { maintenanceTask } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { maintenanceTask } from '@arc/shared/db/schema';
 import { ne } from 'drizzle-orm';
 import type { MaintenanceRequest } from '@arc/api-contract/maintenance';
 

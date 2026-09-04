@@ -3,8 +3,8 @@ import { createHash } from 'node:crypto';
 import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 
-import { db, type DatabaseTransaction } from '@arc/db';
-import { anilistQuerySnapshot } from '@arc/db/schema';
+import { db, type DatabaseTransaction } from '@arc/shared/db';
+import { anilistQuerySnapshot } from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { graphql } from '../../graphql';
 import { record, type JsonValue } from '../../utils';

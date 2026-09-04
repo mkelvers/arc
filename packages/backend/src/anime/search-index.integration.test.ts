@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test';
 import { drizzle } from 'drizzle-orm/postgres-js/driver';
 import postgres from 'postgres';
 
-import * as schema from '@arc/db/schema';
+import * as schema from '@arc/shared/db/schema';
 import { createAnimeSearchIndex } from '@arc/core/catalog/search-index';
 
 describe('PostgreSQL anime search index', () => {

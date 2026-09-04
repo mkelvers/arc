@@ -1,7 +1,7 @@
 import { and, eq, inArray, or } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 
-import { db } from '@arc/db';
+import { db } from '@arc/shared/db';
 import {
     animeArtwork,
     animeArtworkPreference,
@@ -10,7 +10,7 @@ import {
     animeExternalId,
     animeExternalIdLink,
     animeRelease,
-} from '@arc/db/schema';
+} from '@arc/shared/db/schema';
 import { fetchArtwork, readArtwork } from './artwork';
 import { imageUrl } from './client';
 import { findArtworkMappings, findMapping } from './mapping-store';

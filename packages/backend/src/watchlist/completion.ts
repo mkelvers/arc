@@ -1,4 +1,4 @@
-import type { WatchlistState } from '@arc/db/schema';
+import type { WatchlistState } from '@arc/shared/db/schema';
 import { coversExpectedEpisodes } from '../anime/providers/match';
 
 interface Episode {

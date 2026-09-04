@@ -10,8 +10,8 @@ import {
 import { AnimeCardPageSchema } from '@arc/core/types';
 import { and, asc, eq } from 'drizzle-orm';
 
-import { db } from '@arc/db';
-import { animeCatalog, animeSimulcastPage } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { animeCatalog, animeSimulcastPage } from '@arc/shared/db/schema';
 import { getAniKotoSimulcastPage } from './providers/anikoto';
 
 const provider = 'anikoto';
