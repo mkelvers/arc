@@ -19,6 +19,18 @@ Never extract a one-use set of literals into exported constants. Inline values s
 
 Only name a value when it is reused, configurable, protects a non-obvious protocol/security/persistence/timing rule, or represents a substantial algorithm. “It makes the code shorter” is never sufficient.
 
+### Expanded object shapes
+
+Always open nested object values and object types across lines. Do not compress a shape such as `anime: { format: string | null }`; write it as:
+
+```ts
+anime: {
+    format: string | null,
+},
+```
+
+This applies to function parameters, return values, object literals, and inline type shapes. Keep the property comma and the closing brace visible.
+
 ```ts
 if (event.url.pathname.startsWith('/api/')) {
     return new Response('Unauthorized', { status: 401 });
