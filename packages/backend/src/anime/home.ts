@@ -10,7 +10,11 @@ import { isDiscoverableAnime } from '@arc/core/catalog/discovery';
 import { getEpisodes } from './episodes';
 import { logger } from '@arc/backend/internal/logger';
 import { resolveHeroSynopsis } from './synopsis';
-import { homeHeroRotationStart, rotatedHomeHeroCandidates, selectHomeHero } from './home/selection';
+import {
+    homeHeroRotationStart,
+    rotatedHomeHeroCandidates,
+    selectHomeHero,
+} from '@arc/core/catalog/home-selection';
 import { getArtwork } from './tmdb/artwork';
 
 interface HomeHeroAnime {

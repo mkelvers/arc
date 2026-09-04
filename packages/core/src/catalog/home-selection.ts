@@ -1,5 +1,6 @@
 import type { MediaFormat } from '@arc/shared/anilist/generated/graphql';
-import { isDiscoverableAnime } from '@arc/core/catalog/discovery';
+
+import { isDiscoverableAnime } from './discovery';
 
 export interface HomeHeroCandidate {
     anilistId: number;
@@ -32,10 +33,8 @@ export function eligibleHomeHeroCandidates<Candidate extends HomeHeroEligibility
     const currentYear = now.getUTCFullYear();
 
     return candidates
-        .filter((candidate) => {
-            // Continuing seasons need an established audience so a niche sequel cannot rank highly
-            // only among existing fans. Favorites distinguish recommendations from list entries.
-            return (
+        .filter(
+            (candidate) =>
                 candidate.seasonYear === currentYear &&
                 isDiscoverableAnime(candidate) &&
                 candidate.averageScore > 70 &&
@@ -45,8 +44,7 @@ export function eligibleHomeHeroCandidates<Candidate extends HomeHeroEligibility
                 candidate.genres.some((genre) =>
                     ['Action', 'Adventure', 'Comedy', 'Drama', 'Romance'].includes(genre)
                 )
-            );
-        })
+        )
         .toSorted((left, right) => left.trendingRank - right.trendingRank);
 }
 
