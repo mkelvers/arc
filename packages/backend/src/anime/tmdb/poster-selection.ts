@@ -1,4 +1,4 @@
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import { animeDate } from '../date';
 import { isSpecialRelease, releaseSequence } from './title';
 

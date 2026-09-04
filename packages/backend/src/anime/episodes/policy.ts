@@ -1,4 +1,4 @@
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import { coversExpectedEpisodes } from '../providers/match';
 type EpisodeRefreshReason = 'metadata-source' | 'missing' | 'scheduled';
 

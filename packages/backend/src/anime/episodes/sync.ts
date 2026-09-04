@@ -10,7 +10,7 @@ import {
 } from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
 import { GraphQLRequestError } from '../../graphql';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import { refreshAnimeRelease } from '../anilist/releases';
 import { animeTitles } from '@arc/core';
 import { ensureInternalAnimeId } from '@arc/core';

@@ -1,5 +1,5 @@
 import { animeTitles } from '@arc/core';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import type { Candidate } from './types';
 
 const romanReleaseSuffix = /\s+(ii|iii|iv|v|vi|vii|viii|ix|x)$/;

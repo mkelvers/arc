@@ -1,7 +1,7 @@
 import { animeDate, dateTimestamp } from '../date';
 import type { ProviderEpisode } from '../providers/types';
 import type { EpisodeMetadata } from '../tmdb/types';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 
 export function providerConfirmsEpisode(
     episodes: readonly ProviderEpisode[],

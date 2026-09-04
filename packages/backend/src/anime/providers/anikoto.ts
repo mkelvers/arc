@@ -6,7 +6,7 @@ import { audioAvailabilityLabel, type AudioMode } from '@arc/core';
 import type { AnimeSeasonSelection } from '@arc/core';
 import type { AnimeCard } from '@arc/core';
 import { animeTitles, plainText } from '@arc/core';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import type { JsonValue } from '../../utils';
 import type {
     PlaybackProvider,

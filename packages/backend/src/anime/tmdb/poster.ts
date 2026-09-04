@@ -11,7 +11,7 @@ import {
     animeReleasePoster,
 } from '@arc/shared/db/schema';
 import { logger } from '@arc/backend/internal/logger';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import { create, imageUrl } from './client';
 import { findMapping } from './mapping-store';
 import {

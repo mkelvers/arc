@@ -7,7 +7,7 @@ import {
     animeEpisode,
     animeRelease,
 } from '@arc/shared/db/schema';
-import type { AniListAnime } from '../anilist/types';
+import type { AniListAnime } from '@arc/core';
 import type { StoredMapping } from './types';
 
 type ImageRow = {
