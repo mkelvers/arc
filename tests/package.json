@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "check": "tsc --noEmit",
-        "test": "bun test --isolate"
+        "test": "bun test --env-file=../apps/api/.env --isolate"
     },
     "dependencies": {
         "@arc/core": "workspace:*",
