@@ -1,5 +1,5 @@
 import { animeDate, dateTimestamp } from '@arc/core';
-import type { ProviderEpisode } from '../providers/types';
+import type { ProviderEpisode } from '@arc/core';
 import type { EpisodeMetadata } from '../tmdb/types';
 import type { AniListAnime } from '@arc/core';
 

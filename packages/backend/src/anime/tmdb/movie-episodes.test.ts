@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import type { ProviderEpisode } from '../providers/types';
+import type { ProviderEpisode } from '@arc/core';
 import { movieEpisodeMetadata } from './movie-episodes';
 
 const release = {

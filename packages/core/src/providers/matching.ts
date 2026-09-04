@@ -1,5 +1,5 @@
-import { animeTitles } from '@arc/core';
-import type { AniListAnime } from '@arc/core';
+import { animeTitles } from '../catalog/anilist-text';
+import type { AniListAnime } from '../catalog/anilist-types';
 import type { ProviderEpisodeReference } from './types';
 
 export function isSpecialEpisodeReference(episode: ProviderEpisodeReference) {
