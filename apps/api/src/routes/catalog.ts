@@ -8,7 +8,8 @@ import {
     SearchQuerySchema,
 } from '@arc/api-contract/anime';
 import { parseBrowseFilters } from '@arc/shared/browse';
-import { browseTaxonomy, newAnimePage, popularAnimePage } from '@arc/backend/internal/anime/browse';
+import { catalogTaxonomy } from '@arc/core/catalog/storage';
+import { newAnimePage, popularAnimePage } from '@arc/backend/internal/anime/browse';
 import { homePage } from '@arc/backend/internal/anime/application';
 import { releaseCalendar } from '@arc/backend/internal/anime/release-calendar';
 import { simulcast } from '@arc/backend/internal/anime/simulcast';
@@ -33,7 +34,7 @@ catalog.get('/schedule', async (context) =>
     context.json(ReleaseCalendarSchema.parse(await releaseCalendar()))
 );
 
-catalog.get('/taxonomy', async (context) => context.json(await browseTaxonomy()));
+catalog.get('/taxonomy', async (context) => context.json(await catalogTaxonomy()));
 
 catalog.delete(
     '/home/continue-watching/:anilistId',
