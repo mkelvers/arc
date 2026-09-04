@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { watchEpisodeHref, watchEpisodeNumber } from './route';
+import { watchEpisodeHref, watchEpisodeNumber } from '@arc/core';
 
 describe('watch episode route references', () => {
     test('builds a compact route from the display episode number', () => {
