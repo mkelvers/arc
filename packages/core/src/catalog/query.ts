@@ -5,10 +5,6 @@ import type { AnimeCard } from '@arc/shared/types';
 import { db } from '@arc/db';
 import { animeCatalog, animeEpisode } from '@arc/db/schema';
 
-function escapeLike(value: string) {
-    return value.replace(/[\\%_]/g, '\\$&');
-}
-
 function hasAudio(mode: AudioMode) {
     return sql<boolean>`exists (
         select 1
@@ -21,7 +17,7 @@ function hasAudio(mode: AudioMode) {
 function catalogConditions(filters: BrowseFilters) {
     return and(
         filters.query
-            ? sql`${animeCatalog.searchText} ilike ${`%${escapeLike(filters.query)}%`} escape '\\'`
+            ? sql`${animeCatalog.searchText} ilike ${`%${filters.query.replace(/[\\%_]/g, '\\$&')}%`} escape '\\'`
             : undefined,
         filters.format === 'MOVIE'
             ? eq(animeCatalog.format, 'MOVIE')
