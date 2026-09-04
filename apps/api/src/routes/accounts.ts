@@ -1,13 +1,13 @@
 import { isAPIError } from 'better-auth/api';
 import { Hono } from 'hono';
 
-import { AccountRegistrationSchema } from '@arc/api-contract/account';
+import { AccountRegistrationSchema } from '@arc/core/server';
 import {
     InvalidInvitationError,
     InvitationCompletionError,
     registerInvitedAccount,
-} from '@arc/backend';
-import { logger } from '@arc/backend/internal/logger';
+    logger,
+} from '@arc/core/server';
 import { auth } from '../auth';
 import { validate } from '../http';
 

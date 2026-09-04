@@ -1,4 +1,6 @@
 <script lang="ts">
+    import type { Snippet } from 'svelte';
+
     interface Props {
         artwork: string;
         artworkHeight: number;
@@ -6,11 +8,10 @@
         body: string;
         id: string;
         title?: string;
-        actionHref?: string;
-        actionLabel?: string;
+        action?: Snippet;
     }
 
-    let { artwork, artworkHeight, artworkWidth, body, id, title, actionHref, actionLabel }: Props = $props();
+    let { artwork, artworkHeight, artworkWidth, body, id, title, action }: Props = $props();
 </script>
 
 <section
@@ -37,13 +38,10 @@
         >
             {body}
         </p>
-        {#if actionHref && actionLabel}
-            <a
-                href={actionHref}
-                class="mt-6 inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
-            >
-                {actionLabel}
-            </a>
+        {#if action}
+            <div class="mt-6">
+                {@render action()}
+            </div>
         {/if}
     </div>
 </section>

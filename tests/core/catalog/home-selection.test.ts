@@ -5,7 +5,7 @@ import {
     homeHeroRotationStart,
     rotatedHomeHeroCandidates,
     selectHomeHero,
-} from '@arc/core/catalog/home-selection';
+} from '@arc/core';
 
 describe('homepage hero selection', () => {
     test('uses stable three-day UTC rotation boundaries', () => {

@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
-import { ReleaseCalendarSchema } from '@arc/api-contract/anime';
+import { ReleaseCalendarSchema } from '@arc/core/client';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ request, fetch }) => {

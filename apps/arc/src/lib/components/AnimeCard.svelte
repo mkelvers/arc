@@ -2,6 +2,7 @@
     import { PlayIcon, StarIcon } from 'phosphor-svelte';
 
     import { m } from '$lib/i18n.svelte';
+    import { cn } from '$lib/utils';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
     import { Card, CardMedia } from '$lib/components/ui/card';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
@@ -151,7 +152,7 @@
                 aria-current={current ? 'page' : undefined}
                 onclick={onselect}
             >
-                <CardMedia aspect="poster" class={compact ? 'sm:aspect-2/3' : undefined}>
+                <CardMedia aspect="poster" class={cn(compact && 'sm:aspect-2/3')}>
                     <ProgressiveImage
                         src={anime.image}
                         alt=""

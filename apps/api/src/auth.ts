@@ -3,9 +3,9 @@ import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer, username } from 'better-auth/plugins';
 
-import { hasInvitationClaim } from '@arc/backend';
-import { db } from '@arc/db';
-import * as schema from '@arc/db/schema';
+import { hasInvitationClaim } from '@arc/core/server';
+import { db } from '@arc/shared/db';
+import * as schema from '@arc/shared/db/schema';
 
 export const auth = betterAuth({
     appName: 'Arc',

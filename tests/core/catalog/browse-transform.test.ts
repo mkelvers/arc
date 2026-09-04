@@ -3,11 +3,8 @@ import { describe, expect, test } from 'bun:test';
 import type {
     BrowseAnimePageQuery,
     BrowseAnimeTaxonomyQuery,
-} from '@arc/shared/anilist/generated/graphql';
-import {
-    transformBrowseEntries,
-    transformBrowseTaxonomy,
-} from '@arc/core/catalog/browse-transform';
+} from '@arc/shared/graphql/generated/graphql';
+import { transformBrowseEntries, transformBrowseTaxonomy } from '@arc/core';
 
 describe('AniList browse transformation', () => {
     test('filters undiscoverable media and shapes catalog entries', () => {

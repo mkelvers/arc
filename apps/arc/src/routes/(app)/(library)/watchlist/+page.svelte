@@ -50,9 +50,16 @@
                     id="watchlist-error-message"
                     title={m.watchlist_error_title()}
                     body={m.watchlist_error_body()}
-                    actionHref={page.url.pathname + page.url.search}
-                    actionLabel={m.watchlist_retry()}
-                />
+                >
+                    {#snippet action()}
+                        <a
+                            href={page.url.pathname + page.url.search}
+                            class="inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
+                        >
+                            {m.watchlist_retry()}
+                        </a>
+                    {/snippet}
+                </EmptyState>
             </div>
         </main>
     {/if}

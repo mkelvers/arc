@@ -4,7 +4,6 @@
     interface Props {
         src: string;
         alt: string;
-        previewSrc?: string;
         previewSize?: 'w92' | 'w300';
         class?: string;
         imageClass?: string;
@@ -21,7 +20,6 @@
     let {
         src,
         alt,
-        previewSrc,
         previewSize = 'w92',
         class: className,
         imageClass,
@@ -39,9 +37,7 @@
     const displaySrc = $derived(
         displaySize ? src.replace(/(\/image\.tmdb\.org\/t\/p\/)[^/]+(?=\/|$)/, `$1${displaySize}`) : src
     );
-    const preview = $derived(
-        previewSrc ?? src.replace(/(\/image\.tmdb\.org\/t\/p\/)[^/]+(?=\/|$)/, `$1${previewSize}`)
-    );
+    const preview = $derived(src.replace(/(\/image\.tmdb\.org\/t\/p\/)[^/]+(?=\/|$)/, `$1${previewSize}`));
     const displaySrcSet = $derived(
         displaySize
             ? [displaySize === 'w342' ? 'w185' : 'w342', displaySize]

@@ -2,7 +2,7 @@
     import { afterNavigate, replaceState } from '$app/navigation';
     import { onMount, untrack } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
-    import { distinctSearchArtwork, AnimeSearchResultSchema, type AnimeSearchResult } from '@arc/shared/search';
+    import { distinctSearchArtwork, AnimeSearchResultSchema, type AnimeSearchResult } from '@arc/core/client';
     import emptyArtwork from '$lib/assets/search-empty.png';
     import errorArtwork from '$lib/assets/error-state.png';
     import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';

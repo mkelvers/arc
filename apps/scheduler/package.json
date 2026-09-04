@@ -10,8 +10,8 @@
         "start": "bun run build && bun dist/index.js"
     },
     "dependencies": {
-        "@arc/backend": "workspace:*",
-        "@arc/db": "workspace:*"
+        "@arc/core": "workspace:*",
+        "@arc/shared": "workspace:*"
     },
     "devDependencies": {
         "@types/bun": "^1.4.0",

@@ -9,9 +9,13 @@
     },
     "dependencies": {
         "@arc/core": "workspace:*",
-        "@arc/shared": "workspace:*"
+        "@arc/shared": "workspace:*",
+        "dotenv": "catalog:",
+        "drizzle-orm": "catalog:"
     },
     "devDependencies": {
-        "@types/bun": "^1.4.0"
+        "@types/bun": "^1.4.0",
+        "msw": "^2.15.0",
+        "postgres": "catalog:"
     }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { animeCard } from '@arc/core/catalog/card';
+import { animeCard } from '@arc/core';
 
 describe('AniList catalog cards', () => {
     test('returns a normalized card when artwork exists', () => {

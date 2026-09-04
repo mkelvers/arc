@@ -8,7 +8,7 @@ import {
     isAniKotoDisguisedSegmentHost,
     normalizeAniKotoMediaUrl,
     unwrapAniKotoDisguisedSegment,
-} from '@arc/backend/internal/anime/providers/anikoto';
+} from '@arc/core/server';
 
 type StreamFetch = (target: URL, init: RequestInit) => Promise<Response>;
 type StreamBody = 'playlist' | 'segment' | 'subtitle';

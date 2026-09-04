@@ -383,9 +383,16 @@
                 id="empty-watchlist-title"
                 title={m.watchlist_empty_title()}
                 body="Let’s fill it up with awesome anime."
-                actionHref="/"
-                actionLabel="Explore Anime"
-            />
+            >
+                {#snippet action()}
+                    <a
+                        href="/"
+                        class="inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
+                    >
+                        Explore Anime
+                    </a>
+                {/snippet}
+            </EmptyState>
         {:else}
             <section class="mt-8" aria-labelledby="watchlist-results-title">
                 <h2 id="watchlist-results-title" class="sr-only">{selectedStateLabel} anime</h2>
@@ -396,9 +403,16 @@
                         artworkHeight={640}
                         id="empty-filter-message"
                         body={filteredEmptyCopy}
-                        actionHref={selectionHref({ state: 'all' })}
-                        actionLabel={m.watchlist_view_all()}
-                    />
+                    >
+                        {#snippet action()}
+                            <a
+                                href={selectionHref({ state: 'all' })}
+                                class="inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
+                            >
+                                {m.watchlist_view_all()}
+                            </a>
+                        {/snippet}
+                    </EmptyState>
                 {:else}
                     <div
                         class="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-7.5 lg:gap-y-12 xl:grid-cols-6 2xl:grid-cols-7"

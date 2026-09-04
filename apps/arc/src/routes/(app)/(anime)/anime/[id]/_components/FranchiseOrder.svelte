@@ -2,7 +2,7 @@
     import { onMount, tick } from 'svelte';
     import { CaretDownIcon, CaretLeftIcon, CaretRightIcon, ListBulletsIcon } from 'phosphor-svelte';
 
-    import type { FranchiseOrder as FranchiseOrderData } from '@arc/shared/types';
+    import type { FranchiseOrder as FranchiseOrderData } from '@arc/core/client';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import { matchesFranchiseFilter, type FranchiseFilter } from '$lib/franchise';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
