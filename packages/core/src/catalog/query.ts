@@ -1,4 +1,4 @@
-import { and, arrayContains, asc, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, arrayContains, asc, eq, inArray, sql } from 'drizzle-orm';
 import type { BrowseFilters } from './browse-filters';
 import { audioAvailabilityLabel, type AudioMode } from '../audio';
 import type { AnimeCard } from '../types';

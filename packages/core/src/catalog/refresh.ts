@@ -3,7 +3,7 @@ import type { BrowseCatalogEntry } from './browse-types';
 import { popularCatalogPages } from './browse-pagination';
 import { catalogSnapshotKey, refreshCatalogPage } from './storage';
 
-export async function refreshCatalogSnapshots<Filters extends Omit<BrowseFilters, 'audio'>>(
+export async function refreshPopularCatalog<Filters extends Omit<BrowseFilters, 'audio'>>(
     filters: Filters,
     fetchPage: (
         filters: Filters,

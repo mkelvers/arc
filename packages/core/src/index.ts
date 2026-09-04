@@ -1,5 +1,6 @@
 export * from './audio';
 export * from './catalog/airing';
+export * from './catalog/application';
 export * from './catalog/anilist-lease';
 export * from './catalog/anilist-types';
 export * from './catalog/anilist-text';
@@ -24,6 +25,7 @@ export * from './catalog/release-calendar-window';
 export * from './catalog/search-index';
 export * from './catalog/storage';
 export * from './catalog/stored-anime-details';
+export * from './catalog/source';
 export * from './contracts';
 export * from './player/skip-times';
 export * from './providers/matching';

@@ -16,7 +16,7 @@ import { drainEpisodeTargets } from './episodes';
 import { refreshCatalogSnapshots } from './catalog';
 import { drainMaintenanceTasks } from './maintenance';
 import { reconcileAllAiringReleases } from './reconciliation';
-import { refreshReleaseCalendar } from '../release-calendar';
+import { refreshReleaseCalendar } from './catalog';
 import { scheduleReleaseTargets } from './targets';
 import { schedulerPolicy, schedulerRunLease } from './policy';
 import { enqueueUnresolvedAnimeInterests, reconcileAnimeInterests } from './interests';

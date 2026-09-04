@@ -31,6 +31,8 @@ export const AnimeCardPageSchema = z.object({
     page: z.number().int(),
 });
 
+export type AnimeCardPage = z.infer<typeof AnimeCardPageSchema>;
+
 export type AnimeEpisode = {
     id: string;
     number: number;

@@ -8,12 +8,16 @@ import {
     AnimeScheduleDocument,
     WatchlistAnimeDocument,
 } from '@arc/shared/graphql/generated/graphql';
-import type { AnimeCard } from '@arc/core';
 import { db } from '@arc/shared/db';
-import { animeEpisodeSync, animeRelation, animeRelease, animeReleaseRequest } from '@arc/shared/db/schema';
+import {
+    animeEpisodeSync,
+    animeRelation,
+    animeRelease,
+    animeReleaseRequest,
+} from '@arc/shared/db/schema';
 import { graphql } from '../../graphql';
 import { ensureInternalAnimeId } from '@arc/core';
-import { animeTitles, plainText } from '@arc/core';
+import { animeTitles } from '@arc/core';
 import { request as requestAniList } from './client';
 import { coordinatedAniListRequest } from '@arc/core';
 import {
@@ -361,53 +365,4 @@ export async function refreshAnimeSchedule(id: number) {
             },
         });
     return updated;
-}
-
-export async function storedReleaseCards(ids: number[]): Promise<AnimeCard[]> {
-    const uniqueIds = [...new Set(ids)];
-    if (!uniqueIds.length) {
-        return [];
-    }
-
-    const rows = await db
-        .select({
-            id: animeRelease.anilistId,
-            data: animeRelease.data,
-            title: animeRelease.title,
-            image: animeRelease.imageUrl,
-            format: animeRelease.format,
-            status: animeRelease.status,
-        })
-        .from(animeRelease)
-        .where(inArray(animeRelease.anilistId, uniqueIds));
-    const cards = new Map(
-        rows.flatMap((row) => {
-            const parsed = row.data ? AniListAnimeSchema.safeParse(row.data) : null;
-            const media = parsed?.success ? parsed.data : null;
-            const image =
-                row.image ?? media?.coverImage?.extraLarge ?? media?.coverImage?.large ?? null;
-            if (!image) {
-                return [];
-            }
-            const card: AnimeCard = {
-                id: row.id,
-                href: `/anime/${row.id}`,
-                link: `/anime/${row.id}`,
-                title: row.title,
-                image,
-                audioLabel: '',
-                format: row.format,
-                status: row.status,
-                score: media?.averageScore ?? 0,
-                genres: media?.genres?.filter((genre) => genre !== null) ?? [],
-                synopsis: plainText(media?.description),
-            };
-            return [[row.id, card] as const];
-        })
-    );
-
-    return uniqueIds.flatMap((id) => {
-        const card = cards.get(id);
-        return card ? [card] : [];
-    });
 }
