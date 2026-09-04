@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { shouldUseQuerySnapshot } from './snapshot-policy';
+import { shouldUseQuerySnapshot } from '@arc/core/catalog/snapshot-policy';
 
 const requestedAt = new Date('2026-09-01T12:00:00.000Z');
 
@@ -33,11 +33,11 @@ describe('AniList query snapshot policy', () => {
         ).toBe(false);
     });
 
-    test('accepts a snapshot written by another request during forced refresh', () => {
+    test('accepts a snapshot written during forced refresh', () => {
         expect(
             shouldUseQuerySnapshot(
                 {
-                    fetchedAt: new Date('2026-09-01T12:00:00.000Z'),
+                    fetchedAt: requestedAt,
                     refreshAfter: new Date('2026-09-01T12:30:00.000Z'),
                 },
                 requestedAt,
