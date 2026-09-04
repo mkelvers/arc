@@ -15,8 +15,6 @@
         "./catalog/refresh": "./src/catalog/refresh.ts",
         "./catalog/search-index": "./src/catalog/search-index.ts",
         "./catalog/storage": "./src/catalog/storage.ts",
-        "./catalog/snapshot-policy": "./src/catalog/snapshot-policy.ts",
-        "./catalog/anilist-request-policy": "./src/catalog/anilist-request-policy.ts",
         "./catalog/anilist-lease": "./src/catalog/anilist-lease.ts",
         "./catalog/details": "./src/catalog/details.ts",
         "./catalog/home-selection": "./src/catalog/home-selection.ts",
