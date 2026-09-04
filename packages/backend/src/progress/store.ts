@@ -14,7 +14,7 @@ import {
 import { toAnimeDetails } from '@arc/core';
 import { parseStoredAnimeDetails } from '@arc/core';
 import { ensureInternalAnimeId, findInternalAnimeId } from '@arc/core';
-import { getStoredMedia } from '../anime/tmdb/media';
+import { getStoredMedia } from '@arc/core/tmdb';
 import { updateWatchlistAfterPlayback } from '../watchlist/store';
 import { formatDuration } from '../utils';
 import { watchEpisodeHref } from '@arc/core';

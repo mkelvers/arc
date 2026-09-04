@@ -2,7 +2,7 @@ import type { AnimeEpisode } from '../types';
 
 export function withMovieBackdrop(
     anime: {
-        format: string | null,
+        format: string | null;
     },
     episodes: AnimeEpisode[],
     backdrop: string | null | undefined

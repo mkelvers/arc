@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { ReleaseCalendarPageQuery } from '@arc/shared/graphql/generated/graphql';
 import { mediaTitle, plainText } from './anilist-text';
 
 const releaseCalendarPageSchema = z.object({
@@ -40,6 +41,17 @@ const releaseCalendarPageSchema = z.object({
     }),
 });
 
+type DeepPartial<T> =
+    T extends Array<infer Item>
+        ? DeepPartial<Item>[]
+        : T extends null
+          ? null
+          : T extends object
+            ? { [Key in keyof T]?: DeepPartial<T[Key]> }
+            : T;
+
+type ReleaseCalendarPageInput = DeepPartial<z.output<typeof releaseCalendarPageSchema>>;
+
 export type ReleaseCalendarEntry = {
     airingId: number;
     anilistId: number;
@@ -50,7 +62,9 @@ export type ReleaseCalendarEntry = {
     imageUrl: string | null;
 };
 
-export function parseReleaseCalendarPage(response: unknown) {
+export function parseReleaseCalendarPage(
+    response: ReleaseCalendarPageQuery | ReleaseCalendarPageInput
+) {
     const parsed = releaseCalendarPageSchema.safeParse(response);
     if (!parsed.success) {
         throw new Error('AniList returned invalid release calendar data', {
