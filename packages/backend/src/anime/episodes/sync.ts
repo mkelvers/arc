@@ -24,7 +24,11 @@ import { scheduleReleaseTargets } from '../scheduler/targets';
 import { createInventoryNotifications } from '../../notifications';
 import { getEpisodeMetadata } from '../tmdb/episodes';
 import { NoConfidentTmdbMappingError, resolveStored } from '../tmdb/mapping';
-import { sourceRevision, storedEpisodes } from './model';
+import { sourceRevision, storedEpisodes } from '@arc/core';
+import {
+    reconcileEpisodeMetadata,
+    type EpisodeMetadata as CatalogEpisodeMetadata,
+} from '@arc/core';
 import {
     availableEpisodeCount,
     canPreserveEpisodeMetadata,
@@ -226,6 +230,22 @@ async function fetchAndStore(
               return null;
           })
         : null;
+    const catalogMetadata = metadata
+        ? new Map<string, CatalogEpisodeMetadata>(
+              [...metadata].map(([episodeId, value]) => [
+                  episodeId,
+                  {
+                      title: value.title || null,
+                      titleSource: value.titleSource ?? null,
+                      imageUrl: value.imageUrl,
+                      runtime: value.runtime,
+                      airDate: value.airDate || null,
+                      overview: value.overview || null,
+                      overviewSource: value.overviewSource ?? null,
+                  },
+              ])
+          )
+        : null;
     const source = episodesForRelease(anime, providerEpisodes, metadata);
     const regularEpisodeNumbers = new Set(
         source.flatMap(({ number }) => (Number.isInteger(number) && number > 0 ? [number] : []))
@@ -298,43 +318,54 @@ async function fetchAndStore(
                 (existingByNumber.get(episode.number)?.length === 1
                     ? existingByNumber.get(episode.number)?.[0]
                     : undefined);
-            const media = metadata?.get(episode.id);
-            const previousMetadata =
-                canPreserveEpisodeMetadata(
-                    sync?.metadataExternalIdId ?? null,
-                    resolvedMetadataSource?.externalIdId ?? null
-                ) &&
-                (metadata === null || sync?.metadataRevision === episodeMetadataRevision)
-                    ? previous
-                    : null;
+            const metadataValues = reconcileEpisodeMetadata(
+                [
+                    {
+                        episodeId: episode.id,
+                        number: episode.number,
+                        metadataTitle: previous?.metadataTitle ?? null,
+                        metadataTitleSource: previous?.metadataTitleSource ?? null,
+                        imageUrl: previous?.imageUrl ?? null,
+                        runtimeMinutes: previous?.runtimeMinutes ?? null,
+                        airDate: previous?.airDate ?? null,
+                        overview: previous?.overview ?? null,
+                        overviewSource: previous?.overviewSource ?? null,
+                    },
+                ],
+                catalogMetadata,
+                {
+                    previousSourceId: sync?.metadataExternalIdId ?? null,
+                    currentSourceId: resolvedMetadataSource?.externalIdId ?? null,
+                    previousRevision: sync?.metadataRevision ?? null,
+                    confirmedAirDates,
+                }
+            )[0];
             const confirmedAiringAt =
                 confirmation?.targetEpisode === episode.number
                     ? confirmation.airingAt
                     : confirmedAirDates.get(episode.number);
-            const metadataAirDate = media?.airDate || previousMetadata?.airDate || null;
 
             return {
                 anilistId: anime.id,
                 episodeId: episode.id,
                 number: episode.number,
                 providerTitle: episode.title || previous?.providerTitle || null,
-                metadataTitle: media?.title || previousMetadata?.metadataTitle || null,
-                metadataTitleSource:
-                    media?.titleSource ?? previousMetadata?.metadataTitleSource ?? null,
+                metadataTitle: metadataValues.metadataTitle,
+                metadataTitleSource: metadataValues.metadataTitleSource,
                 // The sole playback provider is authoritative per episode. Do not
                 // retain a mode that a later inventory refresh no longer reports.
                 audio: episode.audio,
-                imageUrl: media?.imageUrl ?? previousMetadata?.imageUrl ?? null,
-                runtimeMinutes: media?.runtime ?? previousMetadata?.runtimeMinutes ?? null,
+                imageUrl: metadataValues.imageUrl,
+                runtimeMinutes: metadataValues.runtimeMinutes,
                 // AniList's confirmed airing timestamp is the release truth;
                 // TMDB's calendar date can represent the source timezone instead.
                 airDate: preferredEpisodeAirDate(
                     episode.number,
-                    metadataAirDate,
+                    metadataValues.airDate,
                     confirmedAiringAt
                 ),
-                overview: media?.overview || previousMetadata?.overview || null,
-                overviewSource: media?.overviewSource ?? previousMetadata?.overviewSource ?? null,
+                overview: metadataValues.overview,
+                overviewSource: metadataValues.overviewSource,
                 firstSeenAt: previous?.firstSeenAt ?? now,
                 lastSeenAt: now,
                 lastVerifiedAt: now,

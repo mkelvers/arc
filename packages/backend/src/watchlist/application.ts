@@ -2,7 +2,7 @@ import { hydrateMissingAnimeReleases, storedReleaseCards } from '../anime/anilis
 import { animeTitles } from '@arc/core';
 import { enrichAnimeCards } from '../anime/card-enrichment';
 import { parseStoredAnimeDetails } from '@arc/core';
-import { storedAudioModes } from '../anime/episodes/model';
+import { storedAudioModes } from '@arc/core';
 import { logger } from '@arc/backend/internal/logger';
 import { selectWatchlistEntries, type WatchlistSelection } from './selection';
 import {

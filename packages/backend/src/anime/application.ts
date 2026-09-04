@@ -11,14 +11,14 @@ import {
     getRelatedReleaseTitles,
     getStoredAiringSchedule,
     needsEpisodeMetadataRefresh,
-} from './episodes';
+} from '@arc/core';
 import { episodesAvailableToWatch } from '@arc/core';
 import {
     discoverEpisodeInventory,
     ensureEpisodeInventoryBackfill,
     isEpisodeInventoryUnresolvedError,
 } from './episodes/sync';
-import { storedAudioModes } from './episodes/model';
+import { storedAudioModes } from '@arc/core';
 import { getFranchiseOrder } from './franchise';
 import { getHomeHero } from './home';
 import {

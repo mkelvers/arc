@@ -7,7 +7,7 @@ import { getHomeHeroCandidates } from './anilist/hero';
 import { storedAnimeRelease } from './anilist/releases';
 import { mediaTitle } from '@arc/core';
 import { isDiscoverableAnime } from '@arc/core';
-import { getEpisodes } from './episodes';
+import { getEpisodes } from '@arc/core';
 import { logger } from '@arc/backend/internal/logger';
 import { resolveHeroSynopsis } from './synopsis';
 import {
