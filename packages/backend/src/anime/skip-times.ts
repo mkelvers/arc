@@ -7,8 +7,8 @@ import {
     type SkipInterval,
     type SkipKind,
 } from '@arc/core/player/skip-times';
-import { db } from '@arc/db';
-import { animeEpisode, animeEpisodeSegmentTemplate } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { animeEpisode, animeEpisodeSegmentTemplate } from '@arc/shared/db/schema';
 import { fetchAniSkip, validSkipInterval } from './aniskip';
 
 const aniskipFailureUntil = new Map<string, number>();

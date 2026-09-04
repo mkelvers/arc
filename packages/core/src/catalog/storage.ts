@@ -2,8 +2,8 @@ import { eq, sql } from 'drizzle-orm';
 import type { BrowseFilters } from '@arc/core/catalog/browse-filters';
 import { present } from '@arc/core/utils/array';
 import type { BrowseCatalogEntry } from './browse-types';
-import { db } from '@arc/db';
-import { animeCatalog, animeCatalogRefresh, animeCatalogTaxonomy } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { animeCatalog, animeCatalogRefresh, animeCatalogTaxonomy } from '@arc/shared/db/schema';
 import { createAnimeSearchIndex } from './search-index';
 
 export function catalogSnapshotKey(filters: Omit<BrowseFilters, 'audio'>, page: number) {

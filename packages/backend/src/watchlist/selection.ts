@@ -1,4 +1,4 @@
-import type { WatchlistState } from '@arc/db/schema';
+import type { WatchlistState } from '@arc/shared/db/schema';
 import { audioAvailabilityLabel, type AudioMode } from '@arc/core/audio';
 import type { AnimeCard } from '@arc/core/types';
 

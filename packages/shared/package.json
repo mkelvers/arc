@@ -4,17 +4,30 @@
     "private": true,
     "type": "module",
     "exports": {
+        "./db": "./src/db/index.ts",
+        "./db/schema": "./src/db/schema/index.ts",
         "./graphql/generated/*": "./src/graphql/generated/*.ts"
     },
     "scripts": {
+        "db:generate": "drizzle-kit generate",
+        "db:migrate": "drizzle-kit migrate",
+        "db:check": "drizzle-kit check",
+        "db:studio": "drizzle-kit studio",
+        "db:up": "docker compose -f ../../compose.yaml up -d --wait postgres",
+        "db:down": "docker compose -f ../../compose.yaml down",
         "check": "tsc --noEmit",
         "test": "bun test --pass-with-no-tests"
     },
     "dependencies": {
-        "@graphql-typed-document-node/core": "^3.2.0"
+        "@graphql-typed-document-node/core": "^3.2.0",
+        "drizzle-orm": "catalog:",
+        "postgres": "catalog:"
     },
     "devDependencies": {
         "@types/bun": "^1.4.0",
+        "@types/node": "catalog:",
+        "dotenv": "catalog:",
+        "drizzle-kit": "catalog:",
         "typescript": "~6.0.3"
     }
 }

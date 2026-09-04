@@ -1,8 +1,8 @@
 import type { AnimeCard } from '@arc/core/types';
 import type { MediaSeason } from '@arc/shared/graphql/generated/graphql';
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import { db } from '@arc/db';
-import { animeCatalog } from '@arc/db/schema';
+import { db } from '@arc/shared/db';
+import { animeCatalog } from '@arc/shared/db/schema';
 import { getBrowsePage, type AniListBrowseFilters } from './browse';
 import { catalogSnapshotKey, refreshCatalogPage } from '@arc/core/catalog/storage';
 
