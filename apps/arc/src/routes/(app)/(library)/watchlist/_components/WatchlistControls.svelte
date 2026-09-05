@@ -42,7 +42,7 @@
                     variant="ghost"
                     size="lg"
                     class={cn(
-                        'h-12 rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:ring-0 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                        'h-12 rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:ring-0',
                         selection.state === 'all' && 'border-accent text-foreground'
                     )}
                     aria-pressed={selection.state === 'all'}
@@ -56,7 +56,7 @@
                     variant="ghost"
                     size="lg"
                     class={cn(
-                        'h-12 rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:ring-0 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                        'h-12 rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:ring-0',
                         selection.state === 'watching' && 'border-accent text-foreground'
                     )}
                     aria-pressed={selection.state === 'watching'}
@@ -70,7 +70,7 @@
                     variant="ghost"
                     size="lg"
                     class={cn(
-                        'h-12 rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:ring-0 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                        'h-12 rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:ring-0',
                         selection.state === 'plan_to_watch' && 'border-accent text-foreground'
                     )}
                     aria-pressed={selection.state === 'plan_to_watch'}
@@ -84,7 +84,7 @@
                     variant="ghost"
                     size="lg"
                     class={cn(
-                        'h-12 rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:ring-0 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                        'h-12 rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:ring-0',
                         selection.state === 'completed' && 'border-accent text-foreground'
                     )}
                     aria-pressed={selection.state === 'completed'}
@@ -98,7 +98,7 @@
                     variant="ghost"
                     size="lg"
                     class={cn(
-                        'h-12 rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:ring-0 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                        'h-12 rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:ring-0',
                         selection.state === 'dropped' && 'border-accent text-foreground'
                     )}
                     aria-pressed={selection.state === 'dropped'}
