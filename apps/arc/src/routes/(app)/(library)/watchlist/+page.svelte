@@ -3,6 +3,7 @@
     import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
     import errorArtwork from '$lib/assets/error-state.png';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import { page } from '$app/state';
     import type { PageProps } from './$types';
     import { m } from '$lib/i18n.svelte';
@@ -12,10 +13,6 @@
 
 <svelte:head>
     <title>Arc — {m.watchlist_title()}</title>
-    <meta
-        name="description"
-        content="Keep track of the anime you want to watch, are watching, and have finished."
-    />
 </svelte:head>
 
 {#await data.page}
@@ -52,12 +49,14 @@
                     body={m.watchlist_error_body()}
                 >
                     {#snippet action()}
-                        <a
+                        <Button
+                            variant="default"
+                            size="lg"
                             href={page.url.pathname + page.url.search}
-                            class="inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
+                            class="text-xs font-bold uppercase active:scale-[0.97]"
                         >
                             {m.watchlist_retry()}
-                        </a>
+                        </Button>
                     {/snippet}
                 </EmptyState>
             </div>
