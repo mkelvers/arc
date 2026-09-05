@@ -131,6 +131,8 @@
     "watchlist_filter": "Filter",
     "watchlist_filter_aria": "Filter watchlist{count}",
     "watchlist_filtering": "Watchlist filtering",
+    "watchlist_language": "Language",
+    "watchlist_media": "Media",
     "watchlist_type": "Type",
     "watchlist_sorting": "Watchlist sorting",
     "watchlist_sort_order": "Sort Order",

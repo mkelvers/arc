@@ -131,6 +131,8 @@
     "watchlist_filter": "Filtrar",
     "watchlist_filter_aria": "Filtrar lista de seguimiento{count}",
     "watchlist_filtering": "Filtrado de la lista de seguimiento",
+    "watchlist_language": "Idioma",
+    "watchlist_media": "Medio",
     "watchlist_type": "Tipo",
     "watchlist_sorting": "Orden de la lista de seguimiento",
     "watchlist_sort_order": "Orden de clasificación",

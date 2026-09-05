@@ -131,6 +131,8 @@
     "watchlist_filter": "Filtrer",
     "watchlist_filter_aria": "Filtrer overvågningsliste{count}",
     "watchlist_filtering": "Filtrering af overvågningsliste",
+    "watchlist_language": "Sprog",
+    "watchlist_media": "Medie",
     "watchlist_type": "Type",
     "watchlist_sorting": "Sortering af overvågningsliste",
     "watchlist_sort_order": "Sorteringsrækkefølge",
