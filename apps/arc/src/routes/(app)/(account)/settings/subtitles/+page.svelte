@@ -65,8 +65,10 @@
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
                 >
-                    {#snippet trigger()}<span>{subtitleSizes[settings.size].label}</span>
-                        <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
+                    {#snippet trigger()}
+                        <span>{subtitleSizes[settings.size].label}</span>
+                        <CaretDownIcon size={16} aria-hidden="true" />
+                    {/snippet}
                     {#snippet content()}
                         {#each subtitleSizeOrder as option}
                             <Button
@@ -91,10 +93,13 @@
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
                 >
-                    {#snippet trigger()}<span>{subtitleTextColors[settings.textColor].label}</span>
-                        <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
+                    {#snippet trigger()}
+                        <span>{subtitleTextColors[settings.textColor].label}</span>
+                        <CaretDownIcon size={16} aria-hidden="true" />
+                    {/snippet}
                     {#snippet content()}
-                        {#each subtitleTextColorOrder as option}<Button
+                        {#each subtitleTextColorOrder as option}
+                            <Button
                                 variant="unstyled"
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
@@ -103,7 +108,8 @@
                                 }}
                             >
                                 {subtitleTextColors[option].label}
-                            </Button>{/each}
+                            </Button>
+                        {/each}
                     {/snippet}
                 </Dropdown>
             </div>
@@ -115,10 +121,13 @@
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
                 >
-                    {#snippet trigger()}<span>{subtitleEdgeStyles[settings.edgeStyle].label}</span>
-                        <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
+                    {#snippet trigger()}
+                        <span>{subtitleEdgeStyles[settings.edgeStyle].label}</span>
+                        <CaretDownIcon size={16} aria-hidden="true" />
+                    {/snippet}
                     {#snippet content()}
-                        {#each subtitleEdgeStyleOrder as option}<Button
+                        {#each subtitleEdgeStyleOrder as option}
+                            <Button
                                 variant="unstyled"
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
@@ -127,7 +136,8 @@
                                 }}
                             >
                                 {subtitleEdgeStyles[option].label}
-                            </Button>{/each}
+                            </Button>
+                        {/each}
                     {/snippet}
                 </Dropdown>
             </div>
@@ -144,10 +154,13 @@
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
                 >
-                    {#snippet trigger()}<span>{subtitleBackgrounds[settings.background].label}</span>
-                        <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
+                    {#snippet trigger()}
+                        <span>{subtitleBackgrounds[settings.background].label}</span>
+                        <CaretDownIcon size={16} aria-hidden="true" />
+                    {/snippet}
                     {#snippet content()}
-                        {#each subtitleBackgroundOrder as option}<Button
+                        {#each subtitleBackgroundOrder as option}
+                            <Button
                                 variant="unstyled"
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
@@ -156,7 +169,8 @@
                                 }}
                             >
                                 {subtitleBackgrounds[option].label}
-                            </Button>{/each}
+                            </Button>
+                        {/each}
                     {/snippet}
                 </Dropdown>
             </div>
@@ -169,10 +183,13 @@
                     menuAlign="start"
                     triggerClass="mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                    {#snippet trigger()}<span>{Math.round(settings.backgroundOpacity * 100)}%</span>
-                        <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
+                    {#snippet trigger()}
+                        <span>{Math.round(settings.backgroundOpacity * 100)}%</span>
+                        <CaretDownIcon size={16} aria-hidden="true" />
+                    {/snippet}
                     {#snippet content()}
-                        {#each subtitleBackgroundOpacities as option}<Button
+                        {#each subtitleBackgroundOpacities as option}
+                            <Button
                                 variant="unstyled"
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
@@ -181,7 +198,8 @@
                                 }}
                             >
                                 {Math.round(option * 100)}%
-                            </Button>{/each}
+                            </Button>
+                        {/each}
                     {/snippet}
                 </Dropdown>
             </div>
