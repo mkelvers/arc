@@ -8,7 +8,7 @@
     let { children }: LayoutProps = $props();
     let mobileMenuOpen = $state(false);
     let mobileSettingsMenu = $state<HTMLDivElement>();
-    let mobileSettingsTrigger = $state<HTMLButtonElement>();
+    let mobileSettingsTrigger = $state<HTMLButtonElement | null>(null);
 
     const pages = {
         '/settings/subtitles': {
