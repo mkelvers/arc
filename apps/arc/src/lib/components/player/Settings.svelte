@@ -4,6 +4,7 @@
     import { subtitleSizeOrder, subtitleSizes } from '$lib/player/subtitle-settings.svelte';
     import type { SkipKind } from '@arc/core/client';
     import { cn } from '$lib/utils';
+    import Button from '$lib/components/ui/button/button.svelte';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
     import { m } from '$lib/i18n.svelte';
 
@@ -42,7 +43,8 @@
     )}
 >
     {#if player.settingsView === 'main'}
-        <button
+        <Button
+            variant="unstyled"
             type="button"
             role="menuitemcheckbox"
             aria-checked={player.media.autoplay}
@@ -66,9 +68,10 @@
                     )}
                 ></span>
             </span>
-        </button>
+        </Button>
 
-        <button
+        <Button
+            variant="unstyled"
             type="button"
             role="menuitem"
             class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
@@ -79,9 +82,10 @@
                 {player.media.sourceText}
                 <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
             </span>
-        </button>
+        </Button>
 
-        <button
+        <Button
+            variant="unstyled"
             type="button"
             role="menuitem"
             class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
@@ -95,10 +99,11 @@
                     'Off'}
                 <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
             </span>
-        </button>
+        </Button>
 
         {#if player.media.qualities.length > 1}
-            <button
+            <Button
+                variant="unstyled"
                 type="button"
                 role="menuitem"
                 class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
@@ -112,11 +117,12 @@
                     {/if}
                     <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
                 </span>
-            </button>
+            </Button>
         {/if}
 
         {#if player.segments.canEdit}
-            <button
+            <Button
+                variant="unstyled"
                 type="button"
                 role="menuitem"
                 class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
@@ -124,7 +130,7 @@
             >
                 <span>{m.player_segments()}</span>
                 <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
-            </button>
+            </Button>
         {/if}
     {:else}
         {@const editingKind =
@@ -133,7 +139,8 @@
                 : player.settingsView === 'segment-ending'
                   ? 'ending'
                   : null}
-        <button
+        <Button
+            variant="unstyled"
             type="button"
             role="menuitem"
             aria-label={player.settingsView === 'subtitle-size'
@@ -148,10 +155,11 @@
         >
             <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
             {m.player_back_label()}
-        </button>
+        </Button>
 
         {#if player.settingsView === 'quality'}
-            <button
+            <Button
+                variant="unstyled"
                 type="button"
                 role="menuitemradio"
                 aria-checked={player.media.quality === 'best'}
@@ -160,10 +168,11 @@
             >
                 {@render radio(player.media.quality === 'best')}
                 {m.player_auto()}
-            </button>
+            </Button>
 
             {#each player.media.qualities as option}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     role="menuitemradio"
                     aria-checked={player.media.quality === option}
@@ -177,7 +186,7 @@
                             <span class="font-bold text-accent">HD</span>
                         {/if}
                     </span>
-                </button>
+                </Button>
             {/each}
         {:else if player.settingsView === 'source'}
             {#each player.media.audioModes as mode}
@@ -185,7 +194,8 @@
                     {mode.toUpperCase()}
                 </h3>
                 {#each player.media.sourcesForMode(mode) as source}
-                    <button
+                    <Button
+                        variant="unstyled"
                         type="button"
                         role="menuitemradio"
                         aria-checked={player.media.mode === mode && player.media.activeSource === source}
@@ -194,11 +204,12 @@
                     >
                         {@render radio(player.media.mode === mode && player.media.activeSource === source)}
                         {source.server}
-                    </button>
+                    </Button>
                 {/each}
             {/each}
         {:else if player.settingsView === 'subtitles'}
-            <button
+            <Button
+                variant="unstyled"
                 type="button"
                 role="menuitem"
                 class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
@@ -209,10 +220,11 @@
                     {subtitleSizes[player.media.captions.size].label}
                     <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
                 </span>
-            </button>
+            </Button>
 
             {#each player.media.captions.options as option}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     role="menuitemradio"
                     aria-checked={player.media.captions.mode === option.mode}
@@ -221,11 +233,12 @@
                 >
                     {@render radio(player.media.captions.mode === option.mode)}
                     {option.label}
-                </button>
+                </Button>
             {/each}
         {:else if player.settingsView === 'subtitle-size'}
             {#each subtitleSizeOrder as option}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     role="menuitemradio"
                     aria-checked={player.media.captions.size === option}
@@ -234,12 +247,13 @@
                 >
                     {@render radio(player.media.captions.size === option)}
                     {subtitleSizes[option].label}
-                </button>
+                </Button>
             {/each}
         {:else if player.settingsView === 'segments'}
             {#each ['opening', 'ending'] satisfies SkipKind[] as kind (kind)}
                 {@const interval = player.displayedSegmentTimes[kind]}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     role="menuitem"
                     class="flex min-h-11 w-full items-center gap-3 px-4 text-left hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
@@ -253,13 +267,14 @@
                             : `${formatTime(interval.start)} – ${formatTime(interval.end)}`}
                     </span>
                     <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
-                </button>
+                </Button>
             {/each}
         {:else if editingKind}
             {@const template = player.segments.templates[editingKind]}
             {#each ['start', 'end'] satisfies Array<'start' | 'end'> as edge (edge)}
                 {@const edgeTime = player.displayedSegmentTimes[editingKind]?.[edge] ?? null}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     role="menuitem"
                     aria-label={m.player_set_position({ kind: skipLabels[editingKind], edge })}
@@ -278,11 +293,12 @@
                         {edgeTime === null ? m.player_not_set() : formatTime(edgeTime)}
                     </span>
                     <span class="font-semibold text-input-accent">{m.player_set_here()}</span>
-                </button>
+                </Button>
             {/each}
 
             {#if Number.isSafeInteger(player.segments.episodeNumber) && player.segments.episodeNumber > 0}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     role="menuitem"
                     disabled={player.segments.saving}
@@ -297,11 +313,12 @@
                         : template
                           ? m.player_new_kind({ kind: skipLabels[editingKind] })
                           : m.player_new_template()}
-                </button>
+                </Button>
             {/if}
 
             {#if player.segments.draft[editingKind].start !== null || player.segments.draft[editingKind].end !== null}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     role="menuitem"
                     disabled={player.segments.saving}
@@ -309,7 +326,7 @@
                     onclick={() => player.segments.clear(editingKind)}
                 >
                     {m.player_clear_segment()}
-                </button>
+                </Button>
             {/if}
 
             {#if player.segments.saving}

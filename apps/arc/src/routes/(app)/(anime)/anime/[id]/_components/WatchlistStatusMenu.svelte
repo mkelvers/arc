@@ -5,6 +5,8 @@
 
     import { watchlistStates, type WatchlistState } from '$lib/watchlist';
     import { watchlist, WatchlistAuthenticationError } from '$lib/watchlist.svelte';
+    import { cn } from '$lib/utils';
+    import Button from '$lib/components/ui/button/button.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -105,24 +107,25 @@
     {#snippet content()}
         <div role="menu" aria-label={m.shared_set_title({ title })}>
             {#each watchlistStates as option}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     role="menuitem"
                     disabled={pending}
-                    class:bg-panel-hover={watchlistStatus === option.value}
-                    class="flex w-full items-center justify-between gap-4 px-5 py-3 text-left text-sm leading-tight font-normal whitespace-nowrap text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none disabled:cursor-wait disabled:opacity-50 {watchlistStatus ===
-                    option.value
-                        ? 'text-white'
-                        : ''}"
+                    class={cn(
+                        'flex w-full items-center justify-between gap-4 px-5 py-3 text-left text-sm leading-tight font-normal whitespace-nowrap text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none disabled:cursor-wait disabled:opacity-50',
+                        watchlistStatus === option.value && 'bg-panel-hover text-white'
+                    )}
                     onclick={() => setStatus(option.value)}
                 >
                     <span>{statusLabel(option.value)}</span>
-                </button>
+                </Button>
             {/each}
 
             {#if watchlistStatus}
                 <div class="mt-2 border-t border-border pt-2">
-                    <button
+                    <Button
+                        variant="unstyled"
                         type="button"
                         role="menuitem"
                         disabled={pending}
@@ -130,7 +133,7 @@
                         onclick={remove}
                     >
                         {m.watchlist_remove()}
-                    </button>
+                    </Button>
                 </div>
             {/if}
 

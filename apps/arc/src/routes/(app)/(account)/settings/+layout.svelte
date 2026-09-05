@@ -2,6 +2,7 @@
     import { page } from '$app/state';
     import { CaretDownIcon, XIcon } from 'phosphor-svelte';
     import type { LayoutProps } from './$types';
+    import Button from '$lib/components/ui/button/button.svelte';
     import { m } from '$lib/i18n.svelte';
 
     let { children }: LayoutProps = $props();
@@ -144,8 +145,9 @@
         <p class="text-2xl font-bold tracking-tight">
             {m.settings_account()}
         </p>
-        <button
-            bind:this={mobileSettingsTrigger}
+        <Button
+            bind:ref={mobileSettingsTrigger}
+            variant="unstyled"
             type="button"
             class="mt-8 flex min-h-11 items-center gap-3 text-xs font-bold tracking-wide text-muted uppercase transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             aria-expanded={mobileMenuOpen}
@@ -154,7 +156,7 @@
         >
             <CaretDownIcon size={14} aria-hidden="true" />
             <span>{m.settings_sections()}</span>
-        </button>
+        </Button>
     </div>
 
     {#if mobileMenuOpen}
@@ -169,14 +171,15 @@
         >
             <header class="flex min-h-14 shrink-0 items-center justify-between bg-[#151515] px-5">
                 <h2 class="text-base font-medium">{m.settings_account()}</h2>
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     class="grid size-9 place-items-center text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent"
                     aria-label={m.shared_close_menu()}
                     onclick={closeMobileMenu}
                 >
                     <XIcon size={24} aria-hidden="true" />
-                </button>
+                </Button>
             </header>
             <nav class="min-h-0 flex-1 overflow-y-auto px-5 py-4" aria-label={m.settings_sections()}>
                 {#each sections as section}

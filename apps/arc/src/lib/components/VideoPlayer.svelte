@@ -9,6 +9,7 @@
     import { onMount, untrack } from 'svelte';
     import { CaretLeftIcon } from 'phosphor-svelte';
     import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import Controls from './player/Controls.svelte';
     import Modal from './ui/Modal.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -361,14 +362,15 @@
                     {error ? m.player_provider_error() : m.player_no_source()}
                 </p>
                 <p class="mt-2 text-sm text-white/65">{m.player_tried_sources()}</p>
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     disabled={retrying}
                     class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold transition-[border-color,transform] duration-150 hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] disabled:cursor-wait disabled:opacity-60"
                     onclick={onretry}
                 >
                     {retrying ? m.player_trying_again() : m.player_try_again()}
-                </button>
+                </Button>
             </div>
         </div>
     {:else if player.media.loading}
@@ -386,13 +388,14 @@
             <div>
                 <p class="text-base font-bold">{m.player_load_failed()}</p>
                 <p class="mt-2 text-sm text-white/65">{m.player_tried_provider()}</p>
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     class="mt-5 min-h-11 border border-white/60 px-5 text-sm font-bold transition-[border-color,transform] duration-150 hover:border-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97]"
                     onclick={() => player.media.retry()}
                 >
                     {m.player_try_again()}
-                </button>
+                </Button>
             </div>
         </div>
     {/if}
@@ -400,7 +403,8 @@
     {#if !unavailable && !transitioning && !player.changingEpisode && !player.media.error}
         {@const skip = player.visibleSkip}
         {#if skip}
-            <button
+            <Button
+                variant="unstyled"
                 type="button"
                 disabled={player.media.loading}
                 class="absolute right-4 bottom-24 z-30 min-h-11 rounded-sm bg-white/95 px-5 text-sm font-bold text-black shadow-[0_3px_14px_rgba(0,0,0,0.3)] backdrop-blur-sm transition-[background-color,translate,scale,opacity] duration-200 ease-out hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] disabled:opacity-50 motion-reduce:transition-none motion-reduce:starting:translate-y-0 starting:translate-y-1.5 starting:opacity-0 sm:right-6 sm:bottom-28"
@@ -410,7 +414,7 @@
                 }}
             >
                 {m.player_skip({ kind: skip.kind === 'opening' ? 'intro' : 'outro' })}
-            </button>
+            </Button>
         {/if}
     {/if}
 

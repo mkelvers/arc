@@ -16,6 +16,7 @@
         SubtitleSettings,
     } from '$lib/player/subtitle-settings.svelte';
     import { cn } from '$lib/utils';
+    import Button from '$lib/components/ui/button/button.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import { m } from '$lib/i18n.svelte';
 
@@ -68,7 +69,8 @@
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
                         {#each subtitleSizeOrder as option}
-                            <button
+                            <Button
+                                variant="unstyled"
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 onclick={() => {
@@ -76,7 +78,7 @@
                                 }}
                             >
                                 {subtitleSizes[option].label}
-                            </button>
+                            </Button>
                         {/each}
                     {/snippet}
                 </Dropdown>
@@ -92,7 +94,8 @@
                     {#snippet trigger()}<span>{subtitleTextColors[settings.textColor].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
-                        {#each subtitleTextColorOrder as option}<button
+                        {#each subtitleTextColorOrder as option}<Button
+                                variant="unstyled"
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 onclick={() => {
@@ -100,7 +103,7 @@
                                 }}
                             >
                                 {subtitleTextColors[option].label}
-                            </button>{/each}
+                            </Button>{/each}
                     {/snippet}
                 </Dropdown>
             </div>
@@ -115,7 +118,8 @@
                     {#snippet trigger()}<span>{subtitleEdgeStyles[settings.edgeStyle].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
-                        {#each subtitleEdgeStyleOrder as option}<button
+                        {#each subtitleEdgeStyleOrder as option}<Button
+                                variant="unstyled"
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 onclick={() => {
@@ -123,7 +127,7 @@
                                 }}
                             >
                                 {subtitleEdgeStyles[option].label}
-                            </button>{/each}
+                            </Button>{/each}
                     {/snippet}
                 </Dropdown>
             </div>
@@ -143,7 +147,8 @@
                     {#snippet trigger()}<span>{subtitleBackgrounds[settings.background].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
-                        {#each subtitleBackgroundOrder as option}<button
+                        {#each subtitleBackgroundOrder as option}<Button
+                                variant="unstyled"
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 onclick={() => {
@@ -151,7 +156,7 @@
                                 }}
                             >
                                 {subtitleBackgrounds[option].label}
-                            </button>{/each}
+                            </Button>{/each}
                     {/snippet}
                 </Dropdown>
             </div>
@@ -167,7 +172,8 @@
                     {#snippet trigger()}<span>{Math.round(settings.backgroundOpacity * 100)}%</span>
                         <CaretDownIcon size={16} aria-hidden="true" />{/snippet}
                     {#snippet content()}
-                        {#each subtitleBackgroundOpacities as option}<button
+                        {#each subtitleBackgroundOpacities as option}<Button
+                                variant="unstyled"
                                 type="button"
                                 class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 onclick={() => {
@@ -175,7 +181,7 @@
                                 }}
                             >
                                 {Math.round(option * 100)}%
-                            </button>{/each}
+                            </Button>{/each}
                     {/snippet}
                 </Dropdown>
             </div>
@@ -183,12 +189,13 @@
     </section>
 
     <div class="pt-6">
-        <button
+        <Button
+            variant="outline"
             type="button"
-            class="min-h-10 w-full border border-border-strong px-4 text-xs font-bold text-muted uppercase transition-[border-color,color,transform] duration-150 hover:border-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] sm:w-auto"
+            class="h-auto min-h-10 w-full border-border-strong px-4 text-xs font-bold text-muted uppercase transition-[border-color,color,transform] duration-150 hover:border-foreground hover:bg-transparent hover:text-foreground focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] sm:w-auto"
             onclick={() => settings.reset()}
         >
             {m.settings_reset()}
-        </button>
+        </Button>
     </div>
 </div>

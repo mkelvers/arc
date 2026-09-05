@@ -12,6 +12,7 @@
     import emptyArtwork from '$lib/assets/watchlist-empty.png';
     import filteredEmptyArtwork from '$lib/assets/watchlist-filter-empty.png';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import {
@@ -228,7 +229,8 @@
                     {#snippet content()}
                         <div role="menu" aria-label={m.watchlist_filtering()} class="py-2">
                             {#if filterView === 'main'}
-                                <button
+                                <Button
+                                    variant="unstyled"
                                     type="button"
                                     role="menuitem"
                                     aria-haspopup="menu"
@@ -244,7 +246,7 @@
                                         {selectedTypeLabel}
                                         <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
                                     </span>
-                                </button>
+                                </Button>
 
                                 {#each filterGroups as group}
                                     <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
@@ -273,7 +275,8 @@
                                     {/each}
                                 {/each}
                             {:else}
-                                <button
+                                <Button
+                                    variant="unstyled"
                                     type="button"
                                     role="menuitem"
                                     class="flex min-h-11 w-full items-center gap-2 px-5 text-left text-xs font-bold text-foreground uppercase hover:bg-panel-hover focus:bg-panel-hover focus:outline-none"
@@ -284,7 +287,7 @@
                                 >
                                     <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
                                     Type
-                                </button>
+                                </Button>
                                 {#each types as option}
                                     <a
                                         role="menuitemradio"

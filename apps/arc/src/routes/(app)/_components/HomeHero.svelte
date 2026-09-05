@@ -4,6 +4,7 @@
     import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
     import PlayIcon from 'phosphor-svelte/lib/PlayIcon';
     import { cn } from '$lib/utils';
+    import Button from '$lib/components/ui/button/button.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -250,7 +251,8 @@
                                     {/each}
                                 </a>
 
-                                <button
+                                <Button
+                                    variant="unstyled"
                                     type="button"
                                     class="pointer-events-auto absolute top-1/2 left-0 z-30 hidden size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform duration-150 hover:scale-110 focus-visible:outline-2 focus-visible:outline-white active:scale-90 sm:grid lg:size-11 xl:inset-y-0 xl:top-auto xl:right-full xl:left-auto xl:my-auto xl:mr-2 xl:translate-y-0"
                                     aria-label={m.shared_previous()}
@@ -262,12 +264,13 @@
                                         aria-hidden="true"
                                         class="lg:size-[1.7rem]"
                                     />
-                                </button>
+                                </Button>
                             </div>
                         </div>
 
                         {#if highlights.length > 1}
-                            <button
+                            <Button
+                                variant="unstyled"
                                 type="button"
                                 class="pointer-events-auto absolute top-1/2 right-0 z-30 hidden size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform duration-150 hover:scale-110 focus-visible:outline-2 focus-visible:outline-white active:scale-90 sm:grid lg:size-11 xl:inset-y-0 xl:top-auto xl:my-auto xl:translate-y-0"
                                 aria-label={m.shared_next()}
@@ -279,7 +282,7 @@
                                     aria-hidden="true"
                                     class="lg:size-[1.7rem]"
                                 />
-                            </button>
+                            </Button>
                         {/if}
                     </div>
 
@@ -326,7 +329,8 @@
                             class="pointer-events-auto relative z-30 mt-6 flex items-center justify-center gap-1 px-5 sm:justify-start sm:px-10 lg:px-16 2xl:mt-7"
                         >
                             {#each highlights as item, itemIndex (item.id)}
-                                <button
+                                <Button
+                                    variant="unstyled"
                                     type="button"
                                     class={cn(
                                         'group relative grid h-8 place-items-center overflow-hidden rounded-full transition-[width] duration-300 ease-out motion-reduce:transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
@@ -364,7 +368,7 @@
                                     <span class="sr-only">
                                         {m.shared_view({ title: item.title })}
                                     </span>
-                                </button>
+                                </Button>
                             {/each}
                         </div>
                     {/if}

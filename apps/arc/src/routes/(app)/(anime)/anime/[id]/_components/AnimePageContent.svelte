@@ -1,5 +1,6 @@
 <script lang="ts">
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
     import FranchiseOrder from './FranchiseOrder.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
@@ -348,7 +349,8 @@
                     </section>
                 </div>
 
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     class="min-h-11 text-xs font-semibold text-accent uppercase"
                     aria-expanded={detailsExpanded}
@@ -356,7 +358,7 @@
                     onclick={() => (detailsExpanded = !detailsExpanded)}
                 >
                     {detailsExpanded ? m.anime_fewer_details() : m.anime_more_details()}
-                </button>
+                </Button>
             </div>
         </div>
     </section>
@@ -404,13 +406,14 @@
                             {/each}
                         </div>
                         {#if visibleEpisodeCount < episodes.length}
-                            <button
+                            <Button
+                                variant="unstyled"
                                 type="button"
                                 class="mx-auto mt-8 flex min-h-11 w-full max-w-5xl items-center justify-center bg-[#192e38] px-5 text-xs font-bold text-white uppercase hover:brightness-[1.2] focus:outline-none active:outline-none"
                                 onclick={() => showMoreEpisodes(episodes.length)}
                             >
                                 {m.anime_show_more_episodes()}
-                            </button>
+                            </Button>
                         {/if}
                     {/if}
                 </section>

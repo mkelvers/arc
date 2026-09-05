@@ -4,6 +4,7 @@
     import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
     import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import { m } from '$lib/i18n.svelte';
 
     interface Props {
@@ -89,25 +90,27 @@
             </div>
 
             {#if canScrollLeft}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     class="absolute top-(--rail-control-center) left-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
                     aria-label={`${heading}: ${m.shared_previous()}`}
                     onclick={() => move(-1)}
                 >
                     <CaretLeftIcon size="1.65rem" weight="bold" aria-hidden="true" />
-                </button>
+                </Button>
             {/if}
 
             {#if canScrollRight}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     class="absolute top-(--rail-control-center) right-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
                     aria-label={`${heading}: ${m.shared_next()}`}
                     onclick={() => move(1)}
                 >
                     <CaretRightIcon size="1.65rem" weight="bold" aria-hidden="true" />
-                </button>
+                </Button>
             {/if}
         </div>
     {/if}
