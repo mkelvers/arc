@@ -3,6 +3,7 @@
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
 
     import AnimeCard from '$lib/components/AnimeCard.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import type { AnimeCardItem } from '$lib/components/AnimeCard.svelte';
     import { locale } from '$lib/locale.svelte';
     import { localReleaseTime, releaseCalendarWeek } from '$lib/release-calendar';
@@ -130,7 +131,8 @@
                     </div>
                 </div>
                 {#if canScrollLeft}
-                    <button
+                    <Button
+                        variant="unstyled"
                         type="button"
                         class="absolute top-1/2 left-0 z-10 grid size-10 -translate-y-1/2 place-items-center bg-canvas/85 text-foreground shadow-lg transition-colors hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:hidden"
                         aria-label={m.shared_previous()}
@@ -138,10 +140,11 @@
                         onclick={() => scrollCalendar(-1)}
                     >
                         <CaretLeftIcon size="1.25rem" weight="bold" aria-hidden="true" />
-                    </button>
+                    </Button>
                 {/if}
                 {#if canScrollRight}
-                    <button
+                    <Button
+                        variant="unstyled"
                         type="button"
                         class="absolute top-1/2 right-0 z-10 grid size-10 -translate-y-1/2 place-items-center bg-canvas/85 text-foreground shadow-lg transition-colors hover:bg-canvas focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:hidden"
                         aria-label={m.shared_next()}
@@ -149,7 +152,7 @@
                         onclick={() => scrollCalendar(1)}
                     >
                         <CaretRightIcon size="1.25rem" weight="bold" aria-hidden="true" />
-                    </button>
+                    </Button>
                 {/if}
             </div>
         {:else}

@@ -12,6 +12,7 @@
     } from 'phosphor-svelte';
     import Settings from './Settings.svelte';
     import Timeline from './Timeline.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import { m } from '$lib/i18n.svelte';
 
     interface Props {
@@ -31,7 +32,8 @@
 >
     <div class="flex items-center justify-between px-1">
         <div class="flex items-center gap-4">
-            <button
+            <Button
+                variant="unstyled"
                 type="button"
                 aria-label={player.media.playing ? m.player_pause() : m.player_play()}
                 disabled={player.media.loading}
@@ -46,7 +48,7 @@
                 {:else}
                     <PlayIcon size="1.5rem" weight="fill" aria-hidden="true" />
                 {/if}
-            </button>
+            </Button>
 
             <div class="group/volume relative">
                 <div
@@ -67,7 +69,8 @@
                     </div>
                 </div>
 
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     aria-label={player.media.muted ? m.player_unmute() : m.player_mute()}
                     disabled={player.media.loading}
@@ -82,13 +85,14 @@
                     {:else}
                         <SpeakerHighIcon size="1.5rem" aria-hidden="true" />
                     {/if}
-                </button>
+                </Button>
             </div>
         </div>
 
         <div class="flex items-center gap-4">
             {#if hasMultipleEpisodes && onopenepisodes}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     aria-label={episodesOpen ? m.player_close_episodes() : m.player_episodes()}
                     aria-haspopup="dialog"
@@ -98,11 +102,12 @@
                     onclick={onopenepisodes}
                 >
                     <ArchiveIcon size="1.5rem" weight="bold" aria-hidden="true" />
-                </button>
+                </Button>
             {/if}
 
             <div class="relative">
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     aria-label={m.player_settings()}
                     aria-expanded={player.settingsOpen}
@@ -112,14 +117,15 @@
                     onclick={() => player.openSettings()}
                 >
                     <GearIcon size="1.5rem" aria-hidden="true" />
-                </button>
+                </Button>
 
                 {#if player.settingsOpen}
                     <Settings player={player} />
                 {/if}
             </div>
 
-            <button
+            <Button
+                variant="unstyled"
                 type="button"
                 aria-label={player.fullscreen ? m.player_exit_fullscreen() : m.player_fullscreen()}
                 disabled={player.media.loading}
@@ -134,7 +140,7 @@
                 {:else}
                     <CornersOutIcon size="1.5rem" weight="bold" aria-hidden="true" />
                 {/if}
-            </button>
+            </Button>
         </div>
     </div>
 

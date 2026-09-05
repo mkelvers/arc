@@ -7,6 +7,7 @@
     import Card from '$lib/components/ui/card/Card.svelte';
     import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import { m } from '$lib/i18n.svelte';
 
@@ -177,13 +178,14 @@
                         >
                             <input type="hidden" name="animeId" value={entry.animeId} />
                             <Tooltip text={m.remove()} escapeOverflow>
-                                <button
+                                <Button
+                                    variant="unstyled"
                                     type="submit"
                                     class="grid size-8 place-items-center text-white/75 drop-shadow-sm transition-[color,transform] duration-150 hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-90"
                                     aria-label={m.remove_continue_watching({ title: entry.title })}
                                 >
                                     <XIcon size="1rem" weight="bold" aria-hidden="true" />
-                                </button>
+                                </Button>
                             </Tooltip>
                         </form>
                     </div>
@@ -191,25 +193,27 @@
             </div>
 
             {#if canScrollLeft}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     class="absolute top-(--rail-control-center) left-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
                     aria-label={`${m.continue_watching()}: ${m.shared_previous()}`}
                     onclick={() => move(-1)}
                 >
                     <CaretLeftIcon size="1.65rem" weight="bold" aria-hidden="true" />
-                </button>
+                </Button>
             {/if}
 
             {#if canScrollRight}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     class="absolute top-(--rail-control-center) right-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
                     aria-label={`${m.continue_watching()}: ${m.shared_next()}`}
                     onclick={() => move(1)}
                 >
                     <CaretRightIcon size="1.65rem" weight="bold" aria-hidden="true" />
-                </button>
+                </Button>
             {/if}
         </div>
     </section>

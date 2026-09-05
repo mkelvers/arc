@@ -5,6 +5,7 @@
     import { NotificationsResponseSchema, type Notification } from '@arc/core/client';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import { cn } from '$lib/utils';
     import errorArtwork from '$lib/assets/error-state.png';
     import emptyArtwork from '$lib/assets/notifications-empty.png';
@@ -53,9 +54,10 @@
             entry.readAt && 'opacity-70'
         )}
     >
-        <button
+        <Button
+            variant="unstyled"
             type="button"
-            class="grid w-full gap-5 text-left sm:col-span-2 sm:grid-cols-subgrid sm:gap-8"
+            class="grid w-full gap-5 text-left whitespace-normal sm:col-span-2 sm:grid-cols-subgrid sm:gap-8"
             onclick={() => openNotification(entry)}
         >
             <div class="relative aspect-4/3 overflow-hidden bg-panel">
@@ -66,10 +68,9 @@
                         <PlayIcon size={24} aria-hidden="true" />
                     </div>
                 {/if}
-                {#if !entry.readAt}<span
-                        class="absolute top-2 right-2 size-2 rounded-full bg-accent"
-                        aria-label="Unread"
-                    ></span>{/if}
+                {#if !entry.readAt}
+                    <span class="absolute top-2 right-2 size-2 rounded-full bg-accent" aria-label="Unread"></span>
+                {/if}
             </div>
             <div class="min-w-0 self-start py-5">
                 <p class="text-base font-semibold text-foreground sm:text-lg">{entry.title}</p>
@@ -89,7 +90,7 @@
                     <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
                 </span>
             </div>
-        </button>
+        </Button>
         {#if !entry.readAt}
             <div
                 class="absolute right-3 bottom-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
@@ -104,7 +105,8 @@
                     {/snippet}
                     {#snippet content()}
                         <div role="menu" aria-label="Notification options" class="bg-panel py-2">
-                            <button
+                            <Button
+                                variant="unstyled"
                                 type="button"
                                 role="menuitem"
                                 data-dropdown-close
@@ -112,7 +114,7 @@
                                 onclick={() => markNotificationAsRead(entry)}
                             >
                                 Mark as read
-                            </button>
+                            </Button>
                         </div>
                     {/snippet}
                 </Dropdown>
@@ -177,7 +179,8 @@
                         {/snippet}
                         {#snippet content()}
                             <div role="menu" aria-label="Notification view" class="bg-panel py-2">
-                                <button
+                                <Button
+                                    variant="unstyled"
                                     type="button"
                                     role="menuitemradio"
                                     aria-checked={notificationView === 'unread'}
@@ -185,8 +188,9 @@
                                     onclick={() => (notificationView = 'unread')}
                                 >
                                     Past Notifications
-                                </button>
-                                <button
+                                </Button>
+                                <Button
+                                    variant="unstyled"
                                     type="button"
                                     role="menuitemradio"
                                     aria-checked={notificationView === 'read'}
@@ -194,7 +198,7 @@
                                     onclick={() => (notificationView = 'read')}
                                 >
                                     Read Notifications
-                                </button>
+                                </Button>
                             </div>
                         {/snippet}
                     </Dropdown>

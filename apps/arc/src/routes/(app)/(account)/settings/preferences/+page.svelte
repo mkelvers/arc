@@ -2,6 +2,7 @@
     import { CaretDownIcon } from 'phosphor-svelte';
 
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import { changeLocale, locale, type AppLocale } from '$lib/locale.svelte';
     import { m } from '$lib/i18n.svelte';
 
@@ -40,14 +41,15 @@
             {/snippet}
             {#snippet content()}
                 {#each languages as language}
-                    <button
+                    <Button
+                        variant="unstyled"
                         type="button"
                         aria-pressed={locale.current === language.locale}
                         onclick={() => changeLocale(language.locale)}
                         class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                     >
                         {language.label}
-                    </button>
+                    </Button>
                 {/each}
             {/snippet}
         </Dropdown>

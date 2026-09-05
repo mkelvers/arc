@@ -14,6 +14,7 @@
     import { authClient } from '$lib/auth-client';
     import { m } from '$lib/i18n.svelte';
     import Logo from '$lib/components/ui/Logo.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import AccountAvatar from './_components/AccountAvatar.svelte';
     import PageLoading from '$lib/components/ui/PageLoading.svelte';
@@ -228,14 +229,15 @@
                             {/if}
                         </a>
 
-                        <button
+                        <Button
+                            variant="unstyled"
                             type="button"
                             class="flex min-h-14 w-full items-center gap-3 px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
                             onclick={signOut}
                         >
                             <SignOutIcon size={21} aria-hidden="true" />
                             <span>{m.nav_logout()}</span>
-                        </button>
+                        </Button>
                     {/snippet}
                 </Dropdown>
             {:else}
@@ -294,7 +296,8 @@
                     </nav>
 
                     <div class="bg-header-hover">
-                        <button
+                        <Button
+                            variant="unstyled"
                             type="button"
                             class="flex min-h-12 w-full items-center justify-between px-5 text-left text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                             aria-expanded={mobileCategoriesOpen}
@@ -308,7 +311,7 @@
                                 class={mobileCategoriesOpen ? 'rotate-180' : ''}
                                 aria-hidden="true"
                             />
-                        </button>
+                        </Button>
                         {#if mobileCategoriesOpen}
                             <nav
                                 id="mobile-navigation-categories"
@@ -329,14 +332,15 @@
                     </div>
 
                     {#if data.account}
-                        <button
+                        <Button
+                            variant="unstyled"
                             type="button"
                             class="block w-full border-t border-border/60 bg-header-hover px-5 py-3 text-left text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                             data-dropdown-close
                             onclick={signOut}
                         >
                             {m.nav_logout()}
-                        </button>
+                        </Button>
                     {:else}
                         <a
                             href="/login"

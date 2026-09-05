@@ -3,7 +3,9 @@
     import { CaretDownIcon, CaretLeftIcon, CaretRightIcon, ListBulletsIcon } from 'phosphor-svelte';
 
     import type { FranchiseOrder as FranchiseOrderData } from '@arc/core/client';
+    import { cn } from '$lib/utils';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import { matchesFranchiseFilter, type FranchiseFilter } from '$lib/franchise';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -99,16 +101,19 @@
             {#snippet content()}
                 <div role="menu" aria-label={m.franchise_filters()} class="py-2">
                     {#each filters as option}
-                        <button
+                        <Button
+                            variant="unstyled"
                             type="button"
                             role="menuitemradio"
                             aria-checked={filter === option.value}
-                            class:text-foreground={filter === option.value}
-                            class="flex min-h-11 w-full items-center px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            class={cn(
+                                'flex min-h-11 w-full items-center px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none',
+                                filter === option.value && 'text-foreground'
+                            )}
                             onclick={() => (filter = option.value)}
                         >
                             {option.label}
-                        </button>
+                        </Button>
                     {/each}
                 </div>
             {/snippet}
@@ -131,25 +136,27 @@
             </div>
 
             {#if canScrollBack}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     class="absolute inset-y-0 left-0 z-20 my-auto hidden size-10 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid"
                     aria-label={m.shared_franchise_previous()}
                     onclick={() => scrollByPage(-1)}
                 >
                     <CaretLeftIcon size="1.75rem" weight="bold" aria-hidden="true" />
-                </button>
+                </Button>
             {/if}
 
             {#if canScrollForward}
-                <button
+                <Button
+                    variant="unstyled"
                     type="button"
                     class="absolute inset-y-0 right-0 z-20 my-auto hidden size-10 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid"
                     aria-label={m.shared_franchise_next()}
                     onclick={() => scrollByPage(1)}
                 >
                     <CaretRightIcon size="1.75rem" weight="bold" aria-hidden="true" />
-                </button>
+                </Button>
             {/if}
         </div>
     {/if}

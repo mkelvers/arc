@@ -6,7 +6,7 @@
     import { cn } from '$lib/utils';
 
     export const buttonVariants = cva(
-        'group/button inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap border border-transparent text-sm font-medium outline-none transition-[background-color,border-color,color,filter,opacity,transform] select-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+        'group/button inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap border border-transparent text-sm font-medium outline-none transition-[background-color,border-color,color,filter,opacity,transform] select-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
         {
             variants: {
                 variant: {
@@ -14,6 +14,7 @@
                     outline: 'border-border bg-transparent hover:bg-surface hover:text-foreground',
                     secondary: 'bg-surface text-foreground hover:bg-panel',
                     ghost: 'border-transparent bg-transparent hover:bg-surface hover:text-foreground',
+                    unstyled: 'border-0 bg-transparent font-normal text-inherit',
                     destructive: 'bg-status-error text-white hover:brightness-110',
                     link: 'border-transparent bg-transparent text-accent underline-offset-4 hover:underline',
                 },
@@ -38,6 +39,7 @@
     export type ButtonProps = HTMLButtonAttributes &
         HTMLAnchorAttributes & {
             children?: Snippet;
+            ref?: HTMLButtonElement | HTMLAnchorElement | null;
             variant?: ButtonVariant;
             size?: ButtonSize;
         };
@@ -52,12 +54,14 @@
         type = 'button',
         disabled = false,
         children,
+        ref = $bindable(null),
         ...restProps
     }: ButtonProps = $props();
 </script>
 
-{#if href}
+{#if href != null}
     <a
+        bind:this={ref}
         class={cn(buttonVariants({ variant, size }), className)}
         href={href}
         aria-disabled={disabled || undefined}
@@ -68,6 +72,7 @@
     </a>
 {:else}
     <button
+        bind:this={ref}
         class={cn(buttonVariants({ variant, size }), className)}
         type={type}
         disabled={disabled}

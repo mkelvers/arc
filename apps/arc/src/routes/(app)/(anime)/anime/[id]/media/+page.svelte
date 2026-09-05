@@ -3,6 +3,8 @@
     import { enhance } from '$app/forms';
 
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
+    import { cn } from '$lib/utils';
     import type { PageProps } from './$types';
     import { m } from '$lib/i18n.svelte';
 
@@ -42,13 +44,14 @@
         {#if data.artwork}
             <form method="POST" use:enhance class="shrink-0">
                 <input type="hidden" name="intent" value="refresh" />
-                <button
+                <Button
+                    variant="ghost"
                     type="submit"
-                    class="flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground"
+                    class="h-10 border-0 px-3 text-sm font-medium text-muted uppercase focus-visible:ring-0"
                 >
                     <ArrowClockwiseIcon size="1.2rem" weight="bold" aria-hidden="true" />
                     {m.media_refetch()}
-                </button>
+                </Button>
             </form>
         {/if}
     </header>
@@ -70,13 +73,14 @@
         <nav class="mb-8 overflow-x-auto border-b border-border" aria-label={m.media_types()}>
             <div class="flex min-w-max gap-6" role="tablist">
                 {#each [{ value: 'logo', label: m.media_logos(), count: data.artwork.logos.length }, { value: 'backdrop', label: m.media_backdrops(), count: data.artwork.backdrops.length }] as tab}
-                    <button
+                    <Button
+                        variant="unstyled"
                         type="button"
                         role="tab"
-                        class:border-accent={activeTab === tab.value}
-                        class:border-transparent={activeTab !== tab.value}
-                        class:text-foreground={activeTab === tab.value}
-                        class="border-b-2 px-1 py-3 text-sm font-semibold text-muted transition-colors hover:text-foreground"
+                        class={cn(
+                            'border-b-2 px-1 py-3 text-sm font-semibold text-muted transition-colors hover:text-foreground',
+                            activeTab === tab.value ? 'border-accent text-foreground' : 'border-transparent'
+                        )}
                         onclick={() => (activeTab = tab.value as typeof activeTab)}
                         aria-selected={activeTab === tab.value}
                         aria-controls={`media-panel-${tab.value}`}
@@ -84,7 +88,7 @@
                     >
                         {tab.label}
                         <span class="text-subtle">({tab.count})</span>
-                    </button>
+                    </Button>
                 {/each}
             </div>
         </nav>
@@ -112,32 +116,38 @@
                 <form method="POST" use:enhance>
                     <input type="hidden" name="type" value="logo" />
                     <input type="hidden" name="filePath" value="" />
-                    <button
+                    <Button
+                        variant="unstyled"
                         type="submit"
                         aria-pressed={data.artwork.logoHidden}
-                        class:border-accent={data.artwork.logoHidden}
-                        class:border-border={!data.artwork.logoHidden}
-                        class="grid min-h-40 w-full place-items-center border bg-surface p-5 text-xl font-semibold sm:min-h-48 sm:p-6"
+                        class={cn(
+                            'grid min-h-40 w-full place-items-center bg-surface p-5 text-xl font-semibold focus-visible:border-accent sm:min-h-48 sm:p-6',
+                            data.artwork.logoHidden ? 'border-accent' : 'border-transparent'
+                        )}
                     >
                         {m.media_no_logo()}
-                    </button>
+                    </Button>
                 </form>
                 {#each logos as image}
                     <form method="POST" use:enhance>
                         <input type="hidden" name="type" value="logo" />
                         <input type="hidden" name="filePath" value={image.filePath} />
-                        <button
+                        <Button
+                            variant="unstyled"
                             type="submit"
                             aria-pressed={data.artwork.selectedLogo?.filePath === image.filePath}
-                            class:border-accent={data.artwork.selectedLogo?.filePath === image.filePath}
-                            class:border-border={data.artwork.selectedLogo?.filePath !== image.filePath}
-                            class="grid min-h-40 w-full place-items-center border bg-surface p-5 sm:min-h-48 sm:p-6"
+                            class={cn(
+                                'grid min-h-40 w-full place-items-center bg-surface p-5 focus-visible:border-accent sm:min-h-48 sm:p-6',
+                                data.artwork.selectedLogo?.filePath === image.filePath
+                                    ? 'border-accent'
+                                    : 'border-transparent'
+                            )}
                         >
                             <img src={image.url} alt={`${data.anime.title} logo`} class="max-h-40 max-w-full" />
                             <span class="sr-only">
                                 {image.width} × {image.height}, {image.language ?? m.media_no_language()}
                             </span>
-                        </button>
+                        </Button>
                     </form>
                 {/each}
             </div>
@@ -153,12 +163,16 @@
                     <form method="POST" use:enhance>
                         <input type="hidden" name="type" value="backdrop" />
                         <input type="hidden" name="filePath" value={image.filePath} />
-                        <button
+                        <Button
+                            variant="unstyled"
                             type="submit"
                             aria-pressed={data.artwork.selectedBackdrop?.filePath === image.filePath}
-                            class:border-accent={data.artwork.selectedBackdrop?.filePath === image.filePath}
-                            class:border-border={data.artwork.selectedBackdrop?.filePath !== image.filePath}
-                            class="w-full overflow-hidden border bg-surface text-left"
+                            class={cn(
+                                'block h-auto w-full overflow-hidden border-transparent bg-surface p-0 text-left whitespace-normal focus-visible:border-accent',
+                                data.artwork.selectedBackdrop?.filePath === image.filePath
+                                    ? 'border-accent'
+                                    : 'border-transparent'
+                            )}
                         >
                             <ProgressiveImage
                                 src={image.url}
@@ -171,7 +185,7 @@
                                     1
                                 )}
                             </span>
-                        </button>
+                        </Button>
                     </form>
                 {/each}
             </div>

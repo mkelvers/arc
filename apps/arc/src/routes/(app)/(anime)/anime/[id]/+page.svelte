@@ -3,6 +3,7 @@
 
     import AnimePageContent from './_components/AnimePageContent.svelte';
     import PageLoading from '$lib/components/ui/PageLoading.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import type { PageProps } from './$types';
     import { m } from '$lib/i18n.svelte';
 
@@ -56,14 +57,14 @@
                     {result.status === 'not-found' ? m.anime_unavailable() : m.anime_load_error()}
                 </p>
                 {#if result.status === 'error'}
-                    <button
+                    <Button
                         type="button"
-                        class="mt-6 min-h-10 bg-accent px-5 text-sm font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] disabled:cursor-wait disabled:opacity-60"
+                        class="mt-6 min-h-10 border-0 px-5 text-sm font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] disabled:cursor-wait disabled:opacity-60"
                         disabled={retrying}
                         onclick={retry}
                     >
                         {retrying ? m.retrying() : m.retry()}
-                    </button>
+                    </Button>
                 {/if}
             </div>
         </main>

@@ -2,6 +2,7 @@
     import type { Snippet } from 'svelte';
     import { cn } from '$lib/utils';
     import { m } from '$lib/i18n.svelte';
+    import Button from './button/button.svelte';
 
     type Item = {
         label: string;
@@ -45,7 +46,7 @@
     let open = $state(false);
     let root = $state<HTMLDivElement>();
     let menu = $state<HTMLDivElement>();
-    let triggerElement = $state<HTMLButtonElement>();
+    let triggerElement = $state<HTMLButtonElement | HTMLAnchorElement | null>(null);
 
     function closeOnContentSelection(event: MouseEvent) {
         if (!(event.target instanceof Element)) {
@@ -129,8 +130,9 @@
         }
     }}
 >
-    <button
-        bind:this={triggerElement}
+    <Button
+        bind:ref={triggerElement}
+        variant="unstyled"
         id={id}
         type="button"
         aria-label={ariaLabel}
@@ -144,15 +146,16 @@
         onclick={() => (open = !open)}
     >
         {@render trigger()}
-    </button>
+    </Button>
 
     {#if open && modal}
-        <button
+        <Button
+            variant="unstyled"
             type="button"
             class="fixed inset-x-0 top-14 z-40 h-[calc(100dvh-3.5rem)] cursor-default bg-black/65 backdrop-blur-[2px]"
             aria-label={m.shared_close_menu()}
             onclick={() => (open = false)}
-        ></button>
+        ></Button>
     {/if}
 
     <div
