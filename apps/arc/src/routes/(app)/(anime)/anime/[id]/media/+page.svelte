@@ -121,8 +121,8 @@
                         type="submit"
                         aria-pressed={data.artwork.logoHidden}
                         class={cn(
-                            'grid min-h-40 w-full place-items-center border bg-surface p-5 text-xl font-semibold sm:min-h-48 sm:p-6',
-                            data.artwork.logoHidden ? 'border-accent' : 'border-border'
+                            'grid min-h-40 w-full place-items-center bg-surface p-5 text-xl font-semibold focus-visible:border-accent sm:min-h-48 sm:p-6',
+                            data.artwork.logoHidden ? 'border-accent' : 'border-transparent'
                         )}
                     >
                         {m.media_no_logo()}
@@ -137,10 +137,10 @@
                             type="submit"
                             aria-pressed={data.artwork.selectedLogo?.filePath === image.filePath}
                             class={cn(
-                                'grid min-h-40 w-full place-items-center border bg-surface p-5 sm:min-h-48 sm:p-6',
+                                'grid min-h-40 w-full place-items-center bg-surface p-5 focus-visible:border-accent sm:min-h-48 sm:p-6',
                                 data.artwork.selectedLogo?.filePath === image.filePath
                                     ? 'border-accent'
-                                    : 'border-border'
+                                    : 'border-transparent'
                             )}
                         >
                             <img src={image.url} alt={`${data.anime.title} logo`} class="max-h-40 max-w-full" />
@@ -168,10 +168,10 @@
                             type="submit"
                             aria-pressed={data.artwork.selectedBackdrop?.filePath === image.filePath}
                             class={cn(
-                                'w-full overflow-hidden border bg-surface text-left whitespace-normal',
+                                'block h-auto w-full overflow-hidden border-transparent bg-surface p-0 text-left whitespace-normal focus-visible:border-accent',
                                 data.artwork.selectedBackdrop?.filePath === image.filePath
                                     ? 'border-accent'
-                                    : 'border-border'
+                                    : 'border-transparent'
                             )}
                         >
                             <ProgressiveImage
