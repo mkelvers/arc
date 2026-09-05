@@ -177,6 +177,7 @@ export class Captions {
 
     async load(sources: Sources, mode: AudioMode, active: Stream | undefined, source: string) {
         const selectedMode = this.mode !== 'off' ? this.mode : this.selectedMode;
+        this.selectedMode = selectedMode;
         this.clear();
         const request = new AbortController();
         this.request = request;

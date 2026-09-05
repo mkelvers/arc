@@ -183,6 +183,9 @@ test('honors a restored mode set before the first internal clear', async () => {
     };
     await captions.load({ sub: [source] }, 'sub', source, source.url);
     expect(captions.mode).toBe('sdh');
+    captions.clear();
+    await captions.load({ sub: [source] }, 'sub', source, source.url);
+    expect(captions.mode).toBe('sdh');
 });
 
 test.each([
