@@ -108,6 +108,83 @@ test('clearing a track clears the English indicator immediately', async () => {
     expect(captions.cues).toEqual([]);
 });
 
+test('preserves the selected SDH mode across an internal reload clear', async () => {
+    const captions = new Captions();
+    captions.select('sdh');
+    mockFetch(async (url) =>
+        String(url) === '/full.vtt'
+            ? new Response('WEBVTT\n\n00:00.000 --> 00:01.000\nFull\n')
+            : new Response('WEBVTT\n\n00:00.000 --> 00:01.000\nSDH\n')
+    );
+    await captions.load(
+        {
+            sub: [
+                {
+                    ...streams[0],
+                    subtitles: [
+                        { kind: 'full', url: '/full.vtt' },
+                        { kind: 'sdh', url: '/sdh.vtt' },
+                    ],
+                },
+            ],
+        },
+        'sub',
+        {
+            ...streams[0],
+            subtitles: [
+                { kind: 'full', url: '/full.vtt' },
+                { kind: 'sdh', url: '/sdh.vtt' },
+            ],
+        },
+        streams[0].url
+    );
+    expect(captions.mode).toBe('sdh');
+    captions.clear();
+    expect(captions.mode).toBe('off');
+    await captions.load(
+        {
+            sub: [
+                {
+                    ...streams[0],
+                    subtitles: [
+                        { kind: 'full', url: '/full.vtt' },
+                        { kind: 'sdh', url: '/sdh.vtt' },
+                    ],
+                },
+            ],
+        },
+        'sub',
+        {
+            ...streams[0],
+            subtitles: [
+                { kind: 'full', url: '/full.vtt' },
+                { kind: 'sdh', url: '/sdh.vtt' },
+            ],
+        },
+        streams[0].url
+    );
+    expect(captions.mode).toBe('sdh');
+});
+
+test('honors a restored mode set before the first internal clear', async () => {
+    const captions = new Captions();
+    captions.mode = 'sdh';
+    mockFetch(async (url) =>
+        String(url) === '/full.vtt'
+            ? new Response('WEBVTT\n\n00:00.000 --> 00:01.000\nFull\n')
+            : new Response('WEBVTT\n\n00:00.000 --> 00:01.000\nSDH\n')
+    );
+    const source = {
+        ...streams[0],
+        subtitles: [
+            { kind: 'full' as const, url: '/full.vtt' },
+            { kind: 'sdh' as const, url: '/sdh.vtt' },
+        ],
+    };
+    await captions.load({ sub: [source] }, 'sub', source, source.url);
+    expect(captions.mode).toBe('sdh');
+});
+
 test.each([
     { status: 502, body: '' },
     { status: 200, body: 'WEBVTT\n\n' },

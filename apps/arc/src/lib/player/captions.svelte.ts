@@ -37,6 +37,7 @@ export class Captions {
     private request: AbortController | null = null;
     private source = '';
     private loaded: Partial<Record<Exclude<SubtitleMode, 'off'>, SubtitleCue[]>> = {};
+    private selectedMode: SubtitleMode = 'off';
 
     clear() {
         this.request?.abort();
@@ -59,6 +60,7 @@ export class Captions {
 
     select(mode: SubtitleMode): 'done' | 'load-current' | 'reevaluate-source' {
         const enabled = mode !== 'off';
+        this.selectedMode = mode;
         if (enabled === this.enabled && mode === this.mode) {
             return 'done';
         }
@@ -145,7 +147,10 @@ export class Captions {
         return null;
     }
 
-    private preferredKind(kinds: SubtitleKind[], audioMode: AudioMode) {
+    private preferredKind(kinds: SubtitleKind[], audioMode: AudioMode, selectedMode: SubtitleMode) {
+        if (selectedMode !== 'off' && kinds.includes(selectedMode)) {
+            return selectedMode;
+        }
         if (audioMode === 'sub' && kinds.includes('translated')) {
             return 'translated';
         }
@@ -171,6 +176,7 @@ export class Captions {
     }
 
     async load(sources: Sources, mode: AudioMode, active: Stream | undefined, source: string) {
+        const selectedMode = this.mode !== 'off' ? this.mode : this.selectedMode;
         this.clear();
         const request = new AbortController();
         this.request = request;
@@ -229,7 +235,7 @@ export class Captions {
             }
 
             this.options = subtitleOptionsFor(kinds);
-            const selectedKind = this.preferredKind(kinds, mode);
+            const selectedKind = this.preferredKind(kinds, mode, selectedMode);
             if (this.enabled && selectedKind) {
                 this.mode = selectedKind;
                 this.cues = this.loaded[selectedKind] ?? [];
