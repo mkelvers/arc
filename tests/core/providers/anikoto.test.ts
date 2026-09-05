@@ -6,7 +6,7 @@ import {
     aniKotoSeriesIdFromEpisodeId,
     episodeAudioModes,
     aniKotoMediaCandidates,
-    attachEpisodeSubtitles,
+    anikotoProvider,
     getAniKotoSimulcastPage,
     hasMixedAniKotoSeriesIds,
     isAniKotoDisguisedSegmentHost,
@@ -444,6 +444,28 @@ describe('AniKoto provider rules', () => {
         );
     });
 
+    test('preserves VidPlay English captions on its separate subtitle CDN', () => {
+        expect(
+            parseMegaPlaySource({
+                sources: { file: 'https://s1.akirax.buzz/episode/master.m3u8' },
+                tracks: [
+                    {
+                        file: 'https://cdn.anizara.store/subtitles/episode_eng.vtt',
+                        label: 'English',
+                        kind: 'captions',
+                        default: true,
+                    },
+                ],
+            })?.captions
+        ).toEqual([
+            {
+                url: 'https://cdn.anizara.store/subtitles/episode_eng.vtt',
+                kind: 'full',
+                preferred: true,
+            },
+        ]);
+    });
+
     test('marks SUB captions reused by DUB entries as translated captions', () => {
         const sub = [
             {
@@ -477,33 +499,70 @@ describe('AniKoto provider rules', () => {
         expect(removeSharedDubCaptions(sub, dub)[0]?.subtitles).toEqual([]);
     });
 
-    test('reuses an episode SUB VTT for a server that omits the duplicate track', () => {
-        const captioned = {
-            provider: 'anikoto',
-            server: 'Vidstream-2',
-            url: 'https://video.example/soft.m3u8',
-            quality: null,
-            subtitles: [
-                {
-                    kind: 'full' as const,
-                    url: 'https://sub.example/episode.vtt',
-                },
-            ],
-        };
-        const missing = {
-            ...captioned,
-            server: 'VidPlay-1',
-            url: 'https://video.example/hard.m3u8',
-            subtitles: [],
-        };
-
-        expect(attachEpisodeSubtitles([missing, captioned])).toEqual([
-            {
-                ...missing,
-                subtitles: captioned.subtitles,
+    test("does not attach another encode's captions when a SUB server lacks its own track", async () => {
+        const originalFetch = globalThis.fetch;
+        globalThis.fetch = Object.assign(
+            async (target: URL | RequestInfo) => {
+                const url = new URL(String(target));
+                if (url.pathname === '/ajax/episode/list/42') {
+                    return Response.json({
+                        status: 200,
+                        result: '<a data-ids="episode" data-num="21" data-sub="1"></a>',
+                    });
+                }
+                if (url.pathname === '/ajax/server/list') {
+                    return Response.json({
+                        status: 200,
+                        result: '<div class="type" data-type="sub"><li data-link-id="1">HD-2</li><li data-link-id="2">VidPlay-1</li></div>',
+                    });
+                }
+                if (url.pathname === '/ajax/server') {
+                    return Response.json({
+                        status: 200,
+                        result: {
+                            url: `https://megaplay.buzz/stream/${url.searchParams.get('get')}/sub`,
+                        },
+                    });
+                }
+                if (url.pathname.startsWith('/stream/') && url.pathname.endsWith('/sub')) {
+                    return new Response(`<div data-id="${url.pathname.split('/')[2]}"></div>`);
+                }
+                if (url.pathname === '/stream/getSources') {
+                    const id = url.searchParams.get('id');
+                    return Response.json({
+                        sources: { file: `https://cdn.kryntal.top/${id}/master.m3u8` },
+                        tracks:
+                            id === '1'
+                                ? [
+                                      {
+                                          kind: 'captions',
+                                          label: 'English',
+                                          file: 'https://cdn.kryntal.top/1/english.vtt',
+                                      },
+                                  ]
+                                : [],
+                    });
+                }
+                throw new Error(`unexpected request: ${url}`);
             },
-            captioned,
-        ]);
+            { preconnect: originalFetch.preconnect }
+        );
+        try {
+            const sources = await anikotoProvider.getStreams(
+                { id: 182205 } as Parameters<typeof anikotoProvider.getStreams>[0],
+                { id: 'anikoto:42:episode', number: 21 },
+                ['sub']
+            );
+            expect(sources.sub?.map(({ server, subtitles }) => ({ server, subtitles }))).toEqual([
+                {
+                    server: 'HD-2',
+                    subtitles: [{ kind: 'full', url: 'https://cdn.kryntal.top/1/english.vtt' }],
+                },
+                { server: 'VidPlay-1', subtitles: [] },
+            ]);
+        } finally {
+            globalThis.fetch = originalFetch;
+        }
     });
 
     test('keeps SUB source metadata when media validation is deferred', async () => {

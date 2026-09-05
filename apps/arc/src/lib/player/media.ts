@@ -97,6 +97,9 @@ export function subtitleTracks(
 
 export function hasSubtitleTrack(sources: Sources, mode: AudioMode, stream: Stream) {
     const tracks = subtitleTracks(sources, mode, stream);
+    if (mode === 'sub') {
+        return tracks.own.some(({ kind }) => kind === 'full' || kind === 'sdh');
+    }
     return tracks.own.length > 0 || tracks.sub !== null;
 }
 

@@ -9,6 +9,32 @@ function streamRequest(source: string, headers?: HeadersInit) {
     return new Request(`http://localhost/v1/stream?src=${encoded}`, { headers });
 }
 
+test('relays VidPlay captions from Anizara without changing their timing', async () => {
+    const vtt = 'WEBVTT\n\n00:06.750 --> 00:07.740\nWhat is this?\n';
+    const response = await proxyStreamRequest(
+        streamRequest('https://cdn.anizara.store/subtitles/episode_eng.vtt'),
+        async () => new Response(vtt)
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('text/vtt; charset=utf-8');
+    expect(await response.text()).toBe(vtt);
+});
+
+test.each([
+    'https://cdn.anizara.store.evil.example/track.vtt',
+    'https://anizara.store.evil.example/track.vtt',
+    'https://localhost/track.vtt',
+    'https://127.0.0.1/track.vtt',
+    'https://user:password@cdn.anizara.store/track.vtt',
+    'http://cdn.anizara.store/track.vtt',
+])('rejects an unsafe subtitle URL: %s', async (url) => {
+    await expect(
+        proxyStreamRequest(streamRequest(url), async () => {
+            throw new Error('unsafe URL must not be fetched');
+        })
+    ).rejects.toMatchObject({ reason: { kind: 'unsupported-host' } });
+});
+
 test('proxies AniKoto HLS with the MegaPlay referer and rewrites playlist references', async () => {
     let requestedUrl = '';
     let referer = '';

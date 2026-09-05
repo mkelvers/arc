@@ -37,12 +37,14 @@ export class Captions {
     private request: AbortController | null = null;
     private source = '';
     private loaded: Partial<Record<Exclude<SubtitleMode, 'off'>, SubtitleCue[]>> = {};
+    private selectedMode: SubtitleMode = 'off';
 
     clear() {
         this.request?.abort();
         this.request = null;
         this.source = '';
         this.cues = [];
+        this.mode = 'off';
         this.loaded = {};
         this.options = subtitleOptionsFor([]);
     }
@@ -58,6 +60,7 @@ export class Captions {
 
     select(mode: SubtitleMode): 'done' | 'load-current' | 'reevaluate-source' {
         const enabled = mode !== 'off';
+        this.selectedMode = mode;
         if (enabled === this.enabled && mode === this.mode) {
             return 'done';
         }
@@ -84,7 +87,9 @@ export class Captions {
 
     private async fetchCues(url: string, signal: AbortSignal) {
         try {
-            const response = await fetch(url, { signal });
+            const response = await fetch(url, {
+                signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
+            });
             if (!response.ok) {
                 return null;
             }
@@ -142,7 +147,10 @@ export class Captions {
         return null;
     }
 
-    private preferredKind(kinds: SubtitleKind[], audioMode: AudioMode) {
+    private preferredKind(kinds: SubtitleKind[], audioMode: AudioMode, selectedMode: SubtitleMode) {
+        if (selectedMode !== 'off' && kinds.includes(selectedMode)) {
+            return selectedMode;
+        }
         if (audioMode === 'sub' && kinds.includes('translated')) {
             return 'translated';
         }
@@ -168,6 +176,8 @@ export class Captions {
     }
 
     async load(sources: Sources, mode: AudioMode, active: Stream | undefined, source: string) {
+        const selectedMode = this.mode !== 'off' ? this.mode : this.selectedMode;
+        this.selectedMode = selectedMode;
         this.clear();
         const request = new AbortController();
         this.request = request;
@@ -180,7 +190,7 @@ export class Captions {
 
         if (!active || (own.length === 0 && !sub)) {
             this.offerAvailable(sources, mode);
-            return;
+            return false;
         }
 
         try {
@@ -190,7 +200,7 @@ export class Captions {
             const subCues = sub ? await this.fetchCues(sub.url, request.signal) : null;
 
             if (stale()) {
-                return;
+                return null;
             }
 
             const kinds: SubtitleKind[] = [];
@@ -217,7 +227,7 @@ export class Captions {
                     offsets = null;
                 }
                 if (stale()) {
-                    return;
+                    return null;
                 }
                 this.loaded.translated = offsets?.length
                     ? alignSubtitleCues(subCues, offsets)
@@ -226,7 +236,7 @@ export class Captions {
             }
 
             this.options = subtitleOptionsFor(kinds);
-            const selectedKind = this.preferredKind(kinds, mode);
+            const selectedKind = this.preferredKind(kinds, mode, selectedMode);
             if (this.enabled && selectedKind) {
                 this.mode = selectedKind;
                 this.cues = this.loaded[selectedKind] ?? [];
@@ -238,13 +248,17 @@ export class Captions {
             if (!kinds.length) {
                 console.warn('Subtitle track could not be loaded or aligned');
             }
+            return mode === 'sub'
+                ? kinds.includes('full') || kinds.includes('sdh')
+                : kinds.length > 0;
         } catch (cause) {
             if (stale()) {
-                return;
+                return null;
             }
 
             this.offerAvailable(sources, mode);
             console.warn('Subtitle track could not be loaded or aligned', cause);
+            return false;
         }
     }
 }
