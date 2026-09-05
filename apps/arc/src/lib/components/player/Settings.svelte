@@ -148,7 +148,7 @@
                 : editingKind
                   ? m.player_back_segments()
                   : m.player_back_settings()}
-            class="flex min-h-8 w-full items-center gap-2 px-4 text-left text-xs font-bold hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+            class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left text-xs font-bold hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
             onclick={() =>
                 (player.settingsView =
                     player.settingsView === 'subtitle-size' ? 'subtitles' : editingKind ? 'segments' : 'main')}
