@@ -57,7 +57,7 @@
         <Button
             variant="unstyled"
             type="button"
-            class="grid w-full gap-5 text-left sm:col-span-2 sm:grid-cols-subgrid sm:gap-8"
+            class="grid w-full gap-5 text-left whitespace-normal sm:col-span-2 sm:grid-cols-subgrid sm:gap-8"
             onclick={() => openNotification(entry)}
         >
             <div class="relative aspect-4/3 overflow-hidden bg-panel">

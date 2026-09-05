@@ -14,7 +14,7 @@
                     outline: 'border-border bg-transparent hover:bg-surface hover:text-foreground',
                     secondary: 'bg-surface text-foreground hover:bg-panel',
                     ghost: 'border-transparent bg-transparent hover:bg-surface hover:text-foreground',
-                    unstyled: 'border-0 bg-transparent font-normal text-inherit focus-visible:ring-0',
+                    unstyled: 'border-0 bg-transparent font-normal text-inherit',
                     destructive: 'bg-status-error text-white hover:brightness-110',
                     link: 'border-transparent bg-transparent text-accent underline-offset-4 hover:underline',
                 },

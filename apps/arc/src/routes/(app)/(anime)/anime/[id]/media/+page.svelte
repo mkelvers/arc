@@ -168,7 +168,7 @@
                             type="submit"
                             aria-pressed={data.artwork.selectedBackdrop?.filePath === image.filePath}
                             class={cn(
-                                'w-full overflow-hidden border bg-surface text-left',
+                                'w-full overflow-hidden border bg-surface text-left whitespace-normal',
                                 data.artwork.selectedBackdrop?.filePath === image.filePath
                                     ? 'border-accent'
                                     : 'border-border'
