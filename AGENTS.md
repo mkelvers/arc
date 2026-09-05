@@ -18,6 +18,12 @@ Do not use a broad “constants” or “utils” module as a dumping ground. Ke
 
 Before extracting or retaining an abstraction, apply the deletion test: if deleting it and placing its body at its only call site makes the code clearer without losing a real contract, delete it. Prefer direct APIs and cohesive modules over one-file-per-helper decomposition. Do not perform cosmetic renames or blanket analyzer-driven deletions; inspect callers, side effects, error behavior, and tests first.
 
+## Long-term code quality
+
+Implement the actual fix, not the smallest patch that makes the symptom disappear. Prefer simple, direct code with clear ownership and a small interface. Before adding an abstraction, indirection, fallback, cache, compatibility path, or configuration, establish that it solves a real repeated problem or protects a real invariant. Keep code local when locality makes behavior easier to understand; split it only when the seam has a clear owner, meaningful reuse, or an independent lifecycle.
+
+When a change reveals related design debt in scope, resolve it while the context is fresh instead of leaving a known fragile path for later. Preserve behavior and data intentionally, but do not preserve unnecessary complexity. Spend the extra time to choose a durable solution, trace callers and side effects, and verify the real behavior with focused tests and repository checks. Optimize for a codebase that remains understandable and easy to extend years from now, not merely for today’s green check.
+
 ## Generated and framework code
 
 Do not hand-edit generated output, database migrations, or framework-generated files as part of this cleanup. Do not remove SvelteKit entry points or public exports solely because a static usage search sees one reference.

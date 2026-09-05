@@ -15,14 +15,7 @@
     import Button from '$lib/components/ui/button/button.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
-    import {
-        type WatchlistLanguage,
-        type WatchlistMedia,
-        type WatchlistOrder,
-        type WatchlistSort,
-        type WatchlistState,
-        type WatchlistType,
-    } from '$lib/watchlist';
+    import MenuOption from '$lib/components/ui/MenuOption.svelte';
     import { watchlist } from '$lib/watchlist.svelte';
     import type { PageData } from '../$types';
     import WatchlistPendingCard from './WatchlistPendingCard.svelte';
@@ -34,131 +27,10 @@
 
     let { data }: Props = $props();
 
-    const filters = [
-        { value: 'all', label: m.watchlist_all() },
-        { value: 'watching', label: m.watchlist_watching() },
-        { value: 'plan_to_watch', label: m.watchlist_plan() },
-        { value: 'completed', label: m.watchlist_completed() },
-        { value: 'dropped', label: m.watchlist_dropped() },
-    ] as const satisfies ReadonlyArray<{
-        value: WatchlistState | 'all';
-        label: string;
-    }>;
-    const sorts = [
-        { value: 'updated', label: m.watchlist_updated() },
-        { value: 'added', label: m.watchlist_added() },
-        { value: 'alphabetical', label: m.watchlist_alphabetical() },
-    ] as const satisfies ReadonlyArray<{ value: WatchlistSort; label: string }>;
-    const orders = [
-        { value: 'newest', label: m.watchlist_newest() },
-        { value: 'oldest', label: m.watchlist_oldest() },
-    ] as const satisfies ReadonlyArray<{ value: WatchlistOrder; label: string }>;
-    const languages = [
-        { value: 'all', label: m.watchlist_all() },
-        { value: 'sub', label: m.watchlist_subtitled() },
-        { value: 'dub', label: m.watchlist_dubbed() },
-    ] as const satisfies ReadonlyArray<{ value: WatchlistLanguage; label: string }>;
-    const media = [
-        { value: 'all', label: m.watchlist_all() },
-        { value: 'series', label: m.watchlist_series() },
-        { value: 'movie', label: m.watchlist_movies() },
-    ] as const satisfies ReadonlyArray<{ value: WatchlistMedia; label: string }>;
-    const types = [
-        { value: 'all', label: m.watchlist_all() },
-        { value: 'airing', label: m.watchlist_airing() },
-        { value: 'finished', label: m.watchlist_finished() },
-        { value: 'not_yet_released', label: m.watchlist_not_released() },
-        { value: 'cancelled', label: m.watchlist_cancelled() },
-        { value: 'hiatus', label: m.watchlist_hiatus() },
-    ] as const satisfies ReadonlyArray<{ value: WatchlistType; label: string }>;
-    type FilterKey = 'language' | 'media' | 'type';
-    const filterGroups = [
-        { label: m.settings_subtitles(), options: languages, key: 'language' },
-        { label: m.watchlist_type(), options: media, key: 'media' },
-    ] as const satisfies ReadonlyArray<{
-        label: string;
-        key: FilterKey;
-        options: ReadonlyArray<{ label: string; value: string }>;
-    }>;
-    const selectedStateLabel = $derived(
-        filters.find(({ value }) => value === data.selection.state)?.label ?? m.watchlist_all()
-    );
-    const selectedSortLabel = $derived(
-        sorts.find(({ value }) => value === data.selection.sort)?.label ?? m.watchlist_updated()
-    );
-    const selectedFilterCount = $derived(
-        Number(data.selection.language !== 'all') +
-            Number(data.selection.media !== 'all') +
-            Number(data.selection.type !== 'all')
-    );
-    const selectedTypeLabel = $derived(
-        types.find(({ value }) => value === data.selection.type)?.label ?? m.watchlist_all()
-    );
     let filterView = $state<'main' | 'type'>('main');
-    const filteredEmptyCopy = $derived.by(() => {
-        switch (data.selection.state) {
-            case 'watching':
-                return m.watchlist_empty_watching();
-            case 'plan_to_watch':
-                return m.watchlist_empty_plan();
-            case 'completed':
-                return m.watchlist_empty_completed();
-            case 'dropped':
-                return m.watchlist_empty_dropped();
-            default:
-                return m.watchlist_filtered_empty();
-        }
-    });
 
-    function selectionHref(
-        patch: Partial<{
-            state: WatchlistState | 'all';
-            sort: WatchlistSort;
-            order: WatchlistOrder;
-            language: WatchlistLanguage;
-            media: WatchlistMedia;
-            type: WatchlistType;
-        }>
-    ) {
-        const selection = { ...data.selection, ...patch };
-        const query = new URLSearchParams();
-
-        if (selection.state !== 'all') {
-            query.set('state', selection.state);
-        }
-        if (selection.sort !== 'updated') {
-            query.set('sort', selection.sort);
-        }
-        if (selection.order !== 'newest') {
-            query.set('order', selection.order);
-        }
-        if (selection.language !== 'all') {
-            query.set('language', selection.language);
-        }
-        if (selection.media !== 'all') {
-            query.set('media', selection.media);
-        }
-        if (selection.type !== 'all') {
-            query.set('type', selection.type);
-        }
-
-        const search = query.toString();
-        return search ? `/watchlist?${search}` : '/watchlist';
-    }
-
-    function filterSelected(key: FilterKey, value: string) {
-        return data.selection[key] === value;
-    }
-
-    function filterHref(key: FilterKey, value: string) {
-        switch (key) {
-            case 'language':
-                return selectionHref({ language: value as WatchlistLanguage });
-            case 'media':
-                return selectionHref({ media: value as WatchlistMedia });
-            case 'type':
-                return selectionHref({ type: value as WatchlistType });
-        }
+    function href(patch: Partial<typeof data.selection>) {
+        return `/watchlist?${new URLSearchParams({ ...data.selection, ...patch })}`;
     }
 </script>
 
@@ -171,18 +43,69 @@
                 <Dropdown
                     id="watchlist-status-mobile"
                     ariaLabel={m.watchlist_statuses()}
-                    items={filters.map((filter) => ({
-                        label: filter.label,
-                        href: selectionHref({ state: filter.value }),
-                        current: data.selection.state === filter.value,
-                    }))}
                     menuAlign="start"
                     menuClass="mt-2 w-56 shadow-xl"
                     triggerClass="flex h-12 min-w-0 w-full cursor-pointer items-center justify-between gap-3 px-1 text-sm font-medium text-foreground uppercase transition-colors hover:text-accent data-[state=open]:text-accent"
                 >
                     {#snippet trigger()}
-                        <span class="truncate">{selectedStateLabel}</span>
+                        <span class="truncate">
+                            {#if data.selection.state === 'all'}
+                                {m.watchlist_all()}
+                            {:else if data.selection.state === 'watching'}
+                                {m.watchlist_watching()}
+                            {:else if data.selection.state === 'plan_to_watch'}
+                                {m.watchlist_plan()}
+                            {:else if data.selection.state === 'completed'}
+                                {m.watchlist_completed()}
+                            {:else}
+                                {m.watchlist_dropped()}
+                            {/if}
+                        </span>
                         <CaretDownIcon class="shrink-0" size="0.8rem" weight="bold" aria-hidden="true" />
+                    {/snippet}
+                    {#snippet content()}
+                        <div role="menu" aria-label={m.watchlist_statuses()} class="py-2">
+                            <a
+                                role="menuitem"
+                                href={href({ state: 'all' })}
+                                aria-current={data.selection.state === 'all' ? 'page' : undefined}
+                                class="block whitespace-nowrap px-5 py-3 text-sm leading-tight text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            >
+                                {m.watchlist_all()}
+                            </a>
+                            <a
+                                role="menuitem"
+                                href={href({ state: 'watching' })}
+                                aria-current={data.selection.state === 'watching' ? 'page' : undefined}
+                                class="block whitespace-nowrap px-5 py-3 text-sm leading-tight text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            >
+                                {m.watchlist_watching()}
+                            </a>
+                            <a
+                                role="menuitem"
+                                href={href({ state: 'plan_to_watch' })}
+                                aria-current={data.selection.state === 'plan_to_watch' ? 'page' : undefined}
+                                class="block whitespace-nowrap px-5 py-3 text-sm leading-tight text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            >
+                                {m.watchlist_plan()}
+                            </a>
+                            <a
+                                role="menuitem"
+                                href={href({ state: 'completed' })}
+                                aria-current={data.selection.state === 'completed' ? 'page' : undefined}
+                                class="block whitespace-nowrap px-5 py-3 text-sm leading-tight text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            >
+                                {m.watchlist_completed()}
+                            </a>
+                            <a
+                                role="menuitem"
+                                href={href({ state: 'dropped' })}
+                                aria-current={data.selection.state === 'dropped' ? 'page' : undefined}
+                                class="block whitespace-nowrap px-5 py-3 text-sm leading-tight text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            >
+                                {m.watchlist_dropped()}
+                            </a>
+                        </div>
                     {/snippet}
                 </Dropdown>
             </div>
@@ -192,36 +115,84 @@
                 aria-label={m.watchlist_statuses()}
             >
                 <ul class="-mb-px flex min-w-max gap-5 sm:gap-7">
-                    {#each filters as filter}
-                        <li>
-                            <a
-                                href={selectionHref({ state: filter.value })}
-                                class:border-accent={data.selection.state === filter.value}
-                                class:border-transparent={data.selection.state !== filter.value}
-                                class:text-foreground={data.selection.state === filter.value}
-                                class="inline-flex h-12 items-center border-b-2 text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                                aria-current={data.selection.state === filter.value ? 'page' : undefined}
-                            >
-                                {filter.label}
-                            </a>
-                        </li>
-                    {/each}
+                    <li>
+                        <a
+                            href={href({ state: 'all' })}
+                            class:border-accent={data.selection.state === 'all'}
+                            class:border-transparent={data.selection.state !== 'all'}
+                            class:text-foreground={data.selection.state === 'all'}
+                            class="inline-flex h-12 items-center border-b-2 text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            aria-current={data.selection.state === 'all' ? 'page' : undefined}
+                        >
+                            {m.watchlist_all()}
+                        </a>
+                    </li>
+                    <li>
+                        <a
+                            href={href({ state: 'watching' })}
+                            class:border-accent={data.selection.state === 'watching'}
+                            class:border-transparent={data.selection.state !== 'watching'}
+                            class:text-foreground={data.selection.state === 'watching'}
+                            class="inline-flex h-12 items-center border-b-2 text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            aria-current={data.selection.state === 'watching' ? 'page' : undefined}
+                        >
+                            {m.watchlist_watching()}
+                        </a>
+                    </li>
+                    <li>
+                        <a
+                            href={href({ state: 'plan_to_watch' })}
+                            class:border-accent={data.selection.state === 'plan_to_watch'}
+                            class:border-transparent={data.selection.state !== 'plan_to_watch'}
+                            class:text-foreground={data.selection.state === 'plan_to_watch'}
+                            class="inline-flex h-12 items-center border-b-2 text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            aria-current={data.selection.state === 'plan_to_watch' ? 'page' : undefined}
+                        >
+                            {m.watchlist_plan()}
+                        </a>
+                    </li>
+                    <li>
+                        <a
+                            href={href({ state: 'completed' })}
+                            class:border-accent={data.selection.state === 'completed'}
+                            class:border-transparent={data.selection.state !== 'completed'}
+                            class:text-foreground={data.selection.state === 'completed'}
+                            class="inline-flex h-12 items-center border-b-2 text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            aria-current={data.selection.state === 'completed' ? 'page' : undefined}
+                        >
+                            {m.watchlist_completed()}
+                        </a>
+                    </li>
+                    <li>
+                        <a
+                            href={href({ state: 'dropped' })}
+                            class:border-accent={data.selection.state === 'dropped'}
+                            class:border-transparent={data.selection.state !== 'dropped'}
+                            class:text-foreground={data.selection.state === 'dropped'}
+                            class="inline-flex h-12 items-center border-b-2 text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            aria-current={data.selection.state === 'dropped' ? 'page' : undefined}
+                        >
+                            {m.watchlist_dropped()}
+                        </a>
+                    </li>
                 </ul>
             </nav>
 
             {#if data.totalEntries}
                 <Dropdown
                     id="watchlist-filter"
-                    ariaLabel={`Filter watchlist${selectedFilterCount ? `, ${selectedFilterCount} selected` : ''}`}
+                    ariaLabel={m.watchlist_filtering()}
                     menuClass="mt-2 w-64 shadow-xl"
                     triggerClass="mb-2 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
                 >
                     {#snippet trigger()}
                         <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
                         <span class="hidden sm:inline">{m.watchlist_filter()}</span>
-                        {#if selectedFilterCount}
+                        {#if data.selection.language !== 'all' || data.selection.media !== 'all' || data.selection.type !== 'all'}
                             <span class="text-accent">
-                                {selectedFilterCount}
+                                {Number(data.selection.language !== 'all') +
+                                    Number(data.selection.media !== 'all') +
+                                    Number(data.selection.type !== 'all')}
                             </span>
                         {/if}
                     {/snippet}
@@ -243,37 +214,60 @@
                                 >
                                     <span>{m.watchlist_type()}</span>
                                     <span class="flex items-center gap-1 text-foreground">
-                                        {selectedTypeLabel}
+                                        {#if data.selection.type === 'all'}
+                                            {m.watchlist_all()}
+                                        {:else if data.selection.type === 'airing'}
+                                            {m.watchlist_airing()}
+                                        {:else if data.selection.type === 'finished'}
+                                            {m.watchlist_finished()}
+                                        {:else if data.selection.type === 'not_yet_released'}
+                                            {m.watchlist_not_released()}
+                                        {:else if data.selection.type === 'cancelled'}
+                                            {m.watchlist_cancelled()}
+                                        {:else}
+                                            {m.watchlist_hiatus()}
+                                        {/if}
                                         <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
                                     </span>
                                 </Button>
 
-                                {#each filterGroups as group}
-                                    <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
-                                        {group.label}
-                                    </p>
-                                    {#each group.options as option}
-                                        <a
-                                            role="menuitemradio"
-                                            aria-checked={filterSelected(group.key, option.value)}
-                                            href={filterHref(group.key, option.value)}
-                                            class:text-foreground={filterSelected(group.key, option.value)}
-                                            class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                        >
-                                            {#if filterSelected(group.key, option.value)}
-                                                <RadioButtonIcon
-                                                    size="1.25rem"
-                                                    weight="fill"
-                                                    class="text-input-accent"
-                                                    aria-hidden="true"
-                                                />
-                                            {:else}
-                                                <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
-                                            {/if}
-                                            {option.label}
-                                        </a>
-                                    {/each}
-                                {/each}
+                                <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
+                                    {m.settings_subtitles()}
+                                </p>
+                                <MenuOption
+                                    href={href({ language: 'all' })}
+                                    selected={data.selection.language === 'all'}
+                                    label={m.watchlist_all()}
+                                />
+                                <MenuOption
+                                    href={href({ language: 'sub' })}
+                                    selected={data.selection.language === 'sub'}
+                                    label={m.watchlist_subtitled()}
+                                />
+                                <MenuOption
+                                    href={href({ language: 'dub' })}
+                                    selected={data.selection.language === 'dub'}
+                                    label={m.watchlist_dubbed()}
+                                />
+
+                                <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
+                                    {m.watchlist_type()}
+                                </p>
+                                <MenuOption
+                                    href={href({ media: 'all' })}
+                                    selected={data.selection.media === 'all'}
+                                    label={m.watchlist_all()}
+                                />
+                                <MenuOption
+                                    href={href({ media: 'series' })}
+                                    selected={data.selection.media === 'series'}
+                                    label={m.watchlist_series()}
+                                />
+                                <MenuOption
+                                    href={href({ media: 'movie' })}
+                                    selected={data.selection.media === 'movie'}
+                                    label={m.watchlist_movies()}
+                                />
                             {:else}
                                 <Button
                                     variant="unstyled"
@@ -286,92 +280,92 @@
                                     }}
                                 >
                                     <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
-                                    Type
+                                    {m.watchlist_type()}
                                 </Button>
-                                {#each types as option}
-                                    <a
-                                        role="menuitemradio"
-                                        aria-checked={filterSelected('type', option.value)}
-                                        href={filterHref('type', option.value)}
-                                        class:text-foreground={filterSelected('type', option.value)}
-                                        class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                    >
-                                        {#if filterSelected('type', option.value)}
-                                            <RadioButtonIcon
-                                                size="1.25rem"
-                                                weight="fill"
-                                                class="text-input-accent"
-                                                aria-hidden="true"
-                                            />
-                                        {:else}
-                                            <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
-                                        {/if}
-                                        {option.label}
-                                    </a>
-                                {/each}
+                                <MenuOption
+                                    href={href({ type: 'all' })}
+                                    selected={data.selection.type === 'all'}
+                                    label={m.watchlist_all()}
+                                />
+                                <MenuOption
+                                    href={href({ type: 'airing' })}
+                                    selected={data.selection.type === 'airing'}
+                                    label={m.watchlist_airing()}
+                                />
+                                <MenuOption
+                                    href={href({ type: 'finished' })}
+                                    selected={data.selection.type === 'finished'}
+                                    label={m.watchlist_finished()}
+                                />
+                                <MenuOption
+                                    href={href({ type: 'not_yet_released' })}
+                                    selected={data.selection.type === 'not_yet_released'}
+                                    label={m.watchlist_not_released()}
+                                />
+                                <MenuOption
+                                    href={href({ type: 'cancelled' })}
+                                    selected={data.selection.type === 'cancelled'}
+                                    label={m.watchlist_cancelled()}
+                                />
+                                <MenuOption
+                                    href={href({ type: 'hiatus' })}
+                                    selected={data.selection.type === 'hiatus'}
+                                    label={m.watchlist_hiatus()}
+                                />
                             {/if}
                         </div>
                     {/snippet}
                 </Dropdown>
                 <Dropdown
                     id="watchlist-sort"
-                    ariaLabel={`Sort watchlist. ${selectedSortLabel}, ${data.selection.order} selected`}
+                    ariaLabel={m.watchlist_sorting()}
                     menuClass="mt-2 w-56 shadow-xl"
                     triggerClass="mb-2 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
                 >
                     {#snippet trigger()}
                         <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
-                        <span class="hidden sm:inline">{selectedSortLabel}</span>
+                        <span class="hidden sm:inline">
+                            {#if data.selection.sort === 'updated'}
+                                {m.watchlist_updated()}
+                            {:else if data.selection.sort === 'added'}
+                                {m.watchlist_added()}
+                            {:else}
+                                {m.watchlist_alphabetical()}
+                            {/if}
+                        </span>
                     {/snippet}
 
                     {#snippet content()}
                         <div role="menu" aria-label={m.watchlist_sorting()} class="py-2">
-                            {#each sorts as sort}
-                                <a
-                                    role="menuitemradio"
-                                    aria-checked={data.selection.sort === sort.value}
-                                    href={selectionHref({ sort: sort.value })}
-                                    class:text-foreground={data.selection.sort === sort.value}
-                                    class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                >
-                                    {#if data.selection.sort === sort.value}
-                                        <RadioButtonIcon
-                                            size="1.25rem"
-                                            weight="fill"
-                                            class="text-input-accent"
-                                            aria-hidden="true"
-                                        />
-                                    {:else}
-                                        <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
-                                    {/if}
-                                    {sort.label}
-                                </a>
-                            {/each}
+                            <MenuOption
+                                href={href({ sort: 'updated' })}
+                                selected={data.selection.sort === 'updated'}
+                                label={m.watchlist_updated()}
+                            />
+                            <MenuOption
+                                href={href({ sort: 'added' })}
+                                selected={data.selection.sort === 'added'}
+                                label={m.watchlist_added()}
+                            />
+                            <MenuOption
+                                href={href({ sort: 'alphabetical' })}
+                                selected={data.selection.sort === 'alphabetical'}
+                                label={m.watchlist_alphabetical()}
+                            />
 
                             <p class="px-5 pt-5 pb-2 text-xs font-bold text-foreground uppercase">
                                 {m.watchlist_sort_order()}
                             </p>
-                            {#each orders as order}
-                                <a
-                                    role="menuitemradio"
-                                    aria-checked={data.selection.order === order.value}
-                                    href={selectionHref({ order: order.value })}
-                                    class:text-foreground={data.selection.order === order.value}
-                                    class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                >
-                                    {#if data.selection.order === order.value}
-                                        <RadioButtonIcon
-                                            size="1.25rem"
-                                            weight="fill"
-                                            class="text-input-accent"
-                                            aria-hidden="true"
-                                        />
-                                    {:else}
-                                        <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
-                                    {/if}
-                                    {order.label}
-                                </a>
-                            {/each}
+                            <MenuOption
+                                href={href({ order: 'newest' })}
+                                selected={data.selection.order === 'newest'}
+                                label={m.watchlist_newest()}
+                            />
+                            <MenuOption
+                                href={href({ order: 'oldest' })}
+                                selected={data.selection.order === 'oldest'}
+                                label={m.watchlist_oldest()}
+                            />
                         </div>
                     {/snippet}
                 </Dropdown>
@@ -385,31 +379,41 @@
                 artworkHeight={720}
                 id="empty-watchlist-title"
                 title={m.watchlist_empty_title()}
-                body="Let’s fill it up with awesome anime."
+                body={m.watchlist_empty_body()}
             >
                 {#snippet action()}
                     <a
                         href="/"
                         class="inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
                     >
-                        Explore Anime
+                        {m.watchlist_explore()}
                     </a>
                 {/snippet}
             </EmptyState>
         {:else}
             <section class="mt-8" aria-labelledby="watchlist-results-title">
-                <h2 id="watchlist-results-title" class="sr-only">{selectedStateLabel} anime</h2>
+                <h2 id="watchlist-results-title" class="sr-only">{m.watchlist_title()}</h2>
                 {#if data.entries.length === 0}
+                    {@const body =
+                        data.selection.state === 'watching'
+                            ? m.watchlist_empty_watching()
+                            : data.selection.state === 'plan_to_watch'
+                              ? m.watchlist_empty_plan()
+                              : data.selection.state === 'completed'
+                                ? m.watchlist_empty_completed()
+                                : data.selection.state === 'dropped'
+                                  ? m.watchlist_empty_dropped()
+                                  : m.watchlist_filtered_empty()}
                     <EmptyState
                         artwork={filteredEmptyArtwork}
                         artworkWidth={622}
                         artworkHeight={640}
                         id="empty-filter-message"
-                        body={filteredEmptyCopy}
+                        body={body}
                     >
                         {#snippet action()}
                             <a
-                                href={selectionHref({ state: 'all' })}
+                                href={href({ state: 'all' })}
                                 class="inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
                             >
                                 {m.watchlist_view_all()}
