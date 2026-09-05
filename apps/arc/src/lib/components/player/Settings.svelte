@@ -163,7 +163,7 @@
                 type="button"
                 role="menuitemradio"
                 aria-checked={player.media.quality === 'best'}
-                class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                 onclick={() => player.media.switchQuality('best')}
             >
                 {@render radio(player.media.quality === 'best')}
@@ -176,7 +176,7 @@
                     type="button"
                     role="menuitemradio"
                     aria-checked={player.media.quality === option}
-                    class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                    class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                     onclick={() => player.media.switchQuality(option)}
                 >
                     {@render radio(player.media.quality === option)}
@@ -199,7 +199,7 @@
                         type="button"
                         role="menuitemradio"
                         aria-checked={player.media.mode === mode && player.media.activeSource === source}
-                        class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                        class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                         onclick={() => player.media.switchSource(mode, source)}
                     >
                         {@render radio(player.media.mode === mode && player.media.activeSource === source)}
@@ -228,7 +228,7 @@
                     type="button"
                     role="menuitemradio"
                     aria-checked={player.media.captions.mode === option.mode}
-                    class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                    class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                     onclick={() => player.media.switchSubtitleMode(option.mode)}
                 >
                     {@render radio(player.media.captions.mode === option.mode)}
@@ -242,7 +242,7 @@
                     type="button"
                     role="menuitemradio"
                     aria-checked={player.media.captions.size === option}
-                    class="flex min-h-8 w-full items-center gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                    class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                     onclick={() => player.media.captions.switchSize(option)}
                 >
                     {@render radio(player.media.captions.size === option)}
@@ -256,7 +256,7 @@
                     variant="unstyled"
                     type="button"
                     role="menuitem"
-                    class="flex min-h-11 w-full items-center gap-3 px-4 text-left hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
+                    class="flex min-h-11 w-full items-center justify-start gap-3 px-4 text-left hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                     onclick={() =>
                         (player.settingsView = kind === 'opening' ? 'segment-opening' : 'segment-ending')}
                 >
@@ -280,7 +280,7 @@
                     aria-label={m.player_set_position({ kind: skipLabels[editingKind], edge })}
                     title={m.player_set_position_title()}
                     disabled={player.segments.saving}
-                    class="flex min-h-11 w-full items-center gap-3 px-4 text-left hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none disabled:opacity-40"
+                    class="flex min-h-11 w-full items-center justify-start gap-3 px-4 text-left hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none disabled:opacity-40"
                     onclick={() =>
                         player.segments.mark(
                             editingKind,
@@ -302,7 +302,7 @@
                     type="button"
                     role="menuitem"
                     disabled={player.segments.saving}
-                    class="flex min-h-9 w-full items-center px-4 text-left font-semibold text-input-accent hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none disabled:opacity-40"
+                    class="flex min-h-9 w-full items-center justify-start px-4 text-left font-semibold text-input-accent hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none disabled:opacity-40"
                     onclick={() =>
                         player.segments.creatingTemplate === editingKind
                             ? player.segments.cancelTemplate(editingKind)
@@ -322,7 +322,7 @@
                     type="button"
                     role="menuitem"
                     disabled={player.segments.saving}
-                    class="flex min-h-9 w-full items-center px-4 text-left text-white/55 hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:outline-none disabled:opacity-40"
+                    class="flex min-h-9 w-full items-center justify-start px-4 text-left text-white/55 hover:bg-white/8 hover:text-white focus-visible:bg-white/8 focus-visible:text-white focus-visible:outline-none disabled:opacity-40"
                     onclick={() => player.segments.clear(editingKind)}
                 >
                     {m.player_clear_segment()}

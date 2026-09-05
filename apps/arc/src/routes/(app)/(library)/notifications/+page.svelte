@@ -68,10 +68,9 @@
                         <PlayIcon size={24} aria-hidden="true" />
                     </div>
                 {/if}
-                {#if !entry.readAt}<span
-                        class="absolute top-2 right-2 size-2 rounded-full bg-accent"
-                        aria-label="Unread"
-                    ></span>{/if}
+                {#if !entry.readAt}
+                    <span class="absolute top-2 right-2 size-2 rounded-full bg-accent" aria-label="Unread"></span>
+                {/if}
             </div>
             <div class="min-w-0 self-start py-5">
                 <p class="text-base font-semibold text-foreground sm:text-lg">{entry.title}</p>

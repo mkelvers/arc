@@ -60,23 +60,29 @@
             </CardMedia>
             <div class="pointer-events-none relative z-10 flex min-w-0 flex-1 flex-col py-1">
                 <h3 class="line-clamp-1 text-sm leading-snug font-semibold">{anime.title}</h3>
-                {#if anime.genres.length}<p class="mt-1.5 line-clamp-1 text-xs text-muted">
+                {#if anime.genres.length}
+                    <p class="mt-1.5 line-clamp-1 text-xs text-muted">
                         {anime.genres.slice(0, 3).join(' · ')}
-                    </p>{/if}
-                {#if anime.audioLabel}<p
+                    </p>
+                {/if}
+                {#if anime.audioLabel}
+                    <p
                         class="mt-auto text-sm text-muted transition-opacity group-hover:opacity-0 group-focus-within:opacity-0"
                     >
                         {anime.audioLabel}
-                    </p>{/if}
+                    </p>
+                {/if}
                 {#if showActions}
                     <div
                         class="pointer-events-none absolute right-0 bottom-0 left-0 flex items-center justify-between gap-3 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100"
                     >
-                        {#if anime.score}<p class="flex items-center gap-1 text-sm text-muted">
+                        {#if anime.score}
+                            <p class="flex items-center gap-1 text-sm text-muted">
                                 <span>{anime.score}%</span>
                                 <StarIcon size="1em" weight="fill" aria-hidden="true" />
                                 <span class="sr-only">{m.shared_anilist_score()}</span>
-                            </p>{/if}
+                            </p>
+                        {/if}
                         <div class="ml-auto flex items-center gap-1 text-accent">
                             <Tooltip text={m.shared_play_episode()}>
                                 <a
@@ -115,7 +121,9 @@
                     {/if}
                 </CardMedia>
                 <h3 class="mt-3 line-clamp-2 min-h-10 text-sm leading-snug font-semibold">{anime.title}</h3>
-                {#if anime.audioLabel}<p class="mt-1.5 text-sm text-muted">{anime.audioLabel}</p>{/if}
+                {#if anime.audioLabel}
+                    <p class="mt-1.5 text-sm text-muted">{anime.audioLabel}</p>
+                {/if}
             </a>
         </div>
         <div
@@ -123,17 +131,23 @@
         >
             <div class="pointer-events-none" aria-hidden="true">
                 <h3 class="line-clamp-2 text-sm leading-snug font-semibold">{anime.title}</h3>
-                {#if anime.score}<p class="mt-2.5 flex items-center gap-1 text-sm text-muted">
+                {#if anime.score}
+                    <p class="mt-2.5 flex items-center gap-1 text-sm text-muted">
                         <span>{anime.score}%</span>
                         <StarIcon size="1em" weight="fill" aria-hidden="true" />
                         <span class="sr-only">{m.shared_anilist_score()}</span>
-                    </p>{/if}
-                {#if anime.genres.length}<p class="mt-2.5 line-clamp-1 text-xs text-muted">
+                    </p>
+                {/if}
+                {#if anime.genres.length}
+                    <p class="mt-2.5 line-clamp-1 text-xs text-muted">
                         {anime.genres.slice(0, 4).join(' · ')}
-                    </p>{/if}
-                {#if anime.synopsis}<p class="mt-3 line-clamp-4 text-xs leading-relaxed text-muted">
+                    </p>
+                {/if}
+                {#if anime.synopsis}
+                    <p class="mt-3 line-clamp-4 text-xs leading-relaxed text-muted">
                         {anime.synopsis}
-                    </p>{/if}
+                    </p>
+                {/if}
             </div>
             {#if showActions}
                 <div class="pointer-events-auto relative z-10 mt-auto flex items-center gap-2 pt-3 text-accent">
@@ -175,8 +189,12 @@
                 >
                     {anime.title}
                 </h3>
-                {#if meta}<p class="mt-1.5 text-sm text-muted">{meta}</p>{/if}
-                {#if anime.audioLabel}<p class="mt-1.5 text-sm text-muted">{anime.audioLabel}</p>{/if}
+                {#if meta}
+                    <p class="mt-1.5 text-sm text-muted">{meta}</p>
+                {/if}
+                {#if anime.audioLabel}
+                    <p class="mt-1.5 text-sm text-muted">{anime.audioLabel}</p>
+                {/if}
             </a>
         </div>
         {#if anime.image}
@@ -195,17 +213,23 @@
                 <h3 class:line-clamp-2={truncateTitle} class="text-sm leading-snug font-semibold">
                     {anime.title}
                 </h3>
-                {#if anime.score}<p class="mt-3 flex items-center gap-1 text-sm text-muted">
+                {#if anime.score}
+                    <p class="mt-3 flex items-center gap-1 text-sm text-muted">
                         <span>{anime.score}%</span>
                         <StarIcon size="1em" weight="fill" aria-hidden="true" />
                         <span class="sr-only">{m.shared_anilist_score()}</span>
-                    </p>{/if}
-                {#if anime.genres.length}<p class="mt-3 line-clamp-1 text-xs text-muted">
+                    </p>
+                {/if}
+                {#if anime.genres.length}
+                    <p class="mt-3 line-clamp-1 text-xs text-muted">
                         {anime.genres.slice(0, 2).join(' · ')}
-                    </p>{/if}
-                {#if anime.synopsis}<p class="mt-3 line-clamp-6 text-xs leading-relaxed text-muted">
+                    </p>
+                {/if}
+                {#if anime.synopsis}
+                    <p class="mt-3 line-clamp-6 text-xs leading-relaxed text-muted">
                         {anime.synopsis}
-                    </p>{/if}
+                    </p>
+                {/if}
             </div>
             {#if showActions}
                 <div class="pointer-events-auto mt-auto flex items-center gap-2 pt-3 text-accent">

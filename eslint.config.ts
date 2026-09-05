@@ -3,6 +3,7 @@ import typescriptParser from '@typescript-eslint/parser';
 import svelteParser from 'svelte-eslint-parser';
 
 type SvelteNode = {
+    type?: string;
     range: readonly [number, number];
 };
 
@@ -14,8 +15,7 @@ const svelteBlockContentNewlineRule = {
     meta: {
         type: 'layout',
         docs: {
-            description:
-                'Require Svelte each and snippet block contents to start and end on their own lines.',
+            description: 'Require Svelte block contents to start and end on their own lines.',
         },
         schema: [],
         messages: {
@@ -38,6 +38,10 @@ const svelteBlockContentNewlineRule = {
                 return;
             }
 
+            if (node.type === 'SvelteElseBlock' && firstChild.type === 'SvelteIfBlock') {
+                return;
+            }
+
             const line = (index: number) => context.sourceCode.getLocFromIndex(index).line;
             if (line(node.range[0]) === line(firstChild.range[0])) {
                 context.report({ node: firstChild, messageId: 'opening' });
@@ -48,7 +52,13 @@ const svelteBlockContentNewlineRule = {
         }
 
         return {
+            SvelteIfBlock: checkBlock,
             SvelteEachBlock: checkBlock,
+            SvelteKeyBlock: checkBlock,
+            SvelteAwaitPendingBlock: checkBlock,
+            SvelteAwaitThenBlock: checkBlock,
+            SvelteAwaitCatchBlock: checkBlock,
+            SvelteElseBlock: checkBlock,
             SvelteSnippetBlock: checkBlock,
         };
     },

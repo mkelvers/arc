@@ -212,7 +212,9 @@
                     {#if anime.genres.length}
                         <span class="metadata-tag">
                             {#each anime.genres as genre, index}
-                                {#if index > 0}<span aria-hidden="true">,</span>{/if}
+                                {#if index > 0}
+                                    <span aria-hidden="true">,</span>
+                                {/if}
                                 <a
                                     class="underline underline-offset-2"
                                     href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
@@ -336,7 +338,9 @@
                             <p>
                                 <strong class="font-normal text-foreground">{m.anime_genres()}</strong>
                                 {#each anime.genres as genre, index}
-                                    {#if index > 0}<span aria-hidden="true">,</span>{/if}
+                                    {#if index > 0}
+                                        <span aria-hidden="true">,</span>
+                                    {/if}
                                     <a
                                         class="underline underline-offset-2"
                                         href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
