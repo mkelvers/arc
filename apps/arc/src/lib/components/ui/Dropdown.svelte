@@ -46,7 +46,7 @@
     let open = $state(false);
     let root = $state<HTMLDivElement>();
     let menu = $state<HTMLDivElement>();
-    let triggerElement = $state<HTMLButtonElement | HTMLAnchorElement>();
+    let triggerElement = $state<HTMLButtonElement | HTMLAnchorElement | null>(null);
 
     function closeOnContentSelection(event: MouseEvent) {
         if (!(event.target instanceof Element)) {
