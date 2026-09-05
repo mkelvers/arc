@@ -16,14 +16,7 @@
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
-    import {
-        type WatchlistLanguage,
-        type WatchlistMedia,
-        type WatchlistOrder,
-        type WatchlistSort,
-        type WatchlistState,
-        type WatchlistType,
-    } from '$lib/watchlist';
+    import { cn } from '$lib/utils';
     import { watchlist } from '$lib/watchlist.svelte';
     import type { PageData } from '../$types';
     import WatchlistPendingCard from './WatchlistPendingCard.svelte';
@@ -41,29 +34,26 @@
         { value: 'plan_to_watch', label: m.watchlist_plan() },
         { value: 'completed', label: m.watchlist_completed() },
         { value: 'dropped', label: m.watchlist_dropped() },
-    ] as const satisfies ReadonlyArray<{
-        value: WatchlistState | 'all';
-        label: string;
-    }>;
+    ] as const;
     const sorts = [
         { value: 'updated', label: m.watchlist_updated() },
         { value: 'added', label: m.watchlist_added() },
         { value: 'alphabetical', label: m.watchlist_alphabetical() },
-    ] as const satisfies ReadonlyArray<{ value: WatchlistSort; label: string }>;
+    ] as const;
     const orders = [
         { value: 'newest', label: m.watchlist_newest() },
         { value: 'oldest', label: m.watchlist_oldest() },
-    ] as const satisfies ReadonlyArray<{ value: WatchlistOrder; label: string }>;
+    ] as const;
     const languages = [
         { value: 'all', label: m.watchlist_all() },
         { value: 'sub', label: m.watchlist_subtitled() },
         { value: 'dub', label: m.watchlist_dubbed() },
-    ] as const satisfies ReadonlyArray<{ value: WatchlistLanguage; label: string }>;
+    ] as const;
     const media = [
         { value: 'all', label: m.watchlist_all() },
         { value: 'series', label: m.watchlist_series() },
         { value: 'movie', label: m.watchlist_movies() },
-    ] as const satisfies ReadonlyArray<{ value: WatchlistMedia; label: string }>;
+    ] as const;
     const types = [
         { value: 'all', label: m.watchlist_all() },
         { value: 'airing', label: m.watchlist_airing() },
@@ -71,16 +61,7 @@
         { value: 'not_yet_released', label: m.watchlist_not_released() },
         { value: 'cancelled', label: m.watchlist_cancelled() },
         { value: 'hiatus', label: m.watchlist_hiatus() },
-    ] as const satisfies ReadonlyArray<{ value: WatchlistType; label: string }>;
-    type FilterKey = 'language' | 'media' | 'type';
-    const filterGroups = [
-        { label: m.settings_subtitles(), options: languages, key: 'language' },
-        { label: m.watchlist_type(), options: media, key: 'media' },
-    ] as const satisfies ReadonlyArray<{
-        label: string;
-        key: FilterKey;
-        options: ReadonlyArray<{ label: string; value: string }>;
-    }>;
+    ] as const;
     const selectedStateLabel = $derived(filters.find(({ value }) => value === data.selection.state)?.label);
     const selectedSortLabel = $derived(sorts.find(({ value }) => value === data.selection.sort)?.label);
     let filterView = $state<'main' | 'type'>('main');
@@ -156,7 +137,10 @@
                             <Button
                                 variant="ghost"
                                 size="lg"
-                                class={`h-12 rounded-none border-b-2 px-0 text-sm font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:ring-0 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent ${data.selection.state === filter.value ? 'border-accent text-foreground' : 'border-transparent'}`}
+                                class={cn(
+                                    'h-12 rounded-none border-b-2 border-transparent px-0 text-sm font-medium text-muted hover:bg-transparent hover:text-foreground focus-visible:ring-0 focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent',
+                                    data.selection.state === filter.value && 'border-accent text-foreground'
+                                )}
                                 aria-pressed={data.selection.state === filter.value}
                                 onclick={() => updateSelection({ state: filter.value })}
                             >
@@ -202,37 +186,62 @@
                                     </span>
                                 </Button>
 
-                                {#each filterGroups as group}
-                                    <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
-                                        {group.label}
-                                    </p>
-                                    {#each group.options as option}
-                                        <Button
-                                            variant="ghost"
-                                            size="lg"
-                                            role="menuitemradio"
-                                            aria-checked={data.selection[group.key] === option.value}
-                                            class={`h-auto min-h-11 w-full justify-start gap-2.5 rounded-none px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground ${data.selection[group.key] === option.value ? 'text-foreground' : ''}`}
-                                            onclick={() =>
-                                                updateSelection(
-                                                    group.key === 'language'
-                                                        ? { language: option.value as WatchlistLanguage }
-                                                        : { media: option.value as WatchlistMedia }
-                                                )}
-                                        >
-                                            {#if data.selection[group.key] === option.value}
-                                                <RadioButtonIcon
-                                                    size="1.25rem"
-                                                    weight="fill"
-                                                    class="text-input-accent"
-                                                    aria-hidden="true"
-                                                />
-                                            {:else}
-                                                <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
-                                            {/if}
-                                            {option.label}
-                                        </Button>
-                                    {/each}
+                                <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
+                                    {m.settings_subtitles()}
+                                </p>
+                                {#each languages as option}
+                                    <Button
+                                        variant="ghost"
+                                        size="lg"
+                                        role="menuitemradio"
+                                        aria-checked={data.selection.language === option.value}
+                                        class={cn(
+                                            'h-auto min-h-11 w-full justify-start gap-2.5 rounded-none px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground',
+                                            data.selection.language === option.value && 'text-foreground'
+                                        )}
+                                        onclick={() => updateSelection({ language: option.value })}
+                                    >
+                                        {#if data.selection.language === option.value}
+                                            <RadioButtonIcon
+                                                size="1.25rem"
+                                                weight="fill"
+                                                class="text-input-accent"
+                                                aria-hidden="true"
+                                            />
+                                        {:else}
+                                            <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
+                                        {/if}
+                                        {option.label}
+                                    </Button>
+                                {/each}
+
+                                <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
+                                    {m.watchlist_type()}
+                                </p>
+                                {#each media as option}
+                                    <Button
+                                        variant="ghost"
+                                        size="lg"
+                                        role="menuitemradio"
+                                        aria-checked={data.selection.media === option.value}
+                                        class={cn(
+                                            'h-auto min-h-11 w-full justify-start gap-2.5 rounded-none px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground',
+                                            data.selection.media === option.value && 'text-foreground'
+                                        )}
+                                        onclick={() => updateSelection({ media: option.value })}
+                                    >
+                                        {#if data.selection.media === option.value}
+                                            <RadioButtonIcon
+                                                size="1.25rem"
+                                                weight="fill"
+                                                class="text-input-accent"
+                                                aria-hidden="true"
+                                            />
+                                        {:else}
+                                            <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
+                                        {/if}
+                                        {option.label}
+                                    </Button>
                                 {/each}
                             {:else}
                                 <Button
@@ -255,7 +264,10 @@
                                         size="lg"
                                         role="menuitemradio"
                                         aria-checked={data.selection.type === option.value}
-                                        class={`h-auto min-h-11 w-full justify-start gap-2.5 rounded-none px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground ${data.selection.type === option.value ? 'text-foreground' : ''}`}
+                                        class={cn(
+                                            'h-auto min-h-11 w-full justify-start gap-2.5 rounded-none px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground',
+                                            data.selection.type === option.value && 'text-foreground'
+                                        )}
                                         onclick={() => updateSelection({ type: option.value })}
                                     >
                                         {#if data.selection.type === option.value}
@@ -294,7 +306,10 @@
                                     size="lg"
                                     role="menuitemradio"
                                     aria-checked={data.selection.sort === sort.value}
-                                    class={`h-auto min-h-11 w-full justify-start gap-2.5 rounded-none px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground ${data.selection.sort === sort.value ? 'text-foreground' : ''}`}
+                                    class={cn(
+                                        'h-auto min-h-11 w-full justify-start gap-2.5 rounded-none px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground',
+                                        data.selection.sort === sort.value && 'text-foreground'
+                                    )}
                                     onclick={() => updateSelection({ sort: sort.value })}
                                 >
                                     {#if data.selection.sort === sort.value}
@@ -320,7 +335,10 @@
                                     size="lg"
                                     role="menuitemradio"
                                     aria-checked={data.selection.order === order.value}
-                                    class={`h-auto min-h-11 w-full justify-start gap-2.5 rounded-none px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground ${data.selection.order === order.value ? 'text-foreground' : ''}`}
+                                    class={cn(
+                                        'h-auto min-h-11 w-full justify-start gap-2.5 rounded-none px-5 py-3 text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground',
+                                        data.selection.order === order.value && 'text-foreground'
+                                    )}
                                     onclick={() => updateSelection({ order: order.value })}
                                 >
                                     {#if data.selection.order === order.value}
