@@ -2,7 +2,7 @@ import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { forwardAuthForm, responseError } from '$lib/server/auth-form';
 
 export const actions: Actions = {
-    default: async ({ fetch, request, cookies }) => {
+    default: async ({ fetch, request, cookies, getClientAddress }) => {
         const form = await request.formData();
         const username = String(form.get('username') ?? '').trim();
         const password = String(form.get('password') ?? '');
@@ -15,6 +15,7 @@ export const actions: Actions = {
             fetch,
             cookies,
             request,
+            getClientAddress(),
             '/api/auth/sign-in/username',
             {
                 username,

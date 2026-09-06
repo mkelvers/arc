@@ -7,6 +7,7 @@ export async function forwardAuthForm(
     fetch: RequestEvent['fetch'],
     cookies: Cookies,
     request: Request,
+    clientAddress: string,
     path: string,
     body: Record<string, string>
 ) {
@@ -16,6 +17,7 @@ export async function forwardAuthForm(
             'Content-Type': 'application/json',
             Cookie: request.headers.get('cookie') ?? '',
             Authorization: request.headers.get('authorization') ?? '',
+            'X-Forwarded-For': clientAddress,
             Origin: request.headers.get('origin') ?? env.BETTER_AUTH_URL!,
         },
         body: JSON.stringify(body),

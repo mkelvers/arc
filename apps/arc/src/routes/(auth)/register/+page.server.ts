@@ -2,7 +2,7 @@ import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { forwardAuthForm, responseError } from '$lib/server/auth-form';
 
 export const actions: Actions = {
-    default: async ({ fetch, request, cookies }) => {
+    default: async ({ fetch, request, cookies, getClientAddress }) => {
         const form = await request.formData();
         const email = String(form.get('email') ?? '').trim();
         const username = String(form.get('username') ?? '').trim();
@@ -17,12 +17,19 @@ export const actions: Actions = {
             return fail(400, { error: 'Passwords do not match.' });
         }
 
-        const response = await forwardAuthForm(fetch, cookies, request, '/v1/accounts', {
-            email,
-            username,
-            password,
-            invitationCode,
-        });
+        const response = await forwardAuthForm(
+            fetch,
+            cookies,
+            request,
+            getClientAddress(),
+            '/v1/accounts',
+            {
+                email,
+                username,
+                password,
+                invitationCode,
+            }
+        );
         if (!response.ok) {
             return fail(response.status, {
                 error: await responseError(
