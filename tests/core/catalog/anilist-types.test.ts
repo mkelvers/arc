@@ -24,7 +24,22 @@ const legacyRelease = {
     duration: 24,
     nextAiringEpisode: null,
     relations: {
-        edges: [],
+        edges: [
+            {
+                relationType: 'PREQUEL',
+                node: {
+                    id: 2,
+                    idMal: null,
+                    episodes: 12,
+                    type: 'ANIME',
+                    title: {
+                        english: 'Earlier release',
+                        romaji: null,
+                        native: null,
+                    },
+                },
+            },
+        ],
     },
     averageScore: null,
     popularity: null,
@@ -43,6 +58,7 @@ describe('permanent AniList release validation', () => {
     test('accepts usable legacy details that predate persisted cover images', () => {
         const parsed = AniListAnimeSchema.parse(legacyRelease);
         expect(parsed.coverImage).toBeNull();
+        expect(parsed.relations?.edges?.[0]?.node?.format).toBeUndefined();
     });
 
     test('rejects a partial card as full release metadata', () => {

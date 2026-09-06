@@ -70,6 +70,7 @@ describe('TMDB episode identity matching', () => {
                                 idMal: 40351,
                                 episodes: 136,
                                 type: 'ANIME',
+                                format: 'TV',
                                 title: {
                                     english: 'Pokémon Journeys',
                                     romaji: null,
@@ -117,6 +118,7 @@ describe('TMDB episode identity matching', () => {
                             idMal: 40351,
                             episodes: 136,
                             type: 'ANIME',
+                            format: 'TV',
                             title: {
                                 english: 'Pokémon Journeys',
                                 romaji: null,
@@ -166,6 +168,54 @@ describe('TMDB episode identity matching', () => {
                 .toSorted(([left], [right]) => Number(left) - Number(right))
                 .map(([id, value]) => [id, value.episodeNumber])
         ).toEqual(Array.from({ length: 11 }, (_, index) => [String(index + 136), index + 47]));
+    });
+
+    test('does not offset a merged release for a non-TV prequel', () => {
+        const episodes = source(
+            Array.from({ length: 25 }, (_, index) => [
+                String(index + 1),
+                index + 1,
+                `Episode ${index + 1}`,
+            ])
+        );
+
+        expect(
+            providerReleaseWindow(
+                anime({
+                    episodes: 13,
+                    relations: {
+                        edges: [
+                            {
+                                relationType: 'PREQUEL',
+                                node: {
+                                    id: 111790,
+                                    idMal: 40262,
+                                    episodes: 2,
+                                    type: 'ANIME',
+                                    format: 'OVA',
+                                    title: {
+                                        english: 'HAIKYU!! LAND VS. AIR',
+                                        romaji: null,
+                                        native: null,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                    startDate: {
+                        year: 2020,
+                        month: 1,
+                        day: 11,
+                    },
+                    endDate: {
+                        year: 2020,
+                        month: 4,
+                        day: 4,
+                    },
+                }),
+                episodes
+            ).map(({ id, number }) => ({ id, number }))
+        ).toEqual(episodes.map(({ id, number }) => ({ id, number })));
     });
 
     test('maps packaged TV_SHORT episodes to their matching TMDB season', () => {

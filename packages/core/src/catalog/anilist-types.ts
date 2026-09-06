@@ -78,6 +78,7 @@ export const AniListAnimeSchema = z
                                         idMal: nullableInteger,
                                         episodes: nullableInteger,
                                         type: nullableString,
+                                        format: nullableString.optional(),
                                         title: titleSchema,
                                     })
                                     .nullable(),

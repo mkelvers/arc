@@ -206,7 +206,7 @@ describe('AniKoto provider rules', () => {
     test('recognizes a related provider release through AniList relations', () => {
         expect(
             matchesAniKotoRelatedIdentity(
-                { malId: 17115 },
+                { anilistId: null, malId: 17115 },
                 {
                     relations: {
                         edges: [
@@ -217,6 +217,7 @@ describe('AniKoto provider rules', () => {
                                     idMal: 17115,
                                     episodes: 14,
                                     type: 'ANIME',
+                                    format: 'TV',
                                     title: {
                                         english: 'Pokémon Journeys: The Series',
                                         romaji: null,
@@ -231,7 +232,7 @@ describe('AniKoto provider rules', () => {
         ).toBe(true);
         expect(
             matchesAniKotoRelatedIdentity(
-                { malId: 17115 },
+                { anilistId: null, malId: 17115 },
                 {
                     relations: {
                         edges: [
@@ -242,6 +243,7 @@ describe('AniKoto provider rules', () => {
                                     idMal: 17115,
                                     episodes: 14,
                                     type: 'ANIME',
+                                    format: 'TV',
                                     title: {
                                         english: 'Adventures in Unova',
                                         romaji: null,
@@ -254,6 +256,58 @@ describe('AniKoto provider rules', () => {
                 }
             )
         ).toBe(false);
+        expect(
+            matchesAniKotoRelatedIdentity(
+                { anilistId: 113538, malId: 40776 },
+                {
+                    relations: {
+                        edges: [
+                            {
+                                relationType: 'SEQUEL',
+                                node: {
+                                    id: 113538,
+                                    idMal: 40776,
+                                    episodes: 12,
+                                    type: 'ANIME',
+                                    format: 'TV',
+                                    title: {
+                                        english: 'HAIKYU!! TO THE TOP Part 2',
+                                        romaji: null,
+                                        native: null,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                }
+            )
+        ).toBe(false);
+        expect(
+            matchesAniKotoRelatedIdentity(
+                { anilistId: 106625, malId: 38883 },
+                {
+                    relations: {
+                        edges: [
+                            {
+                                relationType: 'PREQUEL',
+                                node: {
+                                    id: 106625,
+                                    idMal: 38883,
+                                    episodes: 13,
+                                    type: 'ANIME',
+                                    format: 'TV',
+                                    title: {
+                                        english: 'HAIKYU!! TO THE TOP',
+                                        romaji: null,
+                                        native: null,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                }
+            )
+        ).toBe(true);
     });
 
     test('does not match related specials to a series title', () => {
@@ -716,6 +770,9 @@ describe('AniKoto provider rules', () => {
         ).toBeFalse();
         expect(
             matchesAniKotoEpisodeCount(8, { status: 'FINISHED', format: 'TV', episodes: 8 })
+        ).toBeTrue();
+        expect(
+            matchesAniKotoEpisodeCount(25, { status: 'FINISHED', format: 'TV', episodes: 13 })
         ).toBeTrue();
         expect(
             matchesAniKotoEpisodeCount(1, { status: 'RELEASING', format: 'TV', episodes: 8 })
