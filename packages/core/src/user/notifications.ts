@@ -16,6 +16,62 @@ type InventoryNotification = {
     episodeNumber: number;
 };
 
+type NotificationEntry = {
+    id: string;
+    animeId: number;
+    episodeId: string;
+    type: 'episode_available' | 'dub_available';
+    title: string;
+    episodeNumber: number;
+    imageUrl: string | null;
+    anilistId: number;
+    createdAt: Date;
+    readAt: Date | null;
+};
+
+type CompactedNotificationEntry = NotificationEntry & {
+    episodeNumbers: number[];
+    dubEpisodeNumbers: number[];
+    relatedIds: string[];
+};
+
+export function compactNotificationEntries(
+    entries: readonly NotificationEntry[]
+): CompactedNotificationEntry[] {
+    const batches = new Map<string, NotificationEntry[]>();
+    for (const entry of entries) {
+        const key = `${entry.animeId}:${entry.createdAt.getTime()}`;
+        const batch = batches.get(key);
+        if (batch) {
+            batch.push(entry);
+        } else {
+            batches.set(key, [entry]);
+        }
+    }
+
+    return [...batches.values()].map((batch) => {
+        const episodeEntries = batch.filter((entry) => entry.type === 'episode_available');
+        const dubEntries = batch.filter((entry) => entry.type === 'dub_available');
+        const primary = [...(episodeEntries.length ? episodeEntries : dubEntries)].sort(
+            (left, right) => left.episodeNumber - right.episodeNumber
+        )[0]!;
+        const episodeNumbers = [...new Set(batch.map((entry) => entry.episodeNumber))].sort(
+            (left, right) => left - right
+        );
+        const dubEpisodeNumbers = [...new Set(dubEntries.map((entry) => entry.episodeNumber))].sort(
+            (left, right) => left - right
+        );
+
+        return {
+            ...primary,
+            episodeNumbers,
+            dubEpisodeNumbers,
+            relatedIds: batch.filter((entry) => entry.id !== primary.id).map(({ id }) => id),
+            readAt: batch.every((entry) => entry.readAt) ? primary.readAt : null,
+        };
+    });
+}
+
 async function continuityAnimeIds(tx: DatabaseTransaction, animeId: number) {
     const ids = new Set([animeId]);
     let frontier = [animeId];
@@ -116,50 +172,27 @@ export async function getNotifications(userId: string) {
             .orderBy(desc(notification.createdAt))
             .limit(100),
         db
-            .select({ count: sql<number>`count(*)::int` })
+            .select({
+                count: sql<number>`count(distinct (${notification.animeId}, ${notification.createdAt}))::int`,
+            })
             .from(notification)
             .where(and(eq(notification.userId, userId), isNull(notification.readAt))),
     ]);
 
-    type NotificationEntry = (typeof entries)[number] & {
-        relatedId?: string;
-        dubEpisodeNumber?: number;
-    };
     type NotificationResponseEntry = {
         id: string;
         href: string;
         type: NotificationEntry['type'];
         title: string;
         episodeNumber: number;
+        episodeNumbers: number[];
+        dubEpisodeNumbers: number[];
         imageUrl: string | null;
         createdAt: string;
         readAt: string | null;
-        relatedId?: string;
-        dubEpisodeNumber?: number;
+        relatedIds?: string[];
     };
-    const compactedEntries: NotificationEntry[] = [];
-    for (const entry of entries) {
-        const partnerIndex = compactedEntries.findIndex(
-            (candidate) =>
-                candidate.animeId === entry.animeId &&
-                candidate.createdAt.getTime() === entry.createdAt.getTime() &&
-                candidate.type !== entry.type
-        );
-        if (partnerIndex === -1) {
-            compactedEntries.push(entry);
-            continue;
-        }
-
-        const partner = compactedEntries[partnerIndex];
-        const episode = entry.type === 'episode_available' ? entry : partner;
-        const dub = entry.type === 'dub_available' ? entry : partner;
-        compactedEntries[partnerIndex] = {
-            ...episode,
-            relatedId: dub.id,
-            dubEpisodeNumber: dub.episodeNumber,
-            readAt: episode.readAt && dub.readAt ? episode.readAt : null,
-        };
-    }
+    const compactedEntries = compactNotificationEntries(entries);
 
     const artworkByAnilistId = new Map(
         await Promise.all(
@@ -181,13 +214,14 @@ export async function getNotifications(userId: string) {
                 type: entry.type,
                 title: entry.title,
                 episodeNumber: entry.episodeNumber,
+                episodeNumbers: entry.episodeNumbers,
+                dubEpisodeNumbers: entry.dubEpisodeNumbers,
                 imageUrl: artworkByAnilistId.get(entry.anilistId) ?? entry.imageUrl,
                 createdAt: entry.createdAt.toISOString(),
                 readAt: entry.readAt?.toISOString() ?? null,
             };
-            if (entry.relatedId) {
-                result.relatedId = entry.relatedId;
-                result.dubEpisodeNumber = entry.dubEpisodeNumber;
+            if (entry.relatedIds.length) {
+                result.relatedIds = entry.relatedIds;
             }
             return result;
         }),
@@ -204,7 +238,9 @@ export async function markNotificationRead(userId: string, id: string) {
 
 export async function getUnreadNotificationCount(userId: string) {
     const [result] = await db
-        .select({ count: sql<number>`count(*)::int` })
+        .select({
+            count: sql<number>`count(distinct (${notification.animeId}, ${notification.createdAt}))::int`,
+        })
         .from(notification)
         .where(and(eq(notification.userId, userId), isNull(notification.readAt)));
     return result?.count ?? 0;
