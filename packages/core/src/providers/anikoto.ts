@@ -334,6 +334,13 @@ export function normalizeAniKotoMediaUrl(url: URL) {
 
 export function aniKotoMediaCandidates(url: URL) {
     const candidates = [url];
+    if (url.hostname.endsWith('.mikora.top')) {
+        for (const suffix of ['shiora.site', 'akirax.buzz']) {
+            const alternate = new URL(url);
+            alternate.hostname = alternate.hostname.replace(/\.mikora\.top$/, `.${suffix}`);
+            candidates.push(alternate);
+        }
+    }
     if (url.hostname.endsWith('.shiora.top')) {
         const alternate = new URL(url);
         alternate.hostname = alternate.hostname.replace(/\.shiora\.top$/, '.shiora.site');
