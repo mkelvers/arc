@@ -2,7 +2,6 @@
     import { prefersReducedMotion } from 'svelte/motion';
     import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
     import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
-    import PauseIcon from 'phosphor-svelte/lib/PauseIcon';
     import PlayIcon from 'phosphor-svelte/lib/PlayIcon';
     import { cn } from '$lib/utils';
     import Button from '$lib/components/ui/button/button.svelte';
@@ -49,11 +48,10 @@
     let gesturePointerId: number | null = null;
     let gestureDragging = false;
     let suppressClickUntil = 0;
-    let rotationPaused = $state(false);
     let pointerInside = $state(false);
     const activeAnime = $derived(highlights[carousel.active]);
     const autoRotate = $derived(highlights.length > 1 && !prefersReducedMotion.current);
-    const shouldAutoRotate = $derived(autoRotate && !rotationPaused && !pointerInside);
+    const shouldAutoRotate = $derived(autoRotate && !pointerInside);
     const upcoming = $derived((carousel.active + 1) % highlights.length);
 
     function select(index: number, mode: ProgressMode = 'animated') {
@@ -150,7 +148,6 @@
         aria-label={m.home_trending()}
         onmouseenter={() => (pointerInside = true)}
         onmouseleave={() => (pointerInside = false)}
-        onfocusin={() => (rotationPaused = true)}
         onpointerdown={handlePointerDown}
         onpointermove={handlePointerMove}
         onpointerup={handlePointerUp}
@@ -335,20 +332,6 @@
                         <div
                             class="pointer-events-auto relative z-30 mt-6 flex items-center justify-center gap-1 px-5 sm:justify-start sm:px-10 lg:px-16 2xl:mt-7"
                         >
-                            <Button
-                                variant="unstyled"
-                                type="button"
-                                class="grid h-8 w-8 place-items-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-                                aria-label={rotationPaused ? m.player_play() : m.player_pause()}
-                                aria-pressed={rotationPaused}
-                                onclick={() => (rotationPaused = !rotationPaused)}
-                            >
-                                {#if rotationPaused}
-                                    <PlayIcon size="0.9rem" weight="fill" aria-hidden="true" />
-                                {:else}
-                                    <PauseIcon size="0.9rem" weight="bold" aria-hidden="true" />
-                                {/if}
-                            </Button>
                             {#each highlights as item, itemIndex (item.id)}
                                 <Button
                                     variant="unstyled"
