@@ -68,7 +68,10 @@
 </script>
 
 <section
-    class={cn('relative z-20 pb-10 sm:pb-12 lg:pb-16', topSpacing && 'pt-10 sm:pt-12 lg:pt-16')}
+    class={cn(
+        'relative z-20 pb-10 [content-visibility:auto] [contain-intrinsic-size:24rem] sm:pb-12 lg:pb-16',
+        topSpacing && 'pt-10 sm:pt-12 lg:pt-16'
+    )}
     aria-labelledby={headingId}
 >
     <h2 id={headingId} class="mb-5 px-4 text-xl font-bold sm:px-10 sm:text-2xl lg:px-16 2xl:px-16">

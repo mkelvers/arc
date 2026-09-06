@@ -47,6 +47,36 @@
     let root = $state<HTMLDivElement>();
     let menu = $state<HTMLDivElement>();
     let triggerElement = $state<HTMLButtonElement | HTMLAnchorElement | null>(null);
+    let previouslyFocused = $state<HTMLElement | null>(null);
+
+    function focusableElements() {
+        return Array.from(
+            menu?.querySelectorAll<HTMLElement>(
+                'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+            ) ?? []
+        );
+    }
+
+    function setOpen(nextOpen: boolean) {
+        if (nextOpen === open) {
+            return;
+        }
+
+        if (nextOpen) {
+            previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            open = true;
+            requestAnimationFrame(() => {
+                focusableElements()[0]?.focus();
+            });
+            return;
+        }
+
+        open = false;
+        requestAnimationFrame(() => {
+            (previouslyFocused ?? triggerElement)?.focus();
+            previouslyFocused = null;
+        });
+    }
 
     function closeOnContentSelection(event: MouseEvent) {
         if (!(event.target instanceof Element)) {
@@ -58,7 +88,53 @@
         }
 
         if (event.target.closest('a, button')) {
-            open = false;
+            setOpen(false);
+        }
+    }
+
+    function handleMenuKeydown(event: KeyboardEvent) {
+        const elements = focusableElements();
+        const currentIndex = elements.indexOf(document.activeElement as HTMLElement);
+
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            setOpen(false);
+            return;
+        }
+
+        if (modal && event.key === 'Tab') {
+            if (!elements.length) {
+                event.preventDefault();
+                menu?.focus();
+                return;
+            }
+
+            const nextIndex = event.shiftKey
+                ? currentIndex <= 0
+                    ? elements.length - 1
+                    : currentIndex - 1
+                : currentIndex === elements.length - 1
+                  ? 0
+                  : currentIndex + 1;
+            event.preventDefault();
+            elements[nextIndex]?.focus();
+            return;
+        }
+
+        if (
+            !content &&
+            (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End')
+        ) {
+            event.preventDefault();
+            const nextIndex =
+                event.key === 'Home'
+                    ? 0
+                    : event.key === 'End'
+                      ? elements.length - 1
+                      : event.key === 'ArrowDown'
+                        ? (currentIndex + 1) % elements.length
+                        : (currentIndex - 1 + elements.length) % elements.length;
+            elements[nextIndex]?.focus();
         }
     }
 
@@ -100,8 +176,7 @@
         };
         const closeOnEscape = (event: KeyboardEvent) => {
             if (open && event.key === 'Escape') {
-                open = false;
-                triggerElement?.focus();
+                setOpen(false);
             }
         };
 
@@ -121,12 +196,12 @@
     role="group"
     onmouseenter={() => {
         if (openOnHover) {
-            open = true;
+            setOpen(true);
         }
     }}
     onmouseleave={() => {
         if (openOnHover) {
-            open = false;
+            setOpen(false);
         }
     }}
 >
@@ -136,14 +211,14 @@
         id={id}
         type="button"
         aria-label={ariaLabel}
-        aria-haspopup={content ? undefined : 'menu'}
+        aria-haspopup={modal ? 'dialog' : content ? undefined : 'menu'}
         aria-expanded={open}
         aria-controls={`${id}-menu`}
         data-state={open ? 'open' : 'closed'}
         data-testid="dropdown-trigger"
         class={cn('appearance-none border-0 bg-transparent p-0', triggerClass)}
         disabled={disabled}
-        onclick={() => (open = !open)}
+        onclick={() => setOpen(!open)}
     >
         {@render trigger()}
     </Button>
@@ -154,13 +229,15 @@
             type="button"
             class="fixed inset-x-0 top-14 z-40 h-[calc(100dvh-3.5rem)] cursor-default bg-black/65 backdrop-blur-[2px]"
             aria-label={m.shared_close_menu()}
-            onclick={() => (open = false)}
+            onclick={() => setOpen(false)}
         ></Button>
     {/if}
 
     <div
         bind:this={menu}
         id={`${id}-menu`}
+        tabindex="-1"
+        aria-modal={modal ? 'true' : undefined}
         class={cn(
             'absolute top-full z-50',
             menuAlign === 'start' ? 'left-0' : 'right-0',
@@ -169,10 +246,11 @@
         )}
     >
         <div
-            role={content ? 'group' : 'menu'}
+            role={modal ? 'dialog' : content ? 'group' : 'menu'}
             aria-label={content ? ariaLabel : undefined}
             class={contentClass}
             onclick={closeOnContentSelection}
+            onkeydown={handleMenuKeydown}
         >
             {#if content}
                 {@render content()}

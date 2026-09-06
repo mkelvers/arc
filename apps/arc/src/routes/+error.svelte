@@ -2,6 +2,7 @@
     import { page } from '$app/state';
     import errorArtwork from '$lib/assets/error-state.png';
     import Logo from '$lib/components/ui/Logo.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import { m } from '$lib/i18n.svelte';
 
     const error = $derived(page.status !== 404);
@@ -42,7 +43,17 @@
         </h1>
         <p class="mt-5 max-w-md text-base leading-7 text-muted sm:text-lg">{description}</p>
 
-        <div class="mt-9 flex justify-center">
+        <div class="mt-9 flex flex-wrap justify-center gap-3">
+            {#if error}
+                <Button
+                    variant="outline"
+                    type="button"
+                    class="min-h-11 px-5 text-xs font-bold uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    onclick={() => location.reload()}
+                >
+                    {m.retry()}
+                </Button>
+            {/if}
             <a
                 href="/"
                 class="inline-flex min-h-11 items-center bg-accent px-5 text-xs font-bold text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
