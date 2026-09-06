@@ -34,6 +34,8 @@
     }: Props = $props();
 
     let loadedSrc = $state<string | null>(null);
+    let imageFailed = $state(false);
+    let previewFailed = $state(false);
     const displaySrc = $derived(
         displaySize ? src.replace(/(\/image\.tmdb\.org\/t\/p\/)[^/]+(?=\/|$)/, `$1${displaySize}`) : src
     );
@@ -52,16 +54,23 @@
 </script>
 
 <div class={cn('relative size-full overflow-hidden', className)} ontransitionend={ontransitionend}>
-    <div class="absolute inset-0 transition-opacity duration-300" class:opacity-0={ready}>
-        <img
-            src={preview}
-            alt=""
-            class={cn('size-full scale-110 object-cover blur-xl', imageClass)}
-            loading={previewLoading}
-            aria-hidden="true"
-        />
+    <div
+        class="absolute inset-0 bg-surface transition-opacity duration-300"
+        class:opacity-0={ready || imageFailed}
+        aria-hidden={imageFailed || undefined}
+    >
+        {#if !previewFailed}
+            <img
+                src={preview}
+                alt=""
+                class={cn('size-full scale-110 object-cover blur-xl', imageClass)}
+                loading={previewLoading}
+                aria-hidden="true"
+                onerror={() => (previewFailed = true)}
+            />
+        {/if}
     </div>
-    {#if loadFull}
+    {#if loadFull && !imageFailed}
         <img
             src={displaySrc}
             srcset={displaySrcSet}
@@ -78,6 +87,14 @@
                 loadedSrc = displaySrc;
                 onready?.();
             }}
+            onerror={() => (imageFailed = true)}
         />
+    {:else if imageFailed}
+        <div
+            class="absolute inset-0 grid place-items-center bg-surface"
+            role={alt ? 'img' : undefined}
+            aria-label={alt || undefined}
+            aria-hidden={alt ? undefined : 'true'}
+        ></div>
     {/if}
 </div>
