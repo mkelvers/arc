@@ -17,6 +17,7 @@ interface EpisodeTranslation {
 
 interface EpisodeStill {
     filePath?: string | null;
+    hasEmbeddedLetterboxing?: boolean;
     voteAverage: number;
     voteCount: number;
     width: number;
@@ -56,7 +57,7 @@ export function episodeDetailsNeeded(candidate: EpisodeCandidate, localizedText 
             !candidate.runtime ||
             !candidate.imageUrl,
         translations: !localizedText || genericTitle(candidate.title) || !candidate.overview,
-        images: !candidate.imageUrl,
+        images: true,
     };
 }
 
@@ -104,14 +105,21 @@ export function completeEpisodeDetails(
           text(candidate.overview) ||
           '';
     const bestStill = stills
-        ?.filter((still): still is EpisodeStill & { filePath: string } => Boolean(still.filePath))
+        ?.filter(
+            (still): still is EpisodeStill & { filePath: string } =>
+                Boolean(still.filePath) && still.hasEmbeddedLetterboxing !== true
+        )
         .toSorted(
             (left, right) =>
+                right.width - left.width ||
                 right.voteAverage - left.voteAverage ||
-                right.voteCount - left.voteCount ||
-                right.width - left.width
+                right.voteCount - left.voteCount
         )[0]?.filePath;
-    const stillPath = details?.stillPath || featured?.stillPath || bestStill || changes?.stillPath;
+    const hasStillCandidates = stills?.some((still) => Boolean(still.filePath));
+    const fallbackStill = hasStillCandidates
+        ? undefined
+        : details?.stillPath || featured?.stillPath || changes?.stillPath;
+    const stillPath = bestStill || fallbackStill;
 
     return {
         ...candidate,
@@ -121,6 +129,6 @@ export function completeEpisodeDetails(
         overviewSource: overview ? 'tmdb' : null,
         runtime:
             candidate.runtime || details?.runtime || featured?.runtime || changes?.runtime || null,
-        imageUrl: candidate.imageUrl || (stillPath ? image(stillPath) : null),
+        imageUrl: stillPath ? image(stillPath) : hasStillCandidates ? null : candidate.imageUrl,
     };
 }

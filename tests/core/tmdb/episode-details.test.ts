@@ -106,6 +106,66 @@ describe('TMDB episode detail completion', () => {
         });
     });
 
+    test('replaces a bulk season still with the selected episode image', () => {
+        expect(
+            completeEpisodeDetails(
+                {
+                    ...candidate,
+                    title: 'Episode 20',
+                    overview: 'The episode overview.',
+                    imageUrl: 'https://images.example/letterboxed.jpg',
+                    runtime: 24,
+                },
+                {
+                    stills: [
+                        {
+                            filePath: '/preferred.jpg',
+                            hasEmbeddedLetterboxing: false,
+                            voteAverage: 0,
+                            voteCount: 0,
+                            width: 1920,
+                        },
+                        {
+                            filePath: '/letterboxed-alternate.jpg',
+                            hasEmbeddedLetterboxing: true,
+                            voteAverage: 10,
+                            voteCount: 3,
+                            width: 1280,
+                        },
+                    ],
+                    image: (path) => `https://images.example${path}`,
+                }
+            )
+        ).toMatchObject({
+            imageUrl: 'https://images.example/preferred.jpg',
+        });
+    });
+
+    test('does not keep a bulk still when every TMDB still is letterboxed', () => {
+        expect(
+            completeEpisodeDetails(
+                {
+                    ...candidate,
+                    imageUrl: 'https://images.example/letterboxed.jpg',
+                },
+                {
+                    stills: [
+                        {
+                            filePath: '/letterboxed.jpg',
+                            hasEmbeddedLetterboxing: true,
+                            voteAverage: 10,
+                            voteCount: 3,
+                            width: 1920,
+                        },
+                    ],
+                    image: (path) => `https://images.example${path}`,
+                }
+            )
+        ).toMatchObject({
+            imageUrl: null,
+        });
+    });
+
     test('uses only explicitly English text for a Japanese episode', () => {
         expect(
             completeEpisodeDetails(candidate, {
@@ -223,7 +283,7 @@ describe('TMDB episode detail completion', () => {
         expect(episodeDetailsNeeded(completeCandidate, false)).toEqual({
             details: false,
             translations: true,
-            images: false,
+            images: true,
         });
     });
 
@@ -239,7 +299,7 @@ describe('TMDB episode detail completion', () => {
         expect(episodeDetailsNeeded(localized, true)).toEqual({
             details: false,
             translations: false,
-            images: false,
+            images: true,
         });
         expect(
             completeEpisodeDetails(localized, {

@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 
-import { episodeRevision, reconcileEpisodeMetadata, sourceRevision } from '@arc/core';
+import {
+    episodeMetadataRevision,
+    episodeRevision,
+    reconcileEpisodeMetadata,
+    sourceRevision,
+} from '@arc/core';
 import type { AudioMode } from '@arc/core';
 
 describe('episode catalog synchronization', () => {
@@ -63,7 +68,7 @@ describe('episode catalog synchronization', () => {
             {
                 previousSourceId: 42,
                 currentSourceId: null,
-                previousRevision: 'tmdb-episode-v4',
+                previousRevision: episodeMetadataRevision,
             }
         );
 

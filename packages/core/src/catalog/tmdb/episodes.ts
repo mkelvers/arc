@@ -1,3 +1,4 @@
+import { inflateSync } from 'node:zlib';
 import type { AniListAnime } from '../anilist-types';
 import { z } from 'zod';
 import { animeDate } from '../date';
@@ -49,7 +50,122 @@ const episodeSchema = z.object({
 });
 type TmdbEpisode = z.infer<typeof episodeSchema>;
 
-async function mapConcurrent<T, R>(values: T[], map: (value: T, index: number) => Promise<R>) {
+function readUint32(bytes: Uint8Array, offset: number) {
+    return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(offset);
+}
+
+function pngRows(bytes: Uint8Array) {
+    let width = 0;
+    let height = 0;
+    const compressed: Uint8Array[] = [];
+    let offset = 8;
+
+    while (offset < bytes.length) {
+        const length = readUint32(bytes, offset);
+        const type = new TextDecoder().decode(bytes.slice(offset + 4, offset + 8));
+        if (type === 'IHDR') {
+            width = readUint32(bytes, offset + 8);
+            height = readUint32(bytes, offset + 12);
+            if (bytes[offset + 16] !== 8 || bytes[offset + 17] !== 6) {
+                throw new Error('TMDB still preview is not RGBA PNG');
+            }
+        } else if (type === 'IDAT') {
+            compressed.push(bytes.slice(offset + 8, offset + 8 + length));
+        }
+        offset += length + 12;
+    }
+
+    const data = inflateSync(Buffer.concat(compressed));
+    const stride = width * 4;
+    const rows: Uint8Array[] = [];
+    let input = 0;
+    let previous = new Uint8Array(stride);
+
+    for (let y = 0; y < height; y += 1) {
+        const filter = data[input++];
+        const row = Uint8Array.from(data.slice(input, input + stride));
+        input += stride;
+
+        for (let x = 0; x < stride; x += 1) {
+            const left = x >= 4 ? row[x - 4] : 0;
+            const up = previous[x] ?? 0;
+            const upLeft = x >= 4 ? previous[x - 4] : 0;
+            if (filter === 1) {
+                row[x] = (row[x] + left) & 255;
+            } else if (filter === 2) {
+                row[x] = (row[x] + up) & 255;
+            } else if (filter === 3) {
+                row[x] = (row[x] + Math.floor((left + up) / 2)) & 255;
+            } else if (filter === 4) {
+                const predictor = left + up - upLeft;
+                const leftDistance = Math.abs(predictor - left);
+                const upDistance = Math.abs(predictor - up);
+                const upLeftDistance = Math.abs(predictor - upLeft);
+                row[x] =
+                    (row[x] +
+                        (leftDistance <= upDistance && leftDistance <= upLeftDistance
+                            ? left
+                            : upDistance <= upLeftDistance
+                              ? up
+                              : upLeft)) &
+                    255;
+            }
+        }
+
+        rows.push(row);
+        previous = row;
+    }
+
+    return { height, rows, width };
+}
+
+function hasBlackBand(row: Uint8Array, width: number) {
+    let darkPixels = 0;
+    let luminance = 0;
+
+    for (let x = 0; x < row.length; x += 4) {
+        const pixelLuminance = 0.2126 * row[x] + 0.7152 * row[x + 1] + 0.0722 * row[x + 2];
+        luminance += pixelLuminance;
+        darkPixels += pixelLuminance <= 16 ? 1 : 0;
+    }
+
+    return darkPixels / width >= 0.9 && luminance / width <= 24;
+}
+
+async function hasEmbeddedLetterboxing(path: string) {
+    try {
+        const response = await fetch(imageUrl(path, 'w185'), {
+            signal: AbortSignal.timeout(8_000),
+        });
+        if (!response.ok) {
+            return true;
+        }
+
+        const source = new Bun.Image(await response.arrayBuffer());
+        const { height, rows, width } = pngRows(
+            await source.resize(32, 48, { fit: 'fill' }).png().bytes()
+        );
+        const blackRows = rows.map((row) => hasBlackBand(row, width));
+        let topRows = 0;
+        let bottomRows = 0;
+        while (blackRows[topRows]) {
+            topRows += 1;
+        }
+        while (blackRows[height - 1 - bottomRows]) {
+            bottomRows += 1;
+        }
+
+        return topRows >= 2 || bottomRows >= 2;
+    } catch {
+        return true;
+    }
+}
+
+async function mapConcurrent<T, R>(
+    values: T[],
+    map: (value: T, index: number) => Promise<R>,
+    concurrency = 4
+) {
     const results = Array<R>(values.length);
     let next = 0;
     const worker = async () => {
@@ -59,7 +175,7 @@ async function mapConcurrent<T, R>(values: T[], map: (value: T, index: number) =
         }
     };
 
-    await Promise.all(Array.from({ length: Math.min(4, values.length) }, worker));
+    await Promise.all(Array.from({ length: Math.min(concurrency, values.length) }, worker));
 
     return results;
 }
@@ -434,7 +550,7 @@ export async function getEpisodeMetadata(
             series.original_language ?? undefined
         );
         const needed = episodeDetailsNeeded(candidate, localizedText);
-        const needsFallback = needed.details || needed.translations || needed.images;
+        const needsFallback = needed.details || needed.translations;
         // Bound optional per-episode fallbacks for long releases.
         const fetchFallback = needsFallback && fallbacks < 24;
         if (fetchFallback) {
@@ -452,7 +568,7 @@ export async function getEpisodeMetadata(
     const completed = await mapConcurrent(
         matches,
         async ({ sourceId, candidate, localizedText, needed, fetchFallback }) => {
-            if (!fetchFallback) {
+            if (!fetchFallback && !needed.images) {
                 return {
                     id: sourceId,
                     metadata: completeEpisodeDetails(candidate, {
@@ -467,32 +583,37 @@ export async function getEpisodeMetadata(
                 season_number: candidate.seasonNumber,
                 episode_number: candidate.episodeNumber,
             };
-            const detailsRequest = needed.details
-                ? client
-                      .GET('/3/tv/{series_id}/season/{season_number}/episode/{episode_number}', {
-                          params: {
-                              path,
-                              query: {
-                                  language: 'en-US',
-                              },
-                          },
-                      })
-                      .then(({ data }) => data)
-                      .catch(() => undefined)
-                : Promise.resolve(undefined);
-            const translationsRequest = needed.translations
-                ? client
-                      .GET(
-                          '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/translations',
-                          {
-                              params: {
-                                  path,
-                              },
-                          }
-                      )
-                      .then(({ data }) => data?.translations)
-                      .catch(() => undefined)
-                : Promise.resolve(undefined);
+            const detailsRequest =
+                fetchFallback && needed.details
+                    ? client
+                          .GET(
+                              '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}',
+                              {
+                                  params: {
+                                      path,
+                                      query: {
+                                          language: 'en-US',
+                                      },
+                                  },
+                              }
+                          )
+                          .then(({ data }) => data)
+                          .catch(() => undefined)
+                    : Promise.resolve(undefined);
+            const translationsRequest =
+                fetchFallback && needed.translations
+                    ? client
+                          .GET(
+                              '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/translations',
+                              {
+                                  params: {
+                                      path,
+                                  },
+                              }
+                          )
+                          .then(({ data }) => data?.translations)
+                          .catch(() => undefined)
+                    : Promise.resolve(undefined);
             const imagesRequest = needed.images
                 ? client
                       .GET(
@@ -506,9 +627,12 @@ export async function getEpisodeMetadata(
                       .then(({ data }) => data?.stills)
                       .catch(() => undefined)
                 : Promise.resolve(undefined);
-            const changesRequest = fetchFallback
-                ? getEpisodeChanges(candidate.tmdbEpisodeId, candidate.rawAirDate).catch(() => null)
-                : Promise.resolve(null);
+            const changesRequest =
+                fetchFallback && (needed.details || needed.translations)
+                    ? getEpisodeChanges(candidate.tmdbEpisodeId, candidate.rawAirDate).catch(
+                          () => null
+                      )
+                    : Promise.resolve(null);
             const [details, translations, stills, changes] = await Promise.all([
                 detailsRequest,
                 translationsRequest,
@@ -532,6 +656,22 @@ export async function getEpisodeMetadata(
                 name: translation.data?.name,
                 overview: translation.data?.overview,
             }));
+            const analyzedStills = stills
+                ? await mapConcurrent(
+                      stills,
+                      async (still) => ({
+                          filePath: still.file_path,
+                          voteAverage: still.vote_average,
+                          voteCount: still.vote_count,
+                          width: still.width,
+                          hasEmbeddedLetterboxing: still.file_path
+                              ? await hasEmbeddedLetterboxing(still.file_path)
+                              : true,
+                      }),
+                      1
+                  )
+                : undefined;
+
             return {
                 id: sourceId,
                 metadata: completeEpisodeDetails(candidate, {
@@ -544,12 +684,7 @@ export async function getEpisodeMetadata(
                           }
                         : undefined,
                     translations: localized,
-                    stills: stills?.map((still) => ({
-                        filePath: still.file_path,
-                        voteAverage: still.vote_average,
-                        voteCount: still.vote_count,
-                        width: still.width,
-                    })),
+                    stills: analyzedStills,
                     featured: featured?.details,
                     changes: changes ?? undefined,
                     localizedText,
