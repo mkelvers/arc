@@ -117,6 +117,7 @@
                             alt=""
                             previewSize="w300"
                             displaySize="w780"
+                            sizes="(min-width: 1024px) 18rem, 75vw"
                         />
                     {/if}
                 </CardMedia>
