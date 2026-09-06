@@ -138,6 +138,24 @@ test('falls back from a reset Kryntal resource to its Watching alternate', async
     expect(await response.text()).toContain('WEBVTT');
 });
 
+test('falls back from a reset Mikora resource to its Shiora alternate', async () => {
+    const requested: string[] = [];
+    const response = await proxyStreamRequest(
+        streamRequest('https://vidtub.mikora.top/anime/episode/subtitles/english.vtt'),
+        async (target) => {
+            requested.push(target.hostname);
+            if (target.hostname === 'vidtub.mikora.top') {
+                throw new TypeError('socket connection was closed unexpectedly');
+            }
+            return new Response('WEBVTT\n\n00:00.000 --> 00:01.000\nHello');
+        }
+    );
+
+    expect(response.status).toBe(200);
+    expect(requested).toEqual(['vidtub.mikora.top', 'vidtub.mikora.top', 'vidtub.shiora.site']);
+    expect(await response.text()).toContain('WEBVTT');
+});
+
 test('retries a transient Kryntal connection before changing media hosts', async () => {
     const requested: string[] = [];
     let attempts = 0;
