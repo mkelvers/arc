@@ -6,7 +6,6 @@
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
-    import { cn } from '$lib/utils';
     import errorArtwork from '$lib/assets/error-state.png';
     import emptyArtwork from '$lib/assets/notifications-empty.png';
     import type { PageProps } from './$types';
@@ -49,15 +48,12 @@
 
 {#snippet notificationCard(entry: Notification)}
     <div
-        class={cn(
-            'group relative grid w-full gap-5 text-left transition-colors hover:bg-surface focus-within:bg-surface sm:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] sm:gap-8',
-            entry.readAt && 'opacity-70'
-        )}
+        class="group relative grid w-full gap-5 text-left transition-colors hover:bg-surface focus-within:bg-surface sm:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] sm:gap-8"
     >
         <Button
             variant="unstyled"
             type="button"
-            class="grid w-full gap-5 text-left whitespace-normal sm:col-span-2 sm:grid-cols-subgrid sm:gap-8"
+            class="grid h-auto w-full gap-5 text-left whitespace-normal sm:col-span-2 sm:grid-cols-subgrid sm:gap-8"
             onclick={() => openNotification(entry)}
         >
             <div class="relative aspect-4/3 overflow-hidden bg-panel">
