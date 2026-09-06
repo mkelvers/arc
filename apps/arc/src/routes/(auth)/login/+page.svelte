@@ -6,6 +6,9 @@
     import StatusBanner from '$lib/components/StatusBanner.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
     import { m } from '$lib/i18n.svelte';
+    import type { PageProps } from './$types';
+
+    let { form }: PageProps = $props();
 
     let username = $state('');
     let password = $state('');
@@ -50,9 +53,9 @@
     <meta name="robots" content="noindex" />
 </svelte:head>
 
-<StatusBanner message={message} tone="error" ondismiss={() => (message = '')} />
+<StatusBanner message={message || form?.error || ''} tone="error" ondismiss={() => (message = '')} />
 
-<form class="w-full max-w-104" onsubmit={login}>
+<form class="w-full max-w-104" method="POST" action="?/default" aria-busy={pending} onsubmit={login}>
     <h1 class="text-center text-3xl font-normal">{m.auth_login_title()}</h1>
 
     <div class="mt-16 space-y-6">
