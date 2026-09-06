@@ -18,22 +18,42 @@
     );
     let failed = $state(false);
 
+    function formatEpisodeNumbers(numbers: readonly number[]) {
+        const ranges: string[] = [];
+        let start = numbers[0]!;
+        let end = start;
+
+        for (const number of numbers.slice(1)) {
+            if (number === end + 1) {
+                end = number;
+                continue;
+            }
+            ranges.push(start === end ? `${start}` : `${start}-${end}`);
+            start = number;
+            end = number;
+        }
+        ranges.push(start === end ? `${start}` : `${start}-${end}`);
+        return ranges.join(', ');
+    }
+
     async function openNotification(entry: Notification) {
         if (!entry.readAt) {
-            await fetch(`/v1/notifications/${entry.id}/read`, { method: 'POST' });
+            await Promise.all(
+                [entry.id, ...(entry.relatedIds ?? [])].map((id) =>
+                    fetch(`/v1/notifications/${id}/read`, { method: 'POST' })
+                )
+            );
         }
         await goto(entry.href);
     }
 
     async function markNotificationAsRead(entry: Notification) {
-        await Promise.all([
-            fetch(`/v1/notifications/${entry.id}/read`, { method: 'POST' }),
-            ...(entry.relatedId ? [fetch(`/v1/notifications/${entry.relatedId}/read`, { method: 'POST' })] : []),
-        ]);
+        const ids = [entry.id, ...(entry.relatedIds ?? [])];
+        await Promise.all(ids.map((id) => fetch(`/v1/notifications/${id}/read`, { method: 'POST' })));
         const readAt = new Date().toISOString();
         notifications =
             notifications?.map((notification) =>
-                notification.id === entry.id ? { ...notification, readAt } : notification
+                ids.includes(notification.id) ? { ...notification, readAt } : notification
             ) ?? [];
     }
 
@@ -71,13 +91,17 @@
             <div class="min-w-0 self-start py-5">
                 <p class="text-base font-semibold text-foreground sm:text-lg">{entry.title}</p>
                 <p class="mt-2 text-sm leading-6 text-muted sm:text-base">
-                    {entry.relatedId
-                        ? entry.episodeNumber === entry.dubEpisodeNumber
-                            ? `Episode ${entry.episodeNumber} has just aired and is now available to watch, and its dubbed version is available too.`
-                            : `Episode ${entry.episodeNumber} has just aired and is now available to watch, and episode ${entry.dubEpisodeNumber} has also just received its dubbed version.`
-                        : entry.type === 'dub_available'
-                          ? `The dubbed version of episode ${entry.episodeNumber} is now available to watch.`
-                          : `Episode ${entry.episodeNumber} aired and is now available to watch.`}
+                    {entry.type === 'dub_available'
+                        ? entry.dubEpisodeNumbers.length === 1
+                            ? `The dubbed version of episode ${formatEpisodeNumbers(entry.episodeNumbers)} is now available to watch.`
+                            : `The dubbed versions of episodes ${formatEpisodeNumbers(entry.episodeNumbers)} are now available to watch.`
+                        : entry.dubEpisodeNumbers.length
+                          ? entry.episodeNumbers.length === 1 && entry.dubEpisodeNumbers.length === 1
+                              ? `Episode ${formatEpisodeNumbers(entry.episodeNumbers)} has just aired and is now available to watch, and its dubbed version is available too.`
+                              : `Episodes ${formatEpisodeNumbers(entry.episodeNumbers)} are now available to watch, including dubbed versions of episodes ${formatEpisodeNumbers(entry.dubEpisodeNumbers)}.`
+                          : entry.episodeNumbers.length === 1
+                            ? `Episode ${formatEpisodeNumbers(entry.episodeNumbers)} aired and is now available to watch.`
+                            : `Episodes ${formatEpisodeNumbers(entry.episodeNumbers)} are now available to watch.`}
                 </p>
                 <span
                     class="mt-4 inline-flex items-center gap-2 text-xs font-semibold tracking-wide text-foreground uppercase"
