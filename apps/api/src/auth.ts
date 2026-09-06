@@ -22,6 +22,7 @@ export const auth = betterAuth({
             generateId: 'uuid',
         },
         ipAddress: {
+            ipAddressHeaders: ['cf-connecting-ip', 'x-forwarded-for'],
             trustedProxies: process.env.BETTER_AUTH_TRUSTED_PROXY_CIDR
                 ? [process.env.BETTER_AUTH_TRUSTED_PROXY_CIDR]
                 : [],
