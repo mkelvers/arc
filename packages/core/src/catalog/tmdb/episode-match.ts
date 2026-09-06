@@ -529,7 +529,10 @@ export function providerReleaseWindow(anime: AniListAnime, source: ProviderEpiso
     }
 
     const predecessorEpisodes = (anime.relations?.edges ?? []).flatMap((edge) =>
-        edge?.relationType === 'PREQUEL' && edge.node?.type === 'ANIME' && edge.node.episodes
+        edge?.relationType === 'PREQUEL' &&
+        edge.node?.type === 'ANIME' &&
+        (edge.node.format === 'TV' || edge.node.format === 'TV_SHORT') &&
+        edge.node.episodes
             ? [edge.node.episodes]
             : []
     );

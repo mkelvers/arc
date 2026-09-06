@@ -43,6 +43,7 @@ query Anime($id: Int!) {
                     idMal
                     episodes
                     type
+                    format
                     title {
                         english
                         romaji

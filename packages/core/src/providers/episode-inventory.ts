@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
-import { asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray } from 'drizzle-orm';
 
 import { db } from '@arc/shared/db';
-import { animeEpisode } from '@arc/shared/db/schema';
+import { animeEpisode, animeProviderMapping } from '@arc/shared/db/schema';
 import type { AniListAnime } from '../catalog/anilist-types';
 import { episodesAvailableToWatch } from './inventory';
 import type { AudioMode } from '../audio';
@@ -53,14 +53,45 @@ function episodeModel(
 }
 
 export async function storedEpisodes(anime: AniListAnime) {
-    const rows = await db
-        .select()
-        .from(animeEpisode)
-        .where(eq(animeEpisode.anilistId, anime.id))
-        .orderBy(asc(animeEpisode.number));
+    const [[mapping], rows] = await Promise.all([
+        db
+            .select({
+                providerMediaId: animeProviderMapping.providerMediaId,
+                inventoryStatus: animeProviderMapping.inventoryStatus,
+                providerEpisodeCount: animeProviderMapping.providerEpisodeCount,
+            })
+            .from(animeProviderMapping)
+            .where(
+                and(
+                    eq(animeProviderMapping.anilistId, anime.id),
+                    eq(animeProviderMapping.provider, 'anikoto')
+                )
+            )
+            .limit(1),
+        db
+            .select()
+            .from(animeEpisode)
+            .where(eq(animeEpisode.anilistId, anime.id))
+            .orderBy(asc(animeEpisode.number)),
+    ]);
+    const mappingIsIncomplete =
+        anime.status === 'FINISHED' &&
+        anime.format !== 'TV_SHORT' &&
+        anime.episodes !== null &&
+        (mapping?.inventoryStatus === 'unresolved' ||
+            (mapping?.providerEpisodeCount !== null &&
+                mapping?.providerEpisodeCount !== undefined &&
+                mapping.providerEpisodeCount < anime.episodes));
+    const eligibleRows = mappingIsIncomplete
+        ? []
+        : mapping
+          ? rows.filter(({ episodeId }) =>
+                episodeId.startsWith(`anikoto:${mapping.providerMediaId}:`)
+            )
+          : rows;
     const uniqueEpisodes = new Map<number, (typeof rows)[number]>();
 
-    for (const episode of rows.filter(({ episodeId }) => episodeId.includes(':'))) {
+    for (const episode of eligibleRows.filter(({ episodeId }) => episodeId.includes(':'))) {
         if (!uniqueEpisodes.has(episode.number)) {
             uniqueEpisodes.set(episode.number, episode);
         }

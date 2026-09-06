@@ -479,16 +479,24 @@ export function matchesAniKotoIdentity(
 }
 
 export function matchesAniKotoRelatedIdentity(
-    series: Pick<AniKotoSeries, 'malId'>,
+    series: Pick<AniKotoSeries, 'anilistId' | 'malId'>,
     anime: Pick<AniListAnime, 'relations'>
 ) {
-    return (anime.relations?.edges ?? []).some(
-        (edge) =>
-            edge?.relationType &&
-            ['PARENT', 'PREQUEL', 'SEQUEL'].includes(edge.relationType) &&
-            edge.node?.idMal !== null &&
-            edge.node?.idMal === series.malId
-    );
+    return (anime.relations?.edges ?? []).some((edge) => {
+        if (
+            !edge?.relationType ||
+            !edge.node ||
+            !['PARENT', 'PREQUEL', 'SEQUEL'].includes(edge.relationType)
+        ) {
+            return false;
+        }
+
+        if (series.anilistId !== null) {
+            return edge.relationType === 'PREQUEL' && edge.node.id === series.anilistId;
+        }
+
+        return edge.node.idMal !== null && edge.node.idMal === series.malId;
+    });
 }
 
 export function matchesAniKotoIdentityOrTitle(
@@ -532,12 +540,13 @@ export function matchesAniKotoEpisodeCount(
     if (
         anime.status !== 'FINISHED' ||
         anime.format === 'TV_SHORT' ||
+        anime.episodes === null ||
         providerEpisodeCount === undefined
     ) {
         return true;
     }
 
-    return providerEpisodeCount === anime.episodes;
+    return providerEpisodeCount >= anime.episodes;
 }
 
 export function parseSearchCandidates(html: string) {
@@ -1203,6 +1212,7 @@ async function findSeries(anime: AniListAnime) {
     const titles = animeTitles(anime).map(normalizedProviderTitle);
     const stored = await providerMediaId(anime.id);
     const storedId = positiveId(stored?.id);
+    let fallbackSeries: AniKotoSeries | null = null;
     if (storedId && stored?.inventoryStatus !== 'unresolved') {
         try {
             const series = await loadSeries(storedId);
@@ -1212,7 +1222,10 @@ async function findSeries(anime: AniListAnime) {
                 matchesAniKotoFormat(series.format, anime.format) &&
                 matchesAniKotoEpisodeCount(series.episodeCount, anime)
             ) {
-                return series;
+                if (series.audio.includes('dub')) {
+                    return series;
+                }
+                fallbackSeries = series;
             }
         } catch (cause) {
             if (cause instanceof AniKotoRequestError && isAniKotoTransientError(cause)) {
@@ -1287,9 +1300,18 @@ async function findSeries(anime: AniListAnime) {
                 ? matchesAniKotoEpisodeCount(series.episodeCount, anime)
                 : true)
         ) {
-            await saveProviderMediaId(anime.id, String(series.id));
-            return series;
+            if ('audio' in series && series.audio.includes('dub')) {
+                await saveProviderMediaId(anime.id, String(series.id));
+                return series;
+            }
+            if ('audio' in series) {
+                fallbackSeries ??= series;
+            }
         }
+    }
+    if (fallbackSeries) {
+        await saveProviderMediaId(anime.id, String(fallbackSeries.id));
+        return fallbackSeries;
     }
     throw new AniKotoNoMatchError(anime.id);
 }
