@@ -232,7 +232,13 @@
     class:cursor-none={player.media.playing && !player.controlsVisible}
     class="group fixed inset-0 size-full overflow-hidden bg-black select-none focus:outline-none"
 >
-    <video bind:this={video} class="size-full bg-black object-cover" playsinline preload="auto" poster={poster}>
+    <video
+        bind:this={video}
+        class="size-full bg-black object-cover"
+        playsinline
+        preload="metadata"
+        poster={poster}
+    >
         <track bind:this={nativeSubtitleElement} kind="subtitles" srclang="en" label="Arc" default />
     </video>
 
