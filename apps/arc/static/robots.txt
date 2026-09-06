@@ -1,2 +1,4 @@
+# Arc is an authentication-gated application. Search engines must not crawl
+# private pages or mistake this file for an access-control mechanism.
 User-agent: *
-Disallow: /api/
+Disallow: /

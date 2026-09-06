@@ -45,6 +45,7 @@
 
 <svelte:head>
     <link rel="canonical" href={data.canonical} />
+    <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
 <header class="fixed inset-x-0 top-0 z-50 h-14 bg-header backdrop-blur">
