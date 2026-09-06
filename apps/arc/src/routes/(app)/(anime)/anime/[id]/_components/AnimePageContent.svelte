@@ -378,7 +378,7 @@
             >
                 <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
                 <span class="sr-only">{m.anime_loading_episodes()}</span>
-                <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
+                <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 hero:grid-cols-7">
                     {#each Array.from({ length: 5 }) as _}
                         <AnimeCardSkeleton variant="top" />
                     {/each}
@@ -400,7 +400,7 @@
                 >
                     <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
                     {#if episodes.length}
-                        <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 2xl:grid-cols-7">
+                        <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 hero:grid-cols-7">
                             {#each episodes.slice(0, visibleEpisodeCount) as episode}
                                 <EpisodeGridCard
                                     episode={episode}
