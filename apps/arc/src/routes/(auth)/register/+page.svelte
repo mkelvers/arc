@@ -5,6 +5,9 @@
     import AuthInput from '../_components/AuthInput.svelte';
     import { m } from '$lib/i18n.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
+    import type { PageProps } from './$types';
+
+    let { form }: PageProps = $props();
 
     let email = $state('');
     let username = $state('');
@@ -51,15 +54,15 @@
 
 <svelte:head>
     <title>Arc — {m.auth_register_title()}</title>
-    <meta name="description" content={m.auth_create_failed()} />
+    <meta name="description" content={m.auth_register_title()} />
     <meta name="robots" content="noindex" />
 </svelte:head>
 
-<form class="w-full max-w-104" onsubmit={register}>
+<form class="w-full max-w-104" method="POST" action="?/default" aria-busy={pending} onsubmit={register}>
     <h1 class="text-center text-3xl font-normal">{m.auth_register_title()}</h1>
 
-    {#if message}
-        <p class="mt-6 text-center text-sm text-status-error" role="alert">{message}</p>
+    {#if message || form?.error}
+        <p class="mt-6 text-center text-sm text-status-error" role="alert">{message || form?.error}</p>
     {/if}
 
     <div class="mt-12 space-y-6">
