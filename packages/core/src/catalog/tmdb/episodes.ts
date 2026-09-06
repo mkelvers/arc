@@ -161,7 +161,11 @@ async function hasEmbeddedLetterboxing(path: string) {
     }
 }
 
-async function mapConcurrent<T, R>(values: T[], map: (value: T, index: number) => Promise<R>) {
+async function mapConcurrent<T, R>(
+    values: T[],
+    map: (value: T, index: number) => Promise<R>,
+    concurrency = 4
+) {
     const results = Array<R>(values.length);
     let next = 0;
     const worker = async () => {
@@ -171,7 +175,7 @@ async function mapConcurrent<T, R>(values: T[], map: (value: T, index: number) =
         }
     };
 
-    await Promise.all(Array.from({ length: Math.min(4, values.length) }, worker));
+    await Promise.all(Array.from({ length: Math.min(concurrency, values.length) }, worker));
 
     return results;
 }
@@ -546,7 +550,7 @@ export async function getEpisodeMetadata(
             series.original_language ?? undefined
         );
         const needed = episodeDetailsNeeded(candidate, localizedText);
-        const needsFallback = needed.details || needed.translations || needed.images;
+        const needsFallback = needed.details || needed.translations;
         // Bound optional per-episode fallbacks for long releases.
         const fetchFallback = needsFallback && fallbacks < 24;
         if (fetchFallback) {
@@ -564,7 +568,7 @@ export async function getEpisodeMetadata(
     const completed = await mapConcurrent(
         matches,
         async ({ sourceId, candidate, localizedText, needed, fetchFallback }) => {
-            if (!fetchFallback) {
+            if (!fetchFallback && !needed.images) {
                 return {
                     id: sourceId,
                     metadata: completeEpisodeDetails(candidate, {
@@ -579,32 +583,37 @@ export async function getEpisodeMetadata(
                 season_number: candidate.seasonNumber,
                 episode_number: candidate.episodeNumber,
             };
-            const detailsRequest = needed.details
-                ? client
-                      .GET('/3/tv/{series_id}/season/{season_number}/episode/{episode_number}', {
-                          params: {
-                              path,
-                              query: {
-                                  language: 'en-US',
-                              },
-                          },
-                      })
-                      .then(({ data }) => data)
-                      .catch(() => undefined)
-                : Promise.resolve(undefined);
-            const translationsRequest = needed.translations
-                ? client
-                      .GET(
-                          '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/translations',
-                          {
-                              params: {
-                                  path,
-                              },
-                          }
-                      )
-                      .then(({ data }) => data?.translations)
-                      .catch(() => undefined)
-                : Promise.resolve(undefined);
+            const detailsRequest =
+                fetchFallback && needed.details
+                    ? client
+                          .GET(
+                              '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}',
+                              {
+                                  params: {
+                                      path,
+                                      query: {
+                                          language: 'en-US',
+                                      },
+                                  },
+                              }
+                          )
+                          .then(({ data }) => data)
+                          .catch(() => undefined)
+                    : Promise.resolve(undefined);
+            const translationsRequest =
+                fetchFallback && needed.translations
+                    ? client
+                          .GET(
+                              '/3/tv/{series_id}/season/{season_number}/episode/{episode_number}/translations',
+                              {
+                                  params: {
+                                      path,
+                                  },
+                              }
+                          )
+                          .then(({ data }) => data?.translations)
+                          .catch(() => undefined)
+                    : Promise.resolve(undefined);
             const imagesRequest = needed.images
                 ? client
                       .GET(
@@ -648,8 +657,9 @@ export async function getEpisodeMetadata(
                 overview: translation.data?.overview,
             }));
             const analyzedStills = stills
-                ? await Promise.all(
-                      stills.map(async (still) => ({
+                ? await mapConcurrent(
+                      stills,
+                      async (still) => ({
                           filePath: still.file_path,
                           voteAverage: still.vote_average,
                           voteCount: still.vote_count,
@@ -657,7 +667,8 @@ export async function getEpisodeMetadata(
                           hasEmbeddedLetterboxing: still.file_path
                               ? await hasEmbeddedLetterboxing(still.file_path)
                               : true,
-                      }))
+                      }),
+                      1
                   )
                 : undefined;
 
