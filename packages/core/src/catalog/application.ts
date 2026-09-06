@@ -70,6 +70,23 @@ function audioModes(rows: Array<{ anilistId: number; audio: AudioMode[] }>) {
     return modes;
 }
 
+type NewAnimeTarget = {
+    anilistId: number;
+    episode: number;
+    confirmedAt: Date | null;
+    airingAt: Date;
+};
+
+export function latestNewAnimeTargets(entries: NewAnimeTarget[]) {
+    const latest = new Map<number, NewAnimeTarget>();
+    for (const entry of entries) {
+        if (!latest.has(entry.anilistId)) {
+            latest.set(entry.anilistId, entry);
+        }
+    }
+    return [...latest.values()];
+}
+
 export function createCatalogApplication(source: CatalogSource) {
     const search = createSearchOperation(source);
     const simulcast = createSimulcastOperations(source);
@@ -128,7 +145,7 @@ export function createCatalogApplication(source: CatalogSource) {
             )
             .orderBy(desc(animeEpisodeTarget.confirmedAt), desc(animeEpisodeTarget.targetEpisode))
             .limit(5_000);
-        const latest = [...new Map(confirmed.map((entry) => [entry.anilistId, entry])).values()];
+        const latest = latestNewAnimeTargets(confirmed);
         const episodeRows = latest.length
             ? await db
                   .select({ anilistId: animeEpisode.anilistId, audio: animeEpisode.audio })
