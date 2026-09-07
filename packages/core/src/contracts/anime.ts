@@ -52,6 +52,7 @@ const AnimeDetailsSchema = z.object({
         })
         .nullable(),
     score: z.number(),
+    scoreSource: z.enum(['AniList', 'Kitsu']).optional(),
     members: z.string(),
     favourites: z.string(),
     themes: z.array(z.string()),

@@ -244,7 +244,7 @@
                         {/each}
                     </span>
                     <span class="hidden text-border-strong sm:inline" aria-hidden="true">|</span>
-                    <strong>AniList score: {anime.score}%</strong>
+                    <strong>{anime.scoreSource ?? 'AniList'} score: {anime.score}%</strong>
                 </div>
 
                 <div
