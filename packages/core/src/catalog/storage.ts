@@ -35,60 +35,84 @@ export async function refreshCatalogPage(
 
     await db.transaction(async (tx) => {
         if (anime.length) {
-            await tx
-                .insert(animeCatalog)
-                .values(
-                    anime.map((entry) => ({
-                        ...entry,
-                        discoveryRevision: 2,
-                        sourceFetchedAt: fetchedAt,
-                    }))
-                )
-                .onConflictDoUpdate({
-                    target: animeCatalog.anilistId,
-                    set: {
-                        title: sql.raw(`excluded."${animeCatalog.title.name}"`),
-                        searchText: sql.raw(`excluded."${animeCatalog.searchText.name}"`),
-                        imageUrl: sql.raw(`excluded."${animeCatalog.imageUrl.name}"`),
-                        synopsis: sql.raw(`excluded."${animeCatalog.synopsis.name}"`),
-                        genres: sql.raw(`excluded."${animeCatalog.genres.name}"`),
-                        tags: sql.raw(`excluded."${animeCatalog.tags.name}"`),
-                        format: sql.raw(`excluded."${animeCatalog.format.name}"`),
-                        status: sql.raw(`excluded."${animeCatalog.status.name}"`),
-                        source: sql.raw(`excluded."${animeCatalog.source.name}"`),
-                        season: sql.raw(`excluded."${animeCatalog.season.name}"`),
-                        seasonYear: sql.raw(`excluded."${animeCatalog.seasonYear.name}"`),
-                        countryOfOrigin: sql.raw(`excluded."${animeCatalog.countryOfOrigin.name}"`),
-                        isAdult: sql.raw(`excluded."${animeCatalog.isAdult.name}"`),
-                        popularity: sql.raw(`excluded."${animeCatalog.popularity.name}"`),
-                        duration: sql.raw(`excluded."${animeCatalog.duration.name}"`),
-                        discoveryRevision: sql.raw(
-                            `excluded."${animeCatalog.discoveryRevision.name}"`
-                        ),
-                        averageScore: sql.raw(`excluded."${animeCatalog.averageScore.name}"`),
-                        sourceFetchedAt: fetchedAt,
-                        updatedAt: fetchedAt,
-                    },
-                });
+            const primary = anime.filter((entry) => entry.metadataSource !== 'kitsu');
+            const fallback = anime.filter((entry) => entry.metadataSource === 'kitsu');
+            const insertedFallback = fallback.length
+                ? await tx
+                      .insert(animeCatalog)
+                      .values(
+                          fallback.map(({ metadataSource: _metadataSource, ...entry }) => ({
+                              ...entry,
+                              discoveryRevision: 2,
+                              sourceFetchedAt: fetchedAt,
+                          }))
+                      )
+                      .onConflictDoNothing()
+                      .returning({ anilistId: animeCatalog.anilistId })
+                : [];
+            if (primary.length)
+                await tx
+                    .insert(animeCatalog)
+                    .values(
+                        primary.map(({ metadataSource: _metadataSource, ...entry }) => ({
+                            ...entry,
+                            discoveryRevision: 2,
+                            sourceFetchedAt: fetchedAt,
+                        }))
+                    )
+                    .onConflictDoUpdate({
+                        target: animeCatalog.anilistId,
+                        set: {
+                            title: sql.raw(`excluded."${animeCatalog.title.name}"`),
+                            searchText: sql.raw(`excluded."${animeCatalog.searchText.name}"`),
+                            imageUrl: sql.raw(`excluded."${animeCatalog.imageUrl.name}"`),
+                            synopsis: sql.raw(`excluded."${animeCatalog.synopsis.name}"`),
+                            genres: sql.raw(`excluded."${animeCatalog.genres.name}"`),
+                            tags: sql.raw(`excluded."${animeCatalog.tags.name}"`),
+                            format: sql.raw(`excluded."${animeCatalog.format.name}"`),
+                            status: sql.raw(`excluded."${animeCatalog.status.name}"`),
+                            source: sql.raw(`excluded."${animeCatalog.source.name}"`),
+                            season: sql.raw(`excluded."${animeCatalog.season.name}"`),
+                            seasonYear: sql.raw(`excluded."${animeCatalog.seasonYear.name}"`),
+                            countryOfOrigin: sql.raw(
+                                `excluded."${animeCatalog.countryOfOrigin.name}"`
+                            ),
+                            isAdult: sql.raw(`excluded."${animeCatalog.isAdult.name}"`),
+                            popularity: sql.raw(`excluded."${animeCatalog.popularity.name}"`),
+                            duration: sql.raw(`excluded."${animeCatalog.duration.name}"`),
+                            discoveryRevision: sql.raw(
+                                `excluded."${animeCatalog.discoveryRevision.name}"`
+                            ),
+                            averageScore: sql.raw(`excluded."${animeCatalog.averageScore.name}"`),
+                            sourceFetchedAt: fetchedAt,
+                            updatedAt: fetchedAt,
+                        },
+                    });
 
             await createAnimeSearchIndex(tx).store(
-                anime.map((entry) => ({
-                    id: entry.anilistId,
-                    href: `/anime/${entry.anilistId}`,
-                    link: `/anime/${entry.anilistId}`,
-                    title: entry.title,
-                    titles: entry.searchText.split('\n'),
-                    image: entry.imageUrl,
-                    audioLabel: '',
-                    score: entry.averageScore ?? 0,
-                    genres: entry.genres,
-                    synopsis: entry.synopsis,
-                    format: entry.format,
-                    popularity: entry.popularity ?? 0,
-                    backdrop: null,
-                    artworkGroup: null,
-                    relatedIds: [],
-                }))
+                anime
+                    .filter(
+                        (entry) =>
+                            entry.metadataSource !== 'kitsu' ||
+                            insertedFallback.some(({ anilistId }) => anilistId === entry.anilistId)
+                    )
+                    .map((entry) => ({
+                        id: entry.anilistId,
+                        href: `/anime/${entry.anilistId}`,
+                        link: `/anime/${entry.anilistId}`,
+                        title: entry.title,
+                        titles: entry.searchText.split('\n'),
+                        image: entry.imageUrl,
+                        audioLabel: '',
+                        score: entry.averageScore ?? 0,
+                        genres: entry.genres,
+                        synopsis: entry.synopsis,
+                        format: entry.format,
+                        popularity: entry.popularity ?? 0,
+                        backdrop: null,
+                        artworkGroup: null,
+                        relatedIds: [],
+                    }))
             );
         }
 

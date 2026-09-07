@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, eq, inArray, isNotNull, isNull, lte, or } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 
 import {
     AnimeDocument,
@@ -48,6 +48,11 @@ function releaseValues(media: AniListAnime, sourceFetchedAt = new Date()) {
 }
 
 export async function storeAnimeRelease(media: AniListAnime, sourceFetchedAt = new Date()) {
+    if (media.metadataSource === 'kitsu') {
+        const stored = await storedAnimeRelease(media.id);
+        // A partial fallback must never replace a richer authoritative release or its schedule.
+        if (stored && stored.metadataSource !== 'kitsu') return;
+    }
     const sourceAnimeId = await ensureInternalAnimeId(media.id, animeTitles(media)[0]);
     const values = releaseValues(media, sourceFetchedAt);
 
@@ -57,6 +62,10 @@ export async function storeAnimeRelease(media: AniListAnime, sourceFetchedAt = n
         .onConflictDoUpdate({
             target: animeRelease.anilistId,
             set: values,
+            setWhere:
+                media.metadataSource === 'kitsu'
+                    ? sql`${animeRelease.data}->>'metadataSource' = 'kitsu'`
+                    : undefined,
         });
 
     const relations: Array<typeof animeRelation.$inferInsert> = [];
@@ -70,14 +79,16 @@ export async function storeAnimeRelease(media: AniListAnime, sourceFetchedAt = n
             sourceAnimeId,
             targetAnimeId,
             relationType: edge.relationType,
-            source: 'anilist',
+            source: media.metadataSource ?? 'anilist',
             verifiedAt: sourceFetchedAt,
             updatedAt: sourceFetchedAt,
         });
     }
 
     await db.transaction(async (tx) => {
-        await tx.delete(animeRelation).where(eq(animeRelation.sourceAnimeId, sourceAnimeId));
+        if (media.metadataSource !== 'kitsu') {
+            await tx.delete(animeRelation).where(eq(animeRelation.sourceAnimeId, sourceAnimeId));
+        }
         if (relations.length) {
             await tx.insert(animeRelation).values(relations).onConflictDoNothing();
         }
@@ -239,7 +250,10 @@ export async function refreshAnimeRelease(id: number, options: { force?: boolean
         await db
             .update(animeReleaseRequest)
             .set({
-                nextAttemptAt: new Date(Date.now() + 24 * 60 * 60 * 1_000),
+                nextAttemptAt: new Date(
+                    Date.now() +
+                        (media.metadataSource === 'kitsu' ? 5 * 60 * 1_000 : 24 * 60 * 60 * 1_000)
+                ),
                 leaseOwner: null,
                 leaseUntil: null,
                 lastError: null,
@@ -301,12 +315,27 @@ export async function storedAnimeRelease(id: number) {
 }
 
 export async function getAnimeRelease(id: number) {
-    return (await storedAnimeRelease(id)) ?? refreshAnimeRelease(id, { force: true });
+    const stored = await storedAnimeRelease(id);
+    if (stored?.metadataSource === 'kitsu') {
+        const [release] = await db
+            .select({ sourceFetchedAt: animeRelease.sourceFetchedAt })
+            .from(animeRelease)
+            .where(eq(animeRelease.anilistId, id))
+            .limit(1);
+        if (release && release.sourceFetchedAt.getTime() <= Date.now() - 5 * 60 * 1_000) {
+            try {
+                return await refreshAnimeRelease(id, { force: true });
+            } catch {
+                return stored;
+            }
+        }
+    }
+    return stored ?? refreshAnimeRelease(id, { force: true });
 }
 
 export async function refreshAnimeSchedule(id: number) {
     const stored = await storedAnimeRelease(id);
-    if (!stored) {
+    if (!stored || stored.metadataSource === 'kitsu') {
         return refreshAnimeRelease(id, { force: true });
     }
 

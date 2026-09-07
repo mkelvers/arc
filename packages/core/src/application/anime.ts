@@ -57,7 +57,10 @@ export async function animePageOverview(userId: string, id: number) {
 export async function animePageDeferred(userId: string, id: number) {
     const stored = await storedAnimeRelease(id);
     const imported = !stored;
-    const anime = stored ?? (await getAnimeRelease(id));
+    const anime =
+        stored?.metadataSource === 'kitsu'
+            ? await getAnimeRelease(id)
+            : (stored ?? (await getAnimeRelease(id)));
     const storedMapping = await findMapping(id);
     const storedEpisodes = await getEpisodes(anime);
     const metadataNeedsRefresh = storedMapping
