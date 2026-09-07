@@ -5,8 +5,16 @@ import { z } from 'zod';
 
 import { db, type DatabaseTransaction } from '@arc/shared/db';
 import { anilistQuerySnapshot } from '@arc/shared/db/schema';
-import { graphql, type GraphQLDocument, type GraphQLOptions } from '@arc/shared/graphql';
+import {
+    graphql,
+    GraphQLRequestError,
+    type GraphQLDocument,
+    type GraphQLOptions,
+} from '@arc/shared/graphql';
 import { coordinatedAniListRequest } from './anilist-lease';
+import { requestKitsu } from './kitsu';
+import { logger } from '../application/logger';
+import { AniListAnimeSchema, AniListAnimeOverviewSchema } from './anilist-types';
 
 export interface AniListRequestOptions extends GraphQLOptions {
     refreshAfterMs?: number;
@@ -59,9 +67,66 @@ async function refresh<TResult, TVariables>(
     options: AniListRequestOptions
 ) {
     const operation = document.toString().match(/(?:query|mutation)\s+(\w+)/)?.[1] ?? 'anonymous';
-    const data = await coordinatedAniListRequest(operation, () =>
-        graphql('https://graphql.anilist.co', document, variables, options)
-    );
+    let data: TResult;
+    try {
+        data = await coordinatedAniListRequest(operation, async () => {
+            const result = await graphql(
+                'https://graphql.anilist.co',
+                document,
+                variables,
+                options
+            );
+            if (operation === 'Anime' || operation === 'AnimeOverview') {
+                const parsed = z
+                    .object({
+                        Media: (operation === 'Anime'
+                            ? AniListAnimeSchema
+                            : AniListAnimeOverviewSchema
+                        ).nullable(),
+                    })
+                    .safeParse(result);
+                const requested = z.object({ id: z.number() }).parse(variables);
+                if (
+                    !parsed.success ||
+                    (parsed.data.Media && parsed.data.Media.id !== requested.id)
+                ) {
+                    throw new GraphQLRequestError({
+                        message: 'AniList returned invalid media data',
+                    });
+                }
+            }
+            return result;
+        });
+    } catch (cause) {
+        if (
+            !(cause instanceof GraphQLRequestError) ||
+            (cause.status != null &&
+                cause.status !== 408 &&
+                cause.status !== 429 &&
+                !(
+                    cause.status === 403 &&
+                    cause.message ===
+                        'The AniList API has been temporarily disabled due to severe stability issues.'
+                ) &&
+                cause.status < 500)
+        ) {
+            throw cause;
+        }
+        try {
+            const fallback = await requestKitsu(operation, variables, options.timeoutMs);
+            logger.debug('catalog fallback: operation=%s source=kitsu', operation);
+            // Fallback data must not overwrite a durable AniList query snapshot.
+            return fallback as TResult;
+        } catch (fallbackCause) {
+            logger.debug(
+                'catalog fallback failed: operation=%s error=%s',
+                operation,
+                fallbackCause
+            );
+            // Keep the primary error and its Retry-After information for existing callers.
+            throw cause;
+        }
+    }
     const fetchedAt = new Date();
     const refreshAfter = new Date(
         fetchedAt.getTime() + (options.refreshAfterMs ?? 24 * 60 * 60 * 1_000)

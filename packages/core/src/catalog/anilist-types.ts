@@ -5,8 +5,12 @@ import type {
 } from '@arc/shared/graphql/generated/graphql';
 import { z } from 'zod';
 
-export type AniListAnime = NonNullable<AnimeQuery['Media']>;
-export type AniListAnimeOverview = NonNullable<AnimeOverviewQuery['Media']>;
+export type AniListAnime = NonNullable<AnimeQuery['Media']> & {
+    metadataSource?: 'kitsu';
+    metadataSourceId?: number;
+};
+export type AniListAnimeOverview = NonNullable<AnimeOverviewQuery['Media']> &
+    Pick<AniListAnime, 'metadataSource' | 'metadataSourceId'>;
 export type AniListSchedule = NonNullable<AnimeScheduleQuery['Media']>;
 
 export type AniListAnimeDetailsMedia = Pick<
@@ -25,7 +29,12 @@ export type AniListAnimeDetailsMedia = Pick<
     | 'popularity'
     | 'favourites'
 > &
-    Partial<Pick<AniListAnime, 'rankings' | 'tags' | 'studios' | 'staff'>>;
+    Partial<
+        Pick<
+            AniListAnime,
+            'rankings' | 'tags' | 'studios' | 'staff' | 'metadataSource' | 'metadataSourceId'
+        >
+    >;
 
 const nullableString = z.string().nullable();
 const nullableInteger = z.number().int().nullable();
@@ -41,6 +50,8 @@ const nextAiringSchema = z
 
 export const AniListAnimeSchema = z
     .looseObject({
+        metadataSource: z.literal('kitsu').optional(),
+        metadataSourceId: z.number().int().positive().optional(),
         id: z.number().int().positive(),
         idMal: nullableInteger,
         title: titleSchema,
@@ -156,6 +167,8 @@ export const AniListAnimeSchema = z
 
 export const AniListAnimeOverviewSchema = z
     .object({
+        metadataSource: z.literal('kitsu').optional(),
+        metadataSourceId: z.number().int().positive().optional(),
         id: z.number().int().positive(),
         title: titleSchema,
         bannerImage: nullableString,

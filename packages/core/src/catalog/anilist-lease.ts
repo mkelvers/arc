@@ -101,7 +101,12 @@ export async function coordinatedAniListRequest<Value>(
             cause instanceof GraphQLRequestError
                 ? cause.status === 429
                     ? (cause.retryAfterMs ?? 60_000)
-                    : cause.status == null || cause.status >= 500
+                    : cause.status == null ||
+                        cause.status === 408 ||
+                        cause.status >= 500 ||
+                        (cause.status === 403 &&
+                            cause.message ===
+                                'The AniList API has been temporarily disabled due to severe stability issues.')
                       ? 30_000
                       : 0
                 : 0;
