@@ -1,5 +1,6 @@
 import { and, eq, isNull, or } from 'drizzle-orm';
 import { load } from 'cheerio';
+import { createDecipheriv } from 'node:crypto';
 import { z } from 'zod';
 
 import { audioAvailabilityLabel, type AudioMode } from '../audio';
@@ -100,21 +101,31 @@ const serverResponseSchema = z.object({
         })
         .loose(),
 });
-const sourcePayloadSchema = z.object({
-    sources: z.object({
-        file: z.string().trim().min(1),
-    }),
-    tracks: z
-        .array(
-            z.object({
+const sourcePayloadSchema = z
+    .object({
+        sources: z
+            .object({
                 file: z.string().trim().min(1),
-                label: z.string(),
-                kind: z.string(),
-                default: z.boolean().optional(),
             })
-        )
-        .optional(),
-});
+            .optional(),
+        enc: z.string().trim().min(1).optional(),
+        tracks: z
+            .array(
+                z.object({
+                    file: z.string().trim().min(1),
+                    label: z.string(),
+                    kind: z.string(),
+                    default: z.boolean().optional(),
+                })
+            )
+            .optional(),
+    })
+    .refine(({ sources, enc }) => sources !== undefined || enc !== undefined);
+// MegaPlay exposes this client-side AES routine in its player script for the `enc` payload.
+const megaPlayEncryptionKey = Buffer.concat([Buffer.from('i?LMTAx0Q6,:}50U'), Buffer.alloc(16)]);
+const megaPlayEncryptionIv = Buffer.from([
+    87, 48, 59, 50, 55, 84, 111, 97, 85, 112, 108, 95, 80, 37, 39, 99,
+]);
 type AniKotoServerMode = Exclude<AudioMode, 'raw'> | 'hsub';
 
 interface AniKotoSeries {
@@ -542,7 +553,8 @@ export function matchesAniKotoFormat(providerFormat: string | null, animeFormat:
 
 export function matchesAniKotoEpisodeCount(
     providerEpisodeCount: number | undefined,
-    anime: Pick<AniListAnime, 'status' | 'format' | 'episodes'>
+    anime: Pick<AniListAnime, 'status' | 'format' | 'episodes'>,
+    exactIdentity = false
 ) {
     if (
         anime.status !== 'FINISHED' ||
@@ -553,7 +565,12 @@ export function matchesAniKotoEpisodeCount(
         return true;
     }
 
-    return providerEpisodeCount >= anime.episodes;
+    return (
+        providerEpisodeCount >= anime.episodes ||
+        // AniList can include a non-playable special in the total while AniKoto
+        // exposes only the numbered episodes for the exact release identity.
+        (exactIdentity && providerEpisodeCount > 0 && providerEpisodeCount === anime.episodes - 1)
+    );
 }
 
 export function parseSearchCandidates(html: string) {
@@ -681,13 +698,39 @@ export function parseMegaPlaySourceId(html: string) {
     return positiveId(id) ? id : null;
 }
 
+function decryptMegaPlaySourceFile(token: string) {
+    try {
+        const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+        const decipher = createDecipheriv(
+            'aes-256-cbc',
+            megaPlayEncryptionKey,
+            megaPlayEncryptionIv
+        );
+        const decrypted = Buffer.concat([
+            decipher.update(Buffer.from(padded, 'base64')),
+            decipher.final(),
+        ]);
+        const file = z
+            .object({ file: z.string().trim().min(1) })
+            .safeParse(JSON.parse(decrypted.toString('utf8')));
+        return file.success ? file.data.file : null;
+    } catch {
+        return null;
+    }
+}
+
 export function parseMegaPlaySource(value: JsonValue) {
     const parsed = sourcePayloadSchema.safeParse(value);
     if (!parsed.success) {
         return null;
     }
 
-    const mediaUrl = supportedMediaUrl(parsed.data.sources.file);
+    const sourceFile =
+        parsed.data.sources?.file ??
+        (parsed.data.enc ? decryptMegaPlaySourceFile(parsed.data.enc) : null);
+
+    const mediaUrl = sourceFile ? supportedMediaUrl(sourceFile) : null;
     if (!mediaUrl) {
         return null;
     }
@@ -1220,14 +1263,15 @@ async function findSeries(anime: AniListAnime) {
     const stored = await providerMediaId(anime.id);
     const storedId = positiveId(stored?.id);
     let fallbackSeries: AniKotoSeries | null = null;
-    if (storedId && stored?.inventoryStatus !== 'unresolved') {
+    if (storedId) {
         try {
             const series = await loadSeries(storedId);
+            const exactIdentity = matchesAniKotoIdentity(series, anime);
             if (
                 (matchesAniKotoIdentityOrTitle(series, anime) ||
                     matchesAniKotoRelatedIdentity(series, anime)) &&
                 matchesAniKotoFormat(series.format, anime.format) &&
-                matchesAniKotoEpisodeCount(series.episodeCount, anime)
+                matchesAniKotoEpisodeCount(series.episodeCount, anime, exactIdentity)
             ) {
                 if (series.audio.includes('dub')) {
                     return series;
@@ -1293,6 +1337,9 @@ async function findSeries(anime: AniListAnime) {
                 throw cause;
             }
         }
+        const exactIdentity = Boolean(
+            series && 'anilistId' in series && matchesAniKotoIdentity(series, anime)
+        );
         if (
             series &&
             matchesAniKotoFormat(
@@ -1304,7 +1351,7 @@ async function findSeries(anime: AniListAnime) {
                   matchesAniKotoRelatedIdentity(series, anime)
                 : matchesAniKotoTitle(candidate.title, titles)) &&
             ('episodeCount' in series
-                ? matchesAniKotoEpisodeCount(series.episodeCount, anime)
+                ? matchesAniKotoEpisodeCount(series.episodeCount, anime, exactIdentity)
                 : true)
         ) {
             if ('audio' in series && series.audio.includes('dub')) {
