@@ -104,7 +104,7 @@ test('resolves related releases in a batch using their AniList and MAL mappings'
 
 test('keeps upstream pagination when unsafe and unmapped search results are omitted', async () => {
     const safe = kitsuFixture();
-    const adult = kitsuFixture('2', 2, 2);
+    const adult = kitsuFixture('2', 2, 3);
     adult.anime.data[0]!.attributes.nsfw = true;
     server.use(
         http.get('https://kitsu.app/api/edge/anime', ({ request }) => {
@@ -131,6 +131,30 @@ test('keeps upstream pagination when unsafe and unmapped search results are omit
     expect(result).toMatchObject({
         Page: { media: [{ id: 182205 }], pageInfo: { hasNextPage: true } },
     });
+});
+
+test('returns null when a single-id result is removed by filters', async () => {
+    const fixture = kitsuFixture();
+    server.use(
+        http.get('https://kitsu.app/api/edge/mappings', () => HttpResponse.json(fixture.mappings)),
+        http.get('https://kitsu.app/api/edge/anime', () => HttpResponse.json(fixture.anime))
+    );
+    const result = await requestKitsu('Anime', { id: 182205, format: 'MOVIE' });
+    expect('Media' in result).toBe(true);
+    if ('Media' in result) expect(result.Media).toBeNull();
+});
+
+test('omits incomplete HomeAnime season filters', async () => {
+    const fixture = kitsuFixture();
+    server.use(
+        http.get('https://kitsu.app/api/edge/anime', ({ request }) => {
+            const params = new URL(request.url).searchParams;
+            expect(params.has('filter[season]')).toBe(false);
+            expect(params.has('filter[seasonYear]')).toBe(false);
+            return HttpResponse.json({ ...fixture.anime, links: { next: null } });
+        })
+    );
+    await requestKitsu('HomeAnime', {});
 });
 
 test('translates 50-item pages to Kitsu offsets without losing rows', async () => {

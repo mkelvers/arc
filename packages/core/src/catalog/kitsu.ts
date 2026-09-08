@@ -425,7 +425,7 @@ export async function requestKitsu<Variables>(
                 input.minimumPopularity == null || (entry.popularity ?? 0) > input.minimumPopularity
             );
         });
-        if (input.id !== undefined) return { Media: completed[0] };
+        if (input.id !== undefined) return { Media: completed[0] ?? null };
         return {
             [operation === 'WatchlistTransferAnime' ? 'mal' : 'Page']: {
                 media: completed,
@@ -470,21 +470,16 @@ export async function requestKitsu<Variables>(
         };
     }
     if (operation === 'HomeAnime') {
+        const seasonParameters = new Map([
+            ['filter[status]', 'current,upcoming'],
+            ['filter[subtype]', (input.discoveryFormats ?? ['TV', 'ONA']).join(',')],
+            ['filter[userCount]', `${input.minimumPopularity ?? 0}...`],
+            ['sort', '-userCount'],
+        ]);
+        if (input.season) seasonParameters.set('filter[season]', input.season.toLowerCase());
+        if (input.seasonYear) seasonParameters.set('filter[seasonYear]', String(input.seasonYear));
         return {
-            season: await catalog(
-                {
-                    'filter[season]': input.season?.toLowerCase() ?? '',
-                    'filter[seasonYear]': String(input.seasonYear),
-                    'filter[status]': 'current,upcoming',
-                    'filter[subtype]': (input.discoveryFormats ?? ['TV', 'ONA']).join(','),
-                    'filter[userCount]': `${input.minimumPopularity ?? 0}...`,
-                    sort: '-userCount',
-                },
-                1,
-                30,
-                true,
-                false
-            ),
+            season: await catalog(Object.fromEntries(seasonParameters), 1, 30, true, false),
             popular: await catalog(
                 { 'filter[subtype]': 'TV', sort: '-userCount' },
                 1,
