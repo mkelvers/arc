@@ -22,7 +22,7 @@ const countryOfOriginSchema = z.string().nullable().optional();
 export function transformBrowseEntries(
     mediaEntries: NonNullable<NonNullable<BrowseAnimePageQuery['Page']>['media']>,
     formats: readonly MediaFormat[] = ['TV', 'ONA']
-) {
+): BrowseCatalogEntry[] {
     return (
         mediaEntries?.filter((media): media is NonNullable<typeof media> => media !== null) ?? []
     ).flatMap((media) => {
@@ -46,6 +46,9 @@ export function transformBrowseEntries(
 
         return [
             {
+                metadataSource: z
+                    .object({ metadataSource: z.literal('kitsu').optional() })
+                    .parse(media).metadataSource,
                 anilistId: media.id,
                 title,
                 searchText,

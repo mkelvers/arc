@@ -1,22 +1,4 @@
-import type { AnimeQuery } from '@arc/shared/graphql/generated/graphql';
-
-type AniListAnimeDetailsMedia = Pick<
-    NonNullable<AnimeQuery['Media']>,
-    | 'id'
-    | 'title'
-    | 'bannerImage'
-    | 'description'
-    | 'genres'
-    | 'format'
-    | 'status'
-    | 'season'
-    | 'seasonYear'
-    | 'nextAiringEpisode'
-    | 'averageScore'
-    | 'popularity'
-    | 'favourites'
-> &
-    Partial<Pick<NonNullable<AnimeQuery['Media']>, 'rankings' | 'tags' | 'studios' | 'staff'>>;
+import type { AniListAnimeDetailsMedia } from './anilist-types';
 
 const count = new Intl.NumberFormat('en', {
     maximumFractionDigits: 1,
@@ -136,6 +118,7 @@ export function toAnimeDetails(
         status: media.status,
         nextAiringEpisode,
         score: media.averageScore ?? 0,
+        scoreSource: media.metadataSource === 'kitsu' ? 'Kitsu' : 'AniList',
         members: count.format(media.popularity ?? 0),
         favourites: count.format(media.favourites ?? 0),
         themes: (media.tags?.filter((tag): tag is NonNullable<typeof tag> => tag !== null) ?? [])

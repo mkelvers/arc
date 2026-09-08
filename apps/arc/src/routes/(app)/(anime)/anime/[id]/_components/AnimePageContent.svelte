@@ -244,7 +244,15 @@
                         {/each}
                     </span>
                     <span class="hidden text-border-strong sm:inline" aria-hidden="true">|</span>
-                    <strong>AniList score: {anime.score}%</strong>
+                    <strong>
+                        {m.shared_score({
+                            provider:
+                                anime.scoreSource === 'Kitsu'
+                                    ? m.shared_score_provider_kitsu()
+                                    : m.shared_score_provider_anilist(),
+                            score: anime.score,
+                        })}
+                    </strong>
                 </div>
 
                 <div
