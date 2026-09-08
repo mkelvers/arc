@@ -1414,6 +1414,9 @@ async function getEpisodes(anime: AniListAnime) {
     return parsed;
 }
 
+/** Resolves the requested AniKoto audio modes into playable streams.
+ * Keeps SUB and DUB entries separate even when AniKoto returns the same media URL,
+ * then removes captions shared with SUB from DUB entries. */
 async function getStreams(
     anime: AniListAnime,
     episode: ProviderEpisodeReference,
@@ -1475,11 +1478,7 @@ async function getStreams(
     }
 
     if (result.dub?.length) {
-        const subtitleUrls = new Set(result.sub?.map((stream) => stream.url));
-        result.dub = removeSharedDubCaptions(
-            result.sub ?? [],
-            result.dub.filter((stream) => !subtitleUrls.has(stream.url))
-        );
+        result.dub = removeSharedDubCaptions(result.sub ?? [], result.dub);
     }
 
     if (!Object.values(result).some((streams) => streams?.length)) {
