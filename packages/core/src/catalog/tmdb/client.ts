@@ -58,6 +58,7 @@ interface TmdbImage {
 
 interface TmdbStill {
     file_path?: string | null;
+    iso_639_1?: string | null;
     vote_average: number;
     vote_count: number;
     width: number;

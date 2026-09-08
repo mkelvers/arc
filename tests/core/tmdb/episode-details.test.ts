@@ -141,6 +141,38 @@ describe('TMDB episode detail completion', () => {
         });
     });
 
+    test('rejects language-tagged stills with embedded broadcast text', () => {
+        expect(
+            completeEpisodeDetails(
+                {
+                    ...candidate,
+                    imageUrl: 'https://images.example/old.jpg',
+                },
+                {
+                    stills: [
+                        {
+                            filePath: '/broadcast-overlay.jpg',
+                            hasEmbeddedTextOverlay: true,
+                            voteAverage: 10,
+                            voteCount: 3,
+                            width: 3840,
+                        },
+                        {
+                            filePath: '/clean.jpg',
+                            hasEmbeddedTextOverlay: false,
+                            voteAverage: 0,
+                            voteCount: 0,
+                            width: 1920,
+                        },
+                    ],
+                    image: (path) => `https://images.example${path}`,
+                }
+            )
+        ).toMatchObject({
+            imageUrl: 'https://images.example/clean.jpg',
+        });
+    });
+
     test('does not keep a bulk still when every TMDB still is letterboxed', () => {
         expect(
             completeEpisodeDetails(
