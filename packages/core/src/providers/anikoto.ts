@@ -1414,6 +1414,9 @@ async function getEpisodes(anime: AniListAnime) {
     return parsed;
 }
 
+/** Resolves the requested AniKoto audio modes into playable streams.
+ * Keeps SUB and DUB entries separate even when AniKoto returns the same media URL,
+ * then removes captions shared with SUB from DUB entries. */
 async function getStreams(
     anime: AniListAnime,
     episode: ProviderEpisodeReference,
