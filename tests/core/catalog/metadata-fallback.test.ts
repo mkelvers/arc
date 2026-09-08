@@ -16,25 +16,63 @@ import {
 } from '../../../packages/core/src/catalog/anilist-types';
 
 type Snapshot = typeof anilistQuerySnapshot.$inferInsert;
+type ReleaseWrite = {
+    anilistId: number;
+    data: AniListAnime;
+};
+type InsertValue = Snapshot | ReleaseWrite;
+interface SqlNode {
+    queryChunks?: readonly SqlNode[];
+    value?: readonly string[];
+}
+
 const snapshots: Snapshot[] = [];
 let storedSnapshots: Snapshot[] = [];
 let storedRelease: AniListAnime | null = null;
+let hasEmptyReleaseRow = false;
+const releaseWrites: ReleaseWrite[] = [];
+
+function containsSqlFragment(node: SqlNode | undefined, fragment: string): boolean {
+    return (
+        node?.value?.some((entry) => entry.includes(fragment)) === true ||
+        node?.queryChunks?.some((entry) => containsSqlFragment(entry, fragment)) === true
+    );
+}
+
 const transaction = {
     execute: async () => {},
+    delete: () => ({ where: async () => {} }),
     select: () => ({
         from: (table: typeof animeRelease | typeof anilistQuerySnapshot) => ({
             where: () => ({
                 limit: async () =>
                     table === animeRelease
-                        ? storedRelease
-                            ? [{ data: storedRelease }]
-                            : []
+                        ? hasEmptyReleaseRow
+                            ? [{ data: null }]
+                            : storedRelease
+                              ? [{ data: storedRelease }]
+                              : []
                         : storedSnapshots,
             }),
         }),
     }),
+    update: () => ({ set: () => ({ where: async () => {} }) }),
     insert: () => ({
-        values: (value: Snapshot) => ({ onConflictDoUpdate: async () => snapshots.push(value) }),
+        values: (value: InsertValue) => ({
+            onConflictDoNothing: async () => {},
+            onConflictDoUpdate: async (config: { setWhere?: SqlNode }) => {
+                if ('anilistId' in value) {
+                    if (hasEmptyReleaseRow && !containsSqlFragment(config.setWhere, 'is null')) {
+                        return;
+                    }
+                    releaseWrites.push(value);
+                    storedRelease = value.data;
+                    hasEmptyReleaseRow = false;
+                    return;
+                }
+                snapshots.push(value);
+            },
+        }),
     }),
 };
 mock.module('@arc/shared/db', () => ({
@@ -47,6 +85,9 @@ mock.module('@arc/shared/db', () => ({
 mock.module('../../../packages/core/src/catalog/anilist-lease', () => ({
     coordinatedAniListRequest: <Result>(_operation: string, run: () => Promise<Result>) => run(),
 }));
+mock.module('../../../packages/core/src/catalog/identity', () => ({
+    ensureInternalAnimeId: async () => 1,
+}));
 const { request } = await import('../../../packages/core/src/catalog/anilist-client');
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
@@ -55,6 +96,8 @@ afterEach(() => {
     snapshots.length = 0;
     storedSnapshots = [];
     storedRelease = null;
+    hasEmptyReleaseRow = false;
+    releaseWrites.length = 0;
 });
 afterAll(() => server.close());
 
@@ -230,4 +273,20 @@ test('does not overwrite a stored AniList release or schedule with partial fallb
     await storeAnimeRelease(fallback);
     expect(snapshots).toHaveLength(0);
     expect(storedRelease.nextAiringEpisode).toEqual({ episode: 22, airingAt: 1800000000 });
+});
+
+test('stores Kitsu fallback data over an empty release placeholder', async () => {
+    installKitsu();
+    server.use(
+        http.post('https://graphql.anilist.co', () => new HttpResponse(null, { status: 503 }))
+    );
+    const fallback = AniListAnimeSchema.parse((await request(AnimeDocument, { id: 182205 })).Media);
+    hasEmptyReleaseRow = true;
+
+    const { storeAnimeRelease } =
+        await import('../../../packages/core/src/catalog/anilist-release');
+    await storeAnimeRelease(fallback);
+
+    expect(releaseWrites).toHaveLength(1);
+    expect(storedRelease).toMatchObject({ metadataSource: 'kitsu', id: 182205 });
 });

@@ -1,3 +1,4 @@
+import { createCipheriv } from 'node:crypto';
 import { getEventListeners } from 'node:events';
 import { describe, expect, test } from 'bun:test';
 
@@ -483,6 +484,20 @@ describe('AniKoto provider rules', () => {
             { kind: 'sdh', url: 'https://cdn.kryntal.top/sdh.vtt', preferred: false },
             { kind: 'forced', url: 'https://cdn.kryntal.top/forced.vtt', preferred: false },
         ]);
+    });
+
+    test('decrypts the current MegaPlay encrypted source payload', () => {
+        const key = Buffer.concat([Buffer.from('i?LMTAx0Q6,:}50U'), Buffer.alloc(16)]);
+        const iv = Buffer.from([87, 48, 59, 50, 55, 84, 111, 97, 85, 112, 108, 95, 80, 37, 39, 99]);
+        const cipher = createCipheriv('aes-256-cbc', key, iv);
+        const enc = Buffer.concat([
+            cipher.update(JSON.stringify({ file: 'https://cdn.kryntal.top/master.m3u8' }), 'utf8'),
+            cipher.final(),
+        ]).toString('base64url');
+
+        expect(parseMegaPlaySource({ enc })?.mediaUrl.toString()).toBe(
+            'https://cdn.kryntal.top/master.m3u8'
+        );
     });
 
     test('removes duplicate direct streams while keeping the first server label', () => {
