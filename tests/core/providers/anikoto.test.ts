@@ -553,6 +553,67 @@ describe('AniKoto provider rules', () => {
         expect(removeSharedDubCaptions(sub, dub)[0]?.subtitles).toEqual([]);
     });
 
+    test('keeps SUB and DUB sources when AniKoto resolves them to the same media URL', async () => {
+        const originalFetch = globalThis.fetch;
+        globalThis.fetch = Object.assign(
+            async (target: URL | RequestInfo) => {
+                const url = new URL(String(target));
+                if (url.pathname === '/ajax/episode/list/42') {
+                    return Response.json({
+                        status: 200,
+                        result: '<a data-ids="episode" data-num="21" data-sub="1" data-dub="1"></a>',
+                    });
+                }
+                if (url.pathname === '/ajax/server/list') {
+                    return Response.json({
+                        status: 200,
+                        result: `<div class="type" data-type="sub"><li data-link-id="sub-link">SUB</li></div>
+                            <div class="type" data-type="dub"><li data-link-id="dub-link">DUB</li></div>`,
+                    });
+                }
+                if (url.pathname === '/ajax/server') {
+                    const mode = url.searchParams.get('get') === 'dub-link' ? 'dub' : 'sub';
+                    return Response.json({
+                        status: 200,
+                        result: { url: `https://megaplay.buzz/stream/${mode}/${mode}` },
+                    });
+                }
+                if (url.pathname === '/stream/getSources') {
+                    return Response.json({
+                        sources: { file: 'https://cdn.kryntal.top/episode/master.m3u8' },
+                        tracks: [
+                            {
+                                kind: 'captions',
+                                label: 'English',
+                                file: 'https://cdn.kryntal.top/episode/english.vtt',
+                            },
+                        ],
+                    });
+                }
+                if (url.pathname.startsWith('/stream/')) {
+                    return new Response(
+                        `<div data-id="${url.pathname.endsWith('/dub') ? '2' : '1'}"></div>`
+                    );
+                }
+                throw new Error(`unexpected request: ${url}`);
+            },
+            { preconnect: originalFetch.preconnect }
+        );
+        try {
+            const sources = await anikotoProvider.getStreams(
+                { id: 182205 } as Parameters<typeof anikotoProvider.getStreams>[0],
+                { id: 'anikoto:42:episode', number: 21 },
+                ['sub', 'dub']
+            );
+
+            expect(sources.sub).toHaveLength(1);
+            expect(sources.dub).toHaveLength(1);
+            expect(sources.dub?.[0]?.subtitles).toEqual([]);
+        } finally {
+            globalThis.fetch = originalFetch;
+        }
+    });
+
     test("does not attach another encode's captions when a SUB server lacks its own track", async () => {
         const originalFetch = globalThis.fetch;
         globalThis.fetch = Object.assign(

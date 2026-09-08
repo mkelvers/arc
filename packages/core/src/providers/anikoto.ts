@@ -1475,11 +1475,7 @@ async function getStreams(
     }
 
     if (result.dub?.length) {
-        const subtitleUrls = new Set(result.sub?.map((stream) => stream.url));
-        result.dub = removeSharedDubCaptions(
-            result.sub ?? [],
-            result.dub.filter((stream) => !subtitleUrls.has(stream.url))
-        );
+        result.dub = removeSharedDubCaptions(result.sub ?? [], result.dub);
     }
 
     if (!Object.values(result).some((streams) => streams?.length)) {
