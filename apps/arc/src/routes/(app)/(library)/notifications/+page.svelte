@@ -6,6 +6,7 @@
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
+    import { cn } from '$lib/utils';
     import errorArtwork from '$lib/assets/error-state.png';
     import emptyArtwork from '$lib/assets/notifications-empty.png';
     import type { PageProps } from './$types';
@@ -76,16 +77,19 @@
             class="grid h-auto w-full gap-5 text-left whitespace-normal sm:col-span-2 sm:grid-cols-subgrid sm:gap-8"
             onclick={() => openNotification(entry)}
         >
-            <div class="relative aspect-4/3 overflow-hidden bg-panel">
+            <div
+                class={cn(
+                    'relative aspect-4/3 overflow-hidden bg-panel',
+                    !entry.readAt &&
+                        "after:absolute after:top-2 after:right-2 after:size-2 after:rounded-full after:bg-status-error after:content-['']"
+                )}
+            >
                 {#if entry.imageUrl}
                     <img src={entry.imageUrl} alt="" class="size-full object-cover" />
                 {:else}
                     <div class="grid size-full place-items-center text-muted">
                         <PlayIcon size={24} aria-hidden="true" />
                     </div>
-                {/if}
-                {#if !entry.readAt}
-                    <span class="absolute top-2 right-2 size-2 rounded-full bg-accent" aria-label="Unread"></span>
                 {/if}
             </div>
             <div class="min-w-0 self-start py-5">

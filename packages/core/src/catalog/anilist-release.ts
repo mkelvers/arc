@@ -65,7 +65,17 @@ export async function storeAnimeRelease(media: AniListAnime, sourceFetchedAt = n
             setWhere:
                 media.metadataSource === 'kitsu'
                     ? or(
-                          isNull(animeRelease.data),
+                          and(
+                              isNull(animeRelease.data),
+                              isNull(animeRelease.imageUrl),
+                              isNull(animeRelease.status),
+                              isNull(animeRelease.format),
+                              isNull(animeRelease.malId),
+                              isNull(animeRelease.episodeCount),
+                              isNull(animeRelease.durationMinutes),
+                              isNull(animeRelease.nextAiringAt),
+                              isNull(animeRelease.nextAiringEpisode)
+                          ),
                           sql`${animeRelease.data}->>'metadataSource' = 'kitsu'`
                       )
                     : undefined,

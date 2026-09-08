@@ -29,13 +29,18 @@ interface SqlNode {
 const snapshots: Snapshot[] = [];
 let storedSnapshots: Snapshot[] = [];
 let storedRelease: AniListAnime | null = null;
+let storedReleaseData: unknown | null = null;
 let hasEmptyReleaseRow = false;
+let retainsAuthoritativeSchedule = false;
 const releaseWrites: ReleaseWrite[] = [];
 
-function containsSqlFragment(node: SqlNode | undefined, fragment: string): boolean {
+function countSqlFragments(node: SqlNode | undefined, fragment: string): number {
     return (
-        node?.value?.some((entry) => entry.includes(fragment)) === true ||
-        node?.queryChunks?.some((entry) => containsSqlFragment(entry, fragment)) === true
+        (node?.value?.filter((entry) => entry.includes(fragment)).length ?? 0) +
+        (node?.queryChunks?.reduce(
+            (count, entry) => count + countSqlFragments(entry, fragment),
+            0
+        ) ?? 0)
     );
 }
 
@@ -51,7 +56,9 @@ const transaction = {
                             ? [{ data: null }]
                             : storedRelease
                               ? [{ data: storedRelease }]
-                              : []
+                              : storedReleaseData !== null
+                                ? [{ data: storedReleaseData }]
+                                : []
                         : storedSnapshots,
             }),
         }),
@@ -62,7 +69,12 @@ const transaction = {
             onConflictDoNothing: async () => {},
             onConflictDoUpdate: async (config: { setWhere?: SqlNode }) => {
                 if ('anilistId' in value) {
-                    if (hasEmptyReleaseRow && !containsSqlFragment(config.setWhere, 'is null')) {
+                    const emptyPlaceholderPredicate =
+                        countSqlFragments(config.setWhere, 'is null') >= 9;
+                    if (
+                        (hasEmptyReleaseRow && !emptyPlaceholderPredicate) ||
+                        (retainsAuthoritativeSchedule && emptyPlaceholderPredicate)
+                    ) {
                         return;
                     }
                     releaseWrites.push(value);
@@ -96,7 +108,9 @@ afterEach(() => {
     snapshots.length = 0;
     storedSnapshots = [];
     storedRelease = null;
+    storedReleaseData = null;
     hasEmptyReleaseRow = false;
+    retainsAuthoritativeSchedule = false;
     releaseWrites.length = 0;
 });
 afterAll(() => server.close());
@@ -289,4 +303,20 @@ test('stores Kitsu fallback data over an empty release placeholder', async () =>
 
     expect(releaseWrites).toHaveLength(1);
     expect(storedRelease).toMatchObject({ metadataSource: 'kitsu', id: 182205 });
+});
+
+test('does not replace a retained schedule after stored release metadata becomes invalid', async () => {
+    installKitsu();
+    server.use(
+        http.post('https://graphql.anilist.co', () => new HttpResponse(null, { status: 503 }))
+    );
+    const fallback = AniListAnimeSchema.parse((await request(AnimeDocument, { id: 182205 })).Media);
+    storedReleaseData = { id: 182205, title: null };
+    retainsAuthoritativeSchedule = true;
+
+    const { storeAnimeRelease } =
+        await import('../../../packages/core/src/catalog/anilist-release');
+    await storeAnimeRelease(fallback);
+
+    expect(releaseWrites).toHaveLength(0);
 });

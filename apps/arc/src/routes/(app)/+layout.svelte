@@ -16,6 +16,7 @@
     import Logo from '$lib/components/ui/Logo.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import { cn } from '$lib/utils';
     import AccountAvatar from './_components/AccountAvatar.svelte';
     import PageLoading from '$lib/components/ui/PageLoading.svelte';
     import type { LayoutProps } from './$types';
@@ -175,14 +176,9 @@
                         <AccountAvatar
                             username={data.account.username}
                             image={data.account.image}
+                            hasUnreadNotifications={data.account.unreadNotifications > 0}
                             class="size-8 text-sm ring-1 ring-white/20"
                         />
-                        {#if data.account.unreadNotifications > 0}
-                            <span
-                                class="absolute top-2 right-2 size-2 rounded-full bg-accent ring-2 ring-header"
-                                aria-label="Unread notifications"
-                            ></span>
-                        {/if}
                         <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
                     {/snippet}
 
@@ -218,16 +214,14 @@
 
                         <a
                             href="/notifications"
-                            class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
+                            class={cn(
+                                'flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none',
+                                data.account.unreadNotifications > 0 &&
+                                    "after:ml-auto after:size-2 after:shrink-0 after:rounded-full after:bg-status-error after:content-['']"
+                            )}
                         >
                             <BellIcon size={21} aria-hidden="true" />
                             <span>Notifications</span>
-                            {#if data.account.unreadNotifications > 0}
-                                <span
-                                    class="ml-auto size-2 rounded-full bg-accent"
-                                    aria-label="Unread notifications"
-                                ></span>
-                            {/if}
                         </a>
 
                         <Button
@@ -378,6 +372,7 @@
                         <AccountAvatar
                             username={data.account.username}
                             image={data.account.image}
+                            hasUnreadNotifications={data.account.unreadNotifications > 0}
                             class="size-8 text-sm ring-1 ring-white/20"
                         />
                     </a>

@@ -851,6 +851,12 @@ describe('AniKoto provider rules', () => {
             matchesAniKotoEpisodeCount(25, { status: 'FINISHED', format: 'TV', episodes: 13 })
         ).toBeTrue();
         expect(
+            matchesAniKotoEpisodeCount(12, { status: 'FINISHED', format: 'TV', episodes: 13 }, true)
+        ).toBeTrue();
+        expect(
+            matchesAniKotoEpisodeCount(12, { status: 'FINISHED', format: 'TV', episodes: 13 })
+        ).toBeFalse();
+        expect(
             matchesAniKotoEpisodeCount(1, { status: 'RELEASING', format: 'TV', episodes: 8 })
         ).toBeTrue();
     });
