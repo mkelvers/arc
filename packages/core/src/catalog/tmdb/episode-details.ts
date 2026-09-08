@@ -18,6 +18,7 @@ interface EpisodeTranslation {
 interface EpisodeStill {
     filePath?: string | null;
     hasEmbeddedLetterboxing?: boolean;
+    hasEmbeddedTextOverlay?: boolean;
     voteAverage: number;
     voteCount: number;
     width: number;
@@ -107,7 +108,9 @@ export function completeEpisodeDetails(
     const bestStill = stills
         ?.filter(
             (still): still is EpisodeStill & { filePath: string } =>
-                Boolean(still.filePath) && still.hasEmbeddedLetterboxing !== true
+                Boolean(still.filePath) &&
+                still.hasEmbeddedLetterboxing !== true &&
+                still.hasEmbeddedTextOverlay !== true
         )
         .toSorted(
             (left, right) =>
