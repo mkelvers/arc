@@ -51,7 +51,7 @@ const AnimeDetailsSchema = z.object({
             airingAt: z.number().int(),
         })
         .nullable(),
-    score: z.number(),
+    score: z.number().nullable(),
     scoreSource: z.enum(['AniList', 'Kitsu']).optional(),
     members: z.string(),
     favourites: z.string(),
@@ -59,6 +59,8 @@ const AnimeDetailsSchema = z.object({
     studios: z.array(z.string()),
     staff: z.string(),
     rankings: z.array(z.string()),
+    startDate: z.string().nullable(),
+    endDate: z.string().nullable(),
 });
 
 const ArtworkImageSchema = z.object({

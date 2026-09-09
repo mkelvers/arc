@@ -116,6 +116,83 @@ test('resolves related releases in a batch using their AniList and MAL mappings'
     });
 });
 
+test('maps Kitsu page metadata into Arc detail fields', async () => {
+    const fixture = kitsuFixture();
+    const category = {
+        id: '1',
+        type: 'categories',
+        attributes: { title: 'Fantasy' },
+        relationships: {},
+    };
+    const producer = {
+        id: '2',
+        type: 'producers',
+        attributes: { name: 'Example Pictures' },
+        relationships: {},
+    };
+    const production = {
+        id: '3',
+        type: 'mediaProductions',
+        attributes: { role: 'producer' },
+        relationships: { company: { data: { type: 'producers', id: '2' } } },
+    };
+    const staff = {
+        id: '4',
+        type: 'staff',
+        attributes: { role: 'Director' },
+        relationships: {
+            person: { data: { type: 'people', id: '5' } },
+        },
+    };
+    const person = {
+        id: '5',
+        type: 'people',
+        attributes: { name: 'Example Director' },
+        relationships: {},
+    };
+    const anime = {
+        ...fixture.anime.data[0]!,
+        attributes: {
+            ...fixture.anime.data[0]!.attributes,
+            averageRating: null,
+        },
+        relationships: {
+            ...fixture.anime.data[0]!.relationships,
+            categories: { data: [{ type: 'categories', id: '1' }] },
+            productions: { data: [{ type: 'mediaProductions', id: '3' }] },
+            staff: { data: [{ type: 'staff', id: '4' }] },
+        },
+    };
+    const animeResponse = {
+        data: [anime],
+        included: [...fixture.anime.included, category, producer, production, staff, person],
+    };
+    server.use(
+        http.get('https://kitsu.app/api/edge/mappings', () => HttpResponse.json(fixture.mappings)),
+        http.get('https://kitsu.app/api/edge/anime', () => HttpResponse.json(animeResponse))
+    );
+
+    await expect(requestKitsu('Anime', { id: 182205 })).resolves.toMatchObject({
+        Media: {
+            averageScore: null,
+            genres: [],
+            tags: [
+                {
+                    name: 'Fantasy',
+                    isGeneralSpoiler: false,
+                    isMediaSpoiler: false,
+                },
+            ],
+            rankings: [
+                { rank: 3823, type: 'POPULAR', allTime: true },
+                { rank: 170, type: 'RATED', allTime: true },
+            ],
+            studios: { nodes: [{ name: 'Example Pictures' }] },
+            staff: { edges: [{ role: 'Director', node: { name: { full: 'Example Director' } } }] },
+        },
+    });
+});
+
 test('keeps upstream pagination when unsafe and unmapped search results are omitted', async () => {
     const safe = kitsuFixture();
     const adult = kitsuFixture('2', 2, 3);

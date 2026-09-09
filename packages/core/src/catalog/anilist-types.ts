@@ -32,7 +32,14 @@ export type AniListAnimeDetailsMedia = Pick<
     Partial<
         Pick<
             AniListAnime,
-            'rankings' | 'tags' | 'studios' | 'staff' | 'metadataSource' | 'metadataSourceId'
+            | 'startDate'
+            | 'endDate'
+            | 'rankings'
+            | 'tags'
+            | 'studios'
+            | 'staff'
+            | 'metadataSource'
+            | 'metadataSourceId'
         >
     >;
 

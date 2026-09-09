@@ -47,6 +47,8 @@ const animeAttributesSchema = z.object({
         .transform(Number)
         .pipe(z.number().min(0).max(100))
         .nullish(),
+    popularityRank: z.number().int().positive().nullish(),
+    ratingRank: z.number().int().positive().nullish(),
     userCount: z.number().int().nonnegative().nullish(),
     favoritesCount: z.number().int().nonnegative().nullish(),
     posterImage: z.object({ original: z.url().nullish(), large: z.url().nullish() }).nullish(),
@@ -94,6 +96,12 @@ function normalize(resource: Resource, resources: Map<string, Resource>) {
     if (resource.type !== 'anime' || id === null) return null;
     const attributes = animeAttributesSchema.parse(resource.attributes);
     const startDate = fuzzyDate(attributes.startDate);
+    const genres = related(resource, 'genres', resources).map((genre) =>
+        z.string().parse(genre.attributes.name)
+    );
+    const categories = related(resource, 'categories', resources).map((category) =>
+        z.string().parse(category.attributes.title)
+    );
     const relations = related(resource, 'mediaRelationships', resources).flatMap((relation) => {
         const destination = related(relation, 'destination', resources)[0];
         if (!destination || destination.type !== 'anime') return [];
@@ -161,9 +169,7 @@ function normalize(resource: Resource, resources: Map<string, Resource>) {
             },
             bannerImage: attributes.coverImage?.original ?? null,
             description: attributes.description ?? attributes.synopsis ?? null,
-            genres: related(resource, 'genres', resources).map((genre) =>
-                z.string().parse(genre.attributes.name)
-            ),
+            genres,
             format: attributes.subtype.toUpperCase(),
             status:
                 attributes.status === 'current'
@@ -185,11 +191,34 @@ function normalize(resource: Resource, resources: Map<string, Resource>) {
             averageScore: attributes.averageRating ?? null,
             popularity: attributes.userCount ?? null,
             favourites: attributes.favoritesCount ?? null,
-            rankings: null,
-            tags: null,
+            rankings: [
+                attributes.popularityRank
+                    ? {
+                          rank: attributes.popularityRank,
+                          type: 'POPULAR',
+                          year: null,
+                          season: null,
+                          allTime: true,
+                      }
+                    : null,
+                attributes.ratingRank
+                    ? {
+                          rank: attributes.ratingRank,
+                          type: 'RATED',
+                          year: null,
+                          season: null,
+                          allTime: true,
+                      }
+                    : null,
+            ].filter((ranking): ranking is NonNullable<typeof ranking> => ranking !== null),
+            tags: categories.map((name) => ({
+                name,
+                rank: null,
+                isGeneralSpoiler: false,
+                isMediaSpoiler: false,
+            })),
             studios: {
                 nodes: related(resource, 'productions', resources)
-                    .filter((production) => production.attributes.role === 'studio')
                     .flatMap((production) => related(production, 'company', resources))
                     .map((company) => ({ name: z.string().parse(company.attributes.name) })),
             },
@@ -325,7 +354,7 @@ export async function requestKitsu<Variables>(
                 'filter[id]': ids.slice(index, index + 20).join(','),
                 'page[limit]': '20',
                 include: details
-                    ? 'mappings,genres,mediaRelationships.destination,staff.person,productions.company'
+                    ? 'mappings,genres,categories,mediaRelationships.destination,staff.person,productions.company'
                     : 'mappings',
             });
             const requested = new Set(ids.slice(index, index + 20));
