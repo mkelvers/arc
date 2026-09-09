@@ -1204,6 +1204,9 @@ export const maintenanceTask = pgTable(
         })
             .notNull()
             .defaultNow(),
+        retryCooldownUntil: timestamp('retry_cooldown_until', {
+            withTimezone: true,
+        }),
         leaseOwner: text('lease_owner'),
         leaseUntil: timestamp('lease_until', {
             withTimezone: true,

@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { onMount, untrack } from 'svelte';
+    import { invalidate } from '$app/navigation';
+    import { untrack } from 'svelte';
 
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
@@ -47,8 +48,10 @@
         }
     });
 
-    onMount(() => {
-        if (episodeInventory.status !== 'pending' && anime.status !== 'RELEASING') {
+    $effect(() => {
+        const animeId = data.anime.id;
+        const shouldPoll = untrack(() => episodeInventory.status === 'pending' || anime.status === 'RELEASING');
+        if (!shouldPoll) {
             return;
         }
 
@@ -60,14 +63,18 @@
         const poll = async () => {
             if (document.visibilityState === 'visible') {
                 try {
+                    const current = untrack(() => ({
+                        episodeIds: episodes.map(({ id }) => id),
+                        revision: episodeRevision,
+                    }));
                     const query = new URLSearchParams({
-                        known: episodes.map(({ id }) => id).join(','),
+                        known: current.episodeIds.join(','),
                     });
-                    if (episodeRevision) {
-                        query.set('revision', episodeRevision);
+                    if (current.revision) {
+                        query.set('revision', current.revision);
                     }
 
-                    const response = await fetch(`/v1/anime/${anime.id}/episodes/updates?${query}`, {
+                    const response = await fetch(`/v1/anime/${animeId}/episodes/updates?${query}`, {
                         cache: 'no-store',
                         signal: controller.signal,
                     });
@@ -78,10 +85,14 @@
                     const result: AnimePageEpisodeUpdates = AnimePageEpisodeUpdatesSchema.parse(
                         await response.json()
                     );
+                    if (stopped || data.anime.id !== animeId) {
+                        return;
+                    }
                     warned = false;
-                    const inventoryChanged = result.episodeInventory.status !== episodeInventory.status;
+                    const inventoryChanged =
+                        result.episodeInventory.status !== untrack(() => episodeInventory.status);
                     episodeInventory = result.episodeInventory;
-                    if (result.revision !== episodeRevision) {
+                    if (result.revision !== untrack(() => episodeRevision)) {
                         episodes = result.replace
                             ? result.episodes
                             : [...episodes, ...result.episodes].toSorted(
@@ -91,6 +102,7 @@
                         watchAction = result.watchAction;
                         audioLabel = result.audioLabel;
                         episodeRevision = result.revision;
+                        await invalidate(`arc:anime:${animeId}:overview`);
                     }
                     if (inventoryChanged && result.episodeInventory.status === 'ready') {
                         visibleEpisodeCount = Math.max(visibleEpisodeCount, episodes.length);
@@ -103,12 +115,18 @@
                 }
             }
 
-            if (!stopped && (episodeInventory.status === 'pending' || anime.status === 'RELEASING')) {
+            if (
+                !stopped &&
+                (untrack(() => episodeInventory.status === 'pending') || data.anime.status === 'RELEASING')
+            ) {
                 timer = setTimeout(poll, 60_000);
             }
         };
 
-        timer = setTimeout(poll, episodeInventory.status === 'pending' ? 2_000 : 60_000);
+        timer = setTimeout(
+            poll,
+            untrack(() => (episodeInventory.status === 'pending' ? 2_000 : 60_000))
+        );
 
         return () => {
             stopped = true;
@@ -387,7 +405,6 @@
             id="anime-episode-list"
             class="px-2 py-7 sm:pb-12 lg:pb-16"
             aria-labelledby="anime-episodes-title"
-            aria-live="polite"
             aria-busy={episodeInventory.status === 'pending'}
         >
             <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
@@ -412,7 +429,7 @@
                     </Button>
                 {/if}
                 {#if episodeInventory.status === 'pending'}
-                    <p class="mt-6 text-center text-sm text-muted" role="status">
+                    <p class="mt-6 text-center text-sm text-muted" role="status" aria-live="polite">
                         {m.anime_loading_episodes()}…
                     </p>
                 {:else if episodeInventory.status === 'failed'}
@@ -434,7 +451,7 @@
                         <AnimeCardSkeleton variant="top" />
                     {/each}
                 </div>
-                <p class="mt-6 text-center text-sm text-muted" role="status">
+                <p class="mt-6 text-center text-sm text-muted" role="status" aria-live="polite">
                     {m.anime_loading_episodes()}…
                 </p>
             {:else if episodeInventory.status === 'failed'}

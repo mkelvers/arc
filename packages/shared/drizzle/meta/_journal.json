@@ -582,6 +582,13 @@
             "when": 1788957726342,
             "tag": "0082_huge_molecule_man",
             "breakpoints": true
+        },
+        {
+            "idx": 83,
+            "version": "7",
+            "when": 1788963156360,
+            "tag": "0083_colorful_kronos",
+            "breakpoints": true
         }
     ]
 }

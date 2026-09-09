@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, lte, ne, or, sql } from 'drizzle-orm';
 
 import { db } from '@arc/shared/db';
 import {
@@ -149,6 +149,45 @@ export async function enqueueEpisodeInventoryBackfill(anilistId: number) {
                 result: null,
                 completedAt: null,
                 updatedAt: new Date(),
+            },
+        });
+}
+
+export async function retryEpisodeInventoryBackfill(anilistId: number) {
+    const now = new Date();
+    await db
+        .insert(maintenanceTask)
+        .values({
+            kind: 'episode_backfill',
+            dedupeKey: episodeInventoryBackfillKey(anilistId),
+            payload: {
+                kind: 'episode_backfill',
+                anilistId,
+            },
+            priority: 80,
+            retryCooldownUntil: new Date(now.getTime() + 5 * 60 * 1_000),
+        })
+        .onConflictDoUpdate({
+            target: maintenanceTask.dedupeKey,
+            setWhere: and(
+                ne(maintenanceTask.state, 'running'),
+                or(
+                    isNull(maintenanceTask.retryCooldownUntil),
+                    lte(maintenanceTask.retryCooldownUntil, now)
+                )
+            ),
+            set: {
+                priority: 80,
+                state: 'pending',
+                attempts: 0,
+                nextAttemptAt: now,
+                retryCooldownUntil: new Date(now.getTime() + 5 * 60 * 1_000),
+                leaseOwner: null,
+                leaseUntil: null,
+                lastError: null,
+                result: null,
+                completedAt: null,
+                updatedAt: now,
             },
         });
 }

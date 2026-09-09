@@ -17,6 +17,7 @@ import {
     EpisodeInventoryUnresolvedError,
     enqueueEpisodeInventoryBackfill,
     getEpisodeInventoryState,
+    retryEpisodeInventoryBackfill,
 } from '../catalog/episode-sync';
 import { getFranchiseOrder, getStoredFranchiseOrder } from '../catalog/franchise';
 import {
@@ -178,12 +179,14 @@ export async function animePageEpisodeUpdates(
         episodesWithProgress.length > 0 &&
         episodesWithProgress.every((episode) => episode.progress?.hasCompleted);
     const known = new Set(knownEpisodeIds);
+    const storedEpisodeIds = new Set(episodesWithProgress.map(({ id }) => id));
     const additions = episodesWithProgress.filter((episode) => !known.has(episode.id));
+    const stale = [...known].some((knownEpisodeId) => !storedEpisodeIds.has(knownEpisodeId));
 
     return {
         revision: currentRevision,
-        episodes: additions,
-        replace: currentRevision !== revision && additions.length === 0,
+        episodes: stale ? episodesWithProgress : additions,
+        replace: currentRevision !== revision && (stale || additions.length === 0),
         watchAction: {
             href: target?.href ?? '#anime-episode-list',
             kind: allEpisodesCompleted
@@ -208,7 +211,7 @@ export async function retryAnimePageEpisodeInventory(id: number) {
         return null;
     }
 
-    await enqueueEpisodeInventoryBackfill(id);
+    await retryEpisodeInventoryBackfill(id);
     return getEpisodeInventoryState(anime, (await getEpisodes(anime)).length);
 }
 
