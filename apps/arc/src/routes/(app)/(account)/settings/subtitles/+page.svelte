@@ -40,7 +40,7 @@
             <div class="absolute inset-0 flex items-end justify-center p-4 sm:p-8">
                 <p
                     class={cn(
-                        'max-w-full wrap-break-word px-2 py-1 text-center leading-tight font-semibold',
+                        'max-w-full px-2 py-1 text-center leading-tight font-semibold',
                         settings.edgeStyle === 'outline' && 'subtitle-outline'
                     )}
                     style:color={subtitleTextColors[settings.textColor].value}
