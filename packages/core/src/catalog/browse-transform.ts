@@ -47,7 +47,7 @@ export function transformBrowseEntries(
         return [
             {
                 metadataSource: z
-                    .object({ metadataSource: z.literal('kitsu').optional() })
+                    .object({ metadataSource: z.string().min(1).optional() })
                     .parse(media).metadataSource,
                 anilistId: media.id,
                 title,

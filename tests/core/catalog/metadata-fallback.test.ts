@@ -9,33 +9,105 @@ import {
 import { kitsuFixture } from './fixtures/kitsu';
 import { toAnimeDetails } from '../../../packages/core/src/catalog/details';
 import { AniListAnimeOverviewSchema } from '../../../packages/core/src/catalog/anilist-types';
-import { animeRelease, type anilistQuerySnapshot } from '@arc/shared/db/schema';
+import { animeRelease, providerSnapshot, type anilistQuerySnapshot } from '@arc/shared/db/schema';
 import {
     AniListAnimeSchema,
     type AniListAnime,
 } from '../../../packages/core/src/catalog/anilist-types';
 
-type Snapshot = typeof anilistQuerySnapshot.$inferInsert;
+type SnapshotData = { Media: { id: number } | null };
+type Snapshot = {
+    key: string;
+    data: SnapshotData;
+    fetchedAt: Date;
+    refreshAfter: Date;
+};
 const snapshots: Snapshot[] = [];
 let storedSnapshots: Snapshot[] = [];
 let storedRelease: AniListAnime | null = null;
+type SourceRow = {
+    provider: string;
+    payload: AniListAnime;
+    sourceFetchedAt: Date;
+};
+let storedSourceRows: SourceRow[] = [];
+type ReleaseRow = { data: AniListAnime };
+type QueryRow = Snapshot | SourceRow | ReleaseRow;
+type MockTable = typeof animeRelease | typeof providerSnapshot | typeof anilistQuerySnapshot;
+type MockInsert = {
+    provider?: string;
+    payload?: AniListAnime;
+    sourceFetchedAt?: Date;
+    key?: string;
+    data?: SnapshotData;
+    fetchedAt?: Date;
+    refreshAfter?: Date;
+};
+
+function queryRows(rows: QueryRow[]) {
+    const query = Promise.resolve(rows);
+    return Object.assign(query, { limit: async () => rows });
+}
+
 const transaction = {
     execute: async () => {},
     select: () => ({
-        from: (table: typeof animeRelease | typeof anilistQuerySnapshot) => ({
-            where: () => ({
-                limit: async () =>
+        from: (table: MockTable) => ({
+            where: () =>
+                queryRows(
                     table === animeRelease
                         ? storedRelease
                             ? [{ data: storedRelease }]
                             : []
-                        : storedSnapshots,
-            }),
+                        : table === providerSnapshot
+                          ? storedSourceRows
+                          : storedSnapshots
+                ),
         }),
     }),
-    insert: () => ({
-        values: (value: Snapshot) => ({ onConflictDoUpdate: async () => snapshots.push(value) }),
+    insert: (table: MockTable) => ({
+        values: (value: MockInsert) => ({
+            onConflictDoUpdate: async () => {
+                if (
+                    table === providerSnapshot &&
+                    value.provider &&
+                    value.payload &&
+                    value.sourceFetchedAt
+                ) {
+                    storedSourceRows = [
+                        ...storedSourceRows.filter((row) => row.provider !== value.provider),
+                        {
+                            provider: value.provider,
+                            payload: value.payload,
+                            sourceFetchedAt: value.sourceFetchedAt,
+                        },
+                    ];
+                } else {
+                    snapshots.push({
+                        key: value.key ?? 'stored',
+                        data: value.data ?? { Media: null },
+                        fetchedAt: value.fetchedAt ?? new Date(),
+                        refreshAfter: value.refreshAfter ?? new Date(),
+                    });
+                }
+            },
+            onConflictDoNothing: async () => {
+                if (
+                    table === providerSnapshot &&
+                    value.provider &&
+                    value.payload &&
+                    value.sourceFetchedAt
+                ) {
+                    storedSourceRows.push({
+                        provider: value.provider,
+                        payload: value.payload,
+                        sourceFetchedAt: value.sourceFetchedAt,
+                    });
+                }
+            },
+        }),
     }),
+    delete: () => ({ where: async () => {} }),
 };
 mock.module('@arc/shared/db', () => ({
     db: {
@@ -47,6 +119,10 @@ mock.module('@arc/shared/db', () => ({
 mock.module('../../../packages/core/src/catalog/anilist-lease', () => ({
     coordinatedAniListRequest: <Result>(_operation: string, run: () => Promise<Result>) => run(),
 }));
+mock.module('../../../packages/core/src/catalog/identity', () => ({
+    findInternalAnimeId: async () => null,
+    ensureInternalAnimeId: async () => 1,
+}));
 const { request } = await import('../../../packages/core/src/catalog/anilist-client');
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
@@ -55,6 +131,7 @@ afterEach(() => {
     snapshots.length = 0;
     storedSnapshots = [];
     storedRelease = null;
+    storedSourceRows = [];
 });
 afterAll(() => server.close());
 
@@ -228,6 +305,6 @@ test('does not overwrite a stored AniList release or schedule with partial fallb
     const { storeAnimeRelease } =
         await import('../../../packages/core/src/catalog/anilist-release');
     await storeAnimeRelease(fallback);
-    expect(snapshots).toHaveLength(0);
+    expect(storedSourceRows.map(({ provider }) => provider)).toEqual(['anilist', 'kitsu']);
     expect(storedRelease.nextAiringEpisode).toEqual({ episode: 22, airingAt: 1800000000 });
 });

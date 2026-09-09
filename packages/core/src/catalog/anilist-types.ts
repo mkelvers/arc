@@ -5,12 +5,43 @@ import type {
 } from '@arc/shared/graphql/generated/graphql';
 import { z } from 'zod';
 
+export type AnimeMetadataField =
+    | 'idMal'
+    | 'title'
+    | 'synonyms'
+    | 'coverImage'
+    | 'bannerImage'
+    | 'description'
+    | 'genres'
+    | 'format'
+    | 'status'
+    | 'season'
+    | 'seasonYear'
+    | 'startDate'
+    | 'endDate'
+    | 'episodes'
+    | 'duration'
+    | 'relations'
+    | 'averageScore'
+    | 'popularity'
+    | 'favourites'
+    | 'rankings'
+    | 'tags'
+    | 'studios'
+    | 'staff'
+    | 'source'
+    | 'countryOfOrigin';
+
 export type AniListAnime = NonNullable<AnimeQuery['Media']> & {
-    metadataSource?: 'kitsu';
-    metadataSourceId?: number;
+    metadataSource?: string;
+    metadataSourceId?: number | string;
+    metadataFieldSources?: Partial<Record<AnimeMetadataField, string>>;
+    isAdult?: boolean;
+    source?: string | null;
+    countryOfOrigin?: string | null;
 };
 export type AniListAnimeOverview = NonNullable<AnimeOverviewQuery['Media']> &
-    Pick<AniListAnime, 'metadataSource' | 'metadataSourceId'>;
+    Pick<AniListAnime, 'metadataSource' | 'metadataSourceId' | 'metadataFieldSources'>;
 export type AniListSchedule = NonNullable<AnimeScheduleQuery['Media']>;
 
 export type AniListAnimeDetailsMedia = Pick<
@@ -40,6 +71,7 @@ export type AniListAnimeDetailsMedia = Pick<
             | 'staff'
             | 'metadataSource'
             | 'metadataSourceId'
+            | 'metadataFieldSources'
         >
     >;
 
@@ -57,8 +89,12 @@ const nextAiringSchema = z
 
 export const AniListAnimeSchema = z
     .looseObject({
-        metadataSource: z.literal('kitsu').optional(),
-        metadataSourceId: z.number().int().positive().optional(),
+        metadataSource: z.string().min(1).optional(),
+        metadataSourceId: z.union([z.number().int().positive(), z.string().min(1)]).optional(),
+        metadataFieldSources: z.record(z.string(), z.string()).optional(),
+        isAdult: z.boolean().optional(),
+        source: z.string().nullable().optional(),
+        countryOfOrigin: z.string().nullable().optional(),
         id: z.number().int().positive(),
         idMal: nullableInteger,
         title: titleSchema,
@@ -174,8 +210,12 @@ export const AniListAnimeSchema = z
 
 export const AniListAnimeOverviewSchema = z
     .object({
-        metadataSource: z.literal('kitsu').optional(),
-        metadataSourceId: z.number().int().positive().optional(),
+        metadataSource: z.string().min(1).optional(),
+        metadataSourceId: z.union([z.number().int().positive(), z.string().min(1)]).optional(),
+        metadataFieldSources: z.record(z.string(), z.string()).optional(),
+        isAdult: z.boolean().optional(),
+        source: z.string().nullable().optional(),
+        countryOfOrigin: z.string().nullable().optional(),
         id: z.number().int().positive(),
         title: titleSchema,
         bannerImage: nullableString,

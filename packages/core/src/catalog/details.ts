@@ -54,6 +54,15 @@ function formatDescription(value: string | null) {
     return cutoff >= 340 ? fragment.slice(0, cutoff) : `${fragment.trimEnd()}…`;
 }
 
+function providerLabel(provider: string | undefined) {
+    if (!provider) return 'AniList';
+    if (provider === 'anilist') return 'AniList';
+    return provider.replace(
+        /(^|[-_])([a-z])/g,
+        (_, prefix: string, letter: string) => `${prefix ? ' ' : ''}${letter.toUpperCase()}`
+    );
+}
+
 function formatDate(
     value: { year: number | null; month: number | null; day: number | null } | null | undefined
 ) {
@@ -140,7 +149,9 @@ export function toAnimeDetails(
         status: media.status,
         nextAiringEpisode,
         score: media.averageScore,
-        scoreSource: media.metadataSource === 'kitsu' ? 'Kitsu' : 'AniList',
+        scoreSource: providerLabel(
+            media.metadataFieldSources?.averageScore ?? media.metadataSource
+        ),
         members: count.format(media.popularity ?? 0),
         favourites: count.format(media.favourites ?? 0),
         themes: media.metadataSource === 'kitsu' && !sourceGenres.length ? [] : themes,
