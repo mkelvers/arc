@@ -142,7 +142,9 @@
                 </div>
             {/if}
 
-            <div class="mt-7 flex max-sm:flex-wrap items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-8 lg:gap-2.5">
+            <div
+                class="mt-7 flex max-sm:flex-wrap items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-8 lg:gap-2.5"
+            >
                 <a
                     href={watchAction.href}
                     class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] sm:px-6"

@@ -32,6 +32,8 @@
     --theme-input-accent: var(--theme-accent);
     --theme-tooltip: #414141;
     --theme-tooltip-foreground: #ececec;
+    --theme-episode-action: #213944;
+    --theme-episode-action-hover: #2f5161;
 
     --theme-hero-scrim-inline-start: rgb(0 0 0 / 0.58);
     --theme-hero-scrim-inline-end: rgb(48 48 48 / 0.38);
@@ -73,6 +75,8 @@
     --color-input-accent: var(--theme-input-accent);
     --color-tooltip: var(--theme-tooltip);
     --color-tooltip-foreground: var(--theme-tooltip-foreground);
+    --color-episode-action: var(--theme-episode-action);
+    --color-episode-action-hover: var(--theme-episode-action-hover);
 }
 
 @utility auto-cols-franchise {
