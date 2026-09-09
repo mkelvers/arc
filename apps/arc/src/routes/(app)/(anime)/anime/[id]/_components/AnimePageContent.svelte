@@ -1,6 +1,7 @@
 <script lang="ts">
     import { invalidate } from '$app/navigation';
     import { untrack } from 'svelte';
+    import { MediaQuery } from 'svelte/reactivity';
 
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
@@ -33,7 +34,10 @@
     let retryingEpisodeInventory = $state(false);
     let franchise = $derived(data.franchise);
     let detailsExpanded = $state(false);
-    let visibleEpisodeCount = $state(28);
+    const fiveColumnEpisodeGrid = new MediaQuery('min-width: 48rem');
+    const wideEpisodeGrid = new MediaQuery('min-width: 120rem');
+    const episodePageSize = $derived(wideEpisodeGrid.current ? 28 : fiveColumnEpisodeGrid.current ? 25 : 20);
+    let visibleEpisodeCount = $state(wideEpisodeGrid.current ? 28 : fiveColumnEpisodeGrid.current ? 25 : 20);
     let loadedAnimeId = $state(initialData.anime.id);
 
     $effect(() => {
@@ -44,7 +48,7 @@
             audioLabel = data.audioLabel;
             episodeRevision = data.episodeRevision;
             episodeInventory = data.episodeInventory;
-            visibleEpisodeCount = 28;
+            visibleEpisodeCount = episodePageSize;
         }
     });
 
@@ -152,7 +156,7 @@
     }
 
     function showMoreEpisodes(total: number) {
-        visibleEpisodeCount = Math.min(total, visibleEpisodeCount + 28);
+        visibleEpisodeCount = Math.min(total, visibleEpisodeCount + episodePageSize);
     }
 </script>
 
