@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { mergeReleaseCalendarEntries } from '@arc/core';
+import { mergeReleaseCalendarEntries, persistedReleaseSynopsis } from '@arc/core';
 
 const snapshotEntry = {
     airingId: 10,
@@ -8,11 +8,20 @@ const snapshotEntry = {
     episode: 3,
     airingAt: new Date('2026-09-07T12:00:00.000Z'),
     title: 'Snapshot title',
-    synopsis: null,
-    imageUrl: null,
+    synopsis: 'Snapshot synopsis',
+    imageUrl: 'https://example.com/snapshot.jpg',
 };
 
 describe('release calendar persistence fallback', () => {
+    test('uses the persisted release description for fallback targets', () => {
+        expect(
+            persistedReleaseSynopsis({
+                description: '<p>A stored synopsis.</p><br>Second sentence.',
+            })
+        ).toBe('A stored synopsis. Second sentence.');
+        expect(persistedReleaseSynopsis({ description: null })).toBeNull();
+    });
+
     test('adds persisted episode targets when the refresh snapshot is stale', () => {
         const entries = mergeReleaseCalendarEntries(
             [snapshotEntry],
@@ -51,8 +60,8 @@ describe('release calendar persistence fallback', () => {
                     episode: snapshotEntry.episode,
                     airingAt: new Date('2026-09-08T12:00:00.000Z'),
                     title: 'Updated title',
-                    synopsis: 'Updated synopsis',
-                    imageUrl: 'https://example.com/updated.jpg',
+                    synopsis: null,
+                    imageUrl: null,
                 },
             ]
         );
@@ -62,8 +71,6 @@ describe('release calendar persistence fallback', () => {
                 ...snapshotEntry,
                 airingAt: new Date('2026-09-08T12:00:00.000Z'),
                 title: 'Updated title',
-                synopsis: 'Updated synopsis',
-                imageUrl: 'https://example.com/updated.jpg',
             },
         ]);
     });
