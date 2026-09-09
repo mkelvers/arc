@@ -729,7 +729,6 @@ export function parseMegaPlaySource(value: JsonValue) {
     const sourceFile =
         parsed.data.sources?.file ??
         (parsed.data.enc ? decryptMegaPlaySourceFile(parsed.data.enc) : null);
-
     const mediaUrl = sourceFile ? supportedMediaUrl(sourceFile) : null;
     if (!mediaUrl) {
         return null;

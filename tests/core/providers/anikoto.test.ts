@@ -1,5 +1,5 @@
-import { getEventListeners } from 'node:events';
 import { createCipheriv } from 'node:crypto';
+import { getEventListeners } from 'node:events';
 import { describe, expect, test } from 'bun:test';
 
 import {
