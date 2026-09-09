@@ -15,38 +15,46 @@ import {
     type AniListAnime,
 } from '../../../packages/core/src/catalog/anilist-types';
 
-type SnapshotData = { Media: { id: number } | null };
-type Snapshot = {
-    key: string;
-    data: SnapshotData;
-    fetchedAt: Date;
-    refreshAfter: Date;
+type Snapshot = typeof anilistQuerySnapshot.$inferInsert;
+type ReleaseWrite = {
+    anilistId: number;
+    data: AniListAnime;
 };
+type InsertValue = Snapshot | ReleaseWrite;
+interface SqlNode {
+    queryChunks?: readonly SqlNode[];
+    value?: readonly string[];
+}
+
 const snapshots: Snapshot[] = [];
 let storedSnapshots: Snapshot[] = [];
 let storedRelease: AniListAnime | null = null;
+let storedReleaseData: unknown | null = null;
+let hasEmptyReleaseRow = false;
+let retainsAuthoritativeSchedule = false;
+const releaseWrites: ReleaseWrite[] = [];
 type SourceRow = {
     provider: string;
     payload: AniListAnime;
     sourceFetchedAt: Date;
 };
 let storedSourceRows: SourceRow[] = [];
-type ReleaseRow = { data: AniListAnime };
-type QueryRow = Snapshot | SourceRow | ReleaseRow;
+type QueryRow = Snapshot | SourceRow | { data: unknown };
 type MockTable = typeof animeRelease | typeof providerSnapshot | typeof anilistQuerySnapshot;
-type MockInsert = {
-    provider?: string;
-    payload?: AniListAnime;
-    sourceFetchedAt?: Date;
-    key?: string;
-    data?: SnapshotData;
-    fetchedAt?: Date;
-    refreshAfter?: Date;
-};
 
 function queryRows(rows: QueryRow[]) {
     const query = Promise.resolve(rows);
     return Object.assign(query, { limit: async () => rows });
+}
+
+function countSqlFragments(node: SqlNode | undefined, fragment: string): number {
+    return (
+        (node?.value?.filter((entry) => entry.includes(fragment)).length ?? 0) +
+        (node?.queryChunks?.reduce(
+            (count, entry) => count + countSqlFragments(entry, fragment),
+            0
+        ) ?? 0)
+    );
 }
 
 const transaction = {
@@ -56,54 +64,60 @@ const transaction = {
             where: () =>
                 queryRows(
                     table === animeRelease
-                        ? storedRelease
-                            ? [{ data: storedRelease }]
-                            : []
+                        ? hasEmptyReleaseRow
+                            ? [{ data: null }]
+                            : storedRelease
+                              ? [{ data: storedRelease }]
+                              : storedReleaseData !== null
+                                ? [{ data: storedReleaseData }]
+                                : []
                         : table === providerSnapshot
                           ? storedSourceRows
                           : storedSnapshots
                 ),
         }),
     }),
+    update: () => ({ set: () => ({ where: async () => {} }) }),
     insert: (table: MockTable) => ({
-        values: (value: MockInsert) => ({
-            onConflictDoUpdate: async () => {
-                if (
-                    table === providerSnapshot &&
-                    value.provider &&
-                    value.payload &&
-                    value.sourceFetchedAt
-                ) {
-                    storedSourceRows = [
-                        ...storedSourceRows.filter((row) => row.provider !== value.provider),
-                        {
-                            provider: value.provider,
-                            payload: value.payload,
-                            sourceFetchedAt: value.sourceFetchedAt,
-                        },
-                    ];
-                } else {
-                    snapshots.push({
-                        key: value.key ?? 'stored',
-                        data: value.data ?? { Media: null },
-                        fetchedAt: value.fetchedAt ?? new Date(),
-                        refreshAfter: value.refreshAfter ?? new Date(),
+        values: (value: InsertValue | (SourceRow & { domain: string })) => ({
+            onConflictDoNothing: async () => {
+                if (table === providerSnapshot && 'provider' in value && value.payload) {
+                    const source = value as SourceRow;
+                    storedSourceRows.push({
+                        provider: source.provider,
+                        payload: source.payload,
+                        sourceFetchedAt: source.sourceFetchedAt,
                     });
                 }
             },
-            onConflictDoNothing: async () => {
-                if (
-                    table === providerSnapshot &&
-                    value.provider &&
-                    value.payload &&
-                    value.sourceFetchedAt
-                ) {
-                    storedSourceRows.push({
-                        provider: value.provider,
-                        payload: value.payload,
-                        sourceFetchedAt: value.sourceFetchedAt,
-                    });
+            onConflictDoUpdate: async (config: { setWhere?: SqlNode }) => {
+                if (table === providerSnapshot && 'provider' in value && value.payload) {
+                    const source = value as SourceRow;
+                    storedSourceRows = [
+                        ...storedSourceRows.filter((row) => row.provider !== source.provider),
+                        {
+                            provider: source.provider,
+                            payload: source.payload,
+                            sourceFetchedAt: source.sourceFetchedAt,
+                        },
+                    ];
+                    return;
                 }
+                if ('anilistId' in value) {
+                    const emptyPlaceholderPredicate =
+                        countSqlFragments(config.setWhere, 'is null') >= 9;
+                    if (
+                        (hasEmptyReleaseRow && !emptyPlaceholderPredicate) ||
+                        (retainsAuthoritativeSchedule && emptyPlaceholderPredicate)
+                    ) {
+                        return;
+                    }
+                    releaseWrites.push(value);
+                    storedRelease = value.data;
+                    hasEmptyReleaseRow = false;
+                    return;
+                }
+                snapshots.push(value as Snapshot);
             },
         }),
     }),
@@ -132,6 +146,10 @@ afterEach(() => {
     storedSnapshots = [];
     storedRelease = null;
     storedSourceRows = [];
+    storedReleaseData = null;
+    hasEmptyReleaseRow = false;
+    retainsAuthoritativeSchedule = false;
+    releaseWrites.length = 0;
 });
 afterAll(() => server.close());
 
@@ -307,4 +325,36 @@ test('does not overwrite a stored AniList release or schedule with partial fallb
     await storeAnimeRelease(fallback);
     expect(storedSourceRows.map(({ provider }) => provider)).toEqual(['anilist', 'kitsu']);
     expect(storedRelease.nextAiringEpisode).toEqual({ episode: 22, airingAt: 1800000000 });
+});
+
+test('stores Kitsu fallback data over an empty release placeholder', async () => {
+    installKitsu();
+    server.use(
+        http.post('https://graphql.anilist.co', () => new HttpResponse(null, { status: 503 }))
+    );
+    const fallback = AniListAnimeSchema.parse((await request(AnimeDocument, { id: 182205 })).Media);
+    hasEmptyReleaseRow = true;
+
+    const { storeAnimeRelease } =
+        await import('../../../packages/core/src/catalog/anilist-release');
+    await storeAnimeRelease(fallback);
+
+    expect(releaseWrites).toHaveLength(1);
+    expect(storedRelease).toMatchObject({ metadataSource: 'kitsu', id: 182205 });
+});
+
+test('does not replace a retained schedule after stored release metadata becomes invalid', async () => {
+    installKitsu();
+    server.use(
+        http.post('https://graphql.anilist.co', () => new HttpResponse(null, { status: 503 }))
+    );
+    const fallback = AniListAnimeSchema.parse((await request(AnimeDocument, { id: 182205 })).Media);
+    storedReleaseData = { id: 182205, title: null };
+    retainsAuthoritativeSchedule = true;
+
+    const { storeAnimeRelease } =
+        await import('../../../packages/core/src/catalog/anilist-release');
+    await storeAnimeRelease(fallback);
+
+    expect(releaseWrites).toHaveLength(0);
 });
