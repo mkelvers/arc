@@ -3,7 +3,7 @@
     import { audioModeOrder } from '@arc/core/client';
     import type { AnimeEpisode } from '@arc/core/client';
     import type { Sources } from '$lib/player/media';
-    import type { EpisodeSkipTimes, SegmentTemplates } from '@arc/core/client';
+    import { preferManualSkipTimes, type EpisodeSkipTimes, type SegmentTemplates } from '@arc/core/client';
     import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import VideoPlayer from '$lib/components/VideoPlayer.svelte';
@@ -119,7 +119,7 @@
                     times: result.skipTimes ?? {
                         opening: null,
                         ending: null,
-                        source: null,
+                        sources: { opening: null, ending: null },
                     },
                     templates: {
                         opening: null,
@@ -132,7 +132,6 @@
             void skipTimesRequest
                 .then((resolved) => {
                     if (
-                        (result.skipTimes && resolved.source !== 'manual') ||
                         cancelled ||
                         active?.anime.id !== pending.anime.id ||
                         active.currentEpisode.id !== pending.currentEpisode.id
@@ -144,7 +143,7 @@
                         ...active,
                         segments: {
                             ...active.segments,
-                            times: resolved,
+                            times: preferManualSkipTimes(result.skipTimes, resolved),
                         },
                     };
                 })
@@ -215,10 +214,12 @@
                                 skipTimes: resolved.skipTimes ?? active.result.skipTimes,
                                 error: !Object.values(streams).some((sources) => sources?.length),
                             },
-                            segments:
-                                resolved.skipTimes && active.segments.times.source !== 'manual'
-                                    ? { ...active.segments, times: resolved.skipTimes }
-                                    : active.segments,
+                            segments: resolved.skipTimes
+                                ? {
+                                      ...active.segments,
+                                      times: preferManualSkipTimes(resolved.skipTimes, active.segments.times),
+                                  }
+                                : active.segments,
                         };
                     })
                     .catch(() => undefined);
@@ -244,10 +245,12 @@
                 active = {
                     ...active,
                     result,
-                    segments:
-                        result.skipTimes && active.segments.times.source !== 'manual'
-                            ? { ...active.segments, times: result.skipTimes }
-                            : active.segments,
+                    segments: result.skipTimes
+                        ? {
+                              ...active.segments,
+                              times: preferManualSkipTimes(result.skipTimes, active.segments.times),
+                          }
+                        : active.segments,
                 };
             }
         } finally {

@@ -148,12 +148,12 @@ Cheers!
             { mode: 'off', label: 'Off' },
         ]);
         expect(subtitleOptionsFor(['translated'])).toEqual([
-            { mode: 'translated', label: 'Original translation' },
+            { mode: 'translated', label: 'Translation' },
             { mode: 'off', label: 'Off' },
         ]);
         expect(subtitleOptionsFor(['full', 'translated'])).toEqual([
             { mode: 'full', label: 'English' },
-            { mode: 'translated', label: 'Original translation' },
+            { mode: 'translated', label: 'Translation' },
             { mode: 'off', label: 'Off' },
         ]);
     });
@@ -293,7 +293,7 @@ Cheers!
                         start: 1_320,
                         end: 1_380,
                     },
-                    source: 'aniskip',
+                    sources: { opening: 'aniskip', ending: 'aniskip' },
                 },
                 [{ at: 0, offset: 2 }]
             )
@@ -306,7 +306,7 @@ Cheers!
                 start: 1_322,
                 end: 1_382,
             },
-            source: 'aniskip',
+            sources: { opening: 'aniskip', ending: 'aniskip' },
         });
         expect(unalignTime(22, [{ at: 0, offset: 2 }])).toBe(20);
     });

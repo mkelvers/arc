@@ -29,7 +29,7 @@ describe('fetchAniSkip', () => {
         await expect(fetchAniSkip(62_001, 17)).resolves.toEqual({
             opening: null,
             ending: null,
-            source: 'aniskip',
+            sources: { opening: 'aniskip', ending: 'aniskip' },
         });
     });
 
@@ -78,7 +78,7 @@ describe('parseAniSkipResponse', () => {
                 start: 1_417.135,
                 end: 1_507.135,
             },
-            source: 'aniskip',
+            sources: { opening: 'aniskip', ending: 'aniskip' },
         });
     });
 
@@ -86,7 +86,7 @@ describe('parseAniSkipResponse', () => {
         expect(parseAniSkipResponse({ found: false, results: [] })).toEqual({
             opening: null,
             ending: null,
-            source: 'aniskip',
+            sources: { opening: 'aniskip', ending: 'aniskip' },
         });
     });
 
@@ -104,7 +104,11 @@ describe('parseAniSkipResponse', () => {
                     },
                 ],
             })
-        ).toEqual({ opening: null, ending: null, source: 'aniskip' });
+        ).toEqual({
+            opening: null,
+            ending: null,
+            sources: { opening: 'aniskip', ending: 'aniskip' },
+        });
         expect(parseAniSkipResponse({ found: true, results: null })).toBeNull();
     });
 });

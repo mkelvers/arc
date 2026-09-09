@@ -36,7 +36,11 @@ export function parseAniSkipResponse(value: JsonValue): EpisodeSkipTimes | null 
         return null;
     }
     if (!parsedResponse.data.found) {
-        return { opening: null, ending: null, source: 'aniskip' };
+        return {
+            opening: null,
+            ending: null,
+            sources: { opening: 'aniskip', ending: 'aniskip' },
+        };
     }
     if (!parsedResponse.data.results) {
         return null;
@@ -45,7 +49,7 @@ export function parseAniSkipResponse(value: JsonValue): EpisodeSkipTimes | null 
     const times: EpisodeSkipTimes = {
         opening: null,
         ending: null,
-        source: 'aniskip',
+        sources: { opening: 'aniskip', ending: 'aniskip' },
     };
 
     for (const rawResult of parsedResponse.data.results) {
@@ -91,7 +95,11 @@ export async function fetchAniSkip(
         signal: AbortSignal.timeout(5_000),
     });
     if (response.status === 404) {
-        return { opening: null, ending: null, source: 'aniskip' };
+        return {
+            opening: null,
+            ending: null,
+            sources: { opening: 'aniskip', ending: 'aniskip' },
+        };
     }
     if (!response.ok) {
         throw new Error(`AniSkip request failed with ${response.status}`);

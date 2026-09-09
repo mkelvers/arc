@@ -23,7 +23,7 @@ export class SegmentEditor {
     times = $state<EpisodeSkipTimes>({
         opening: null,
         ending: null,
-        source: null,
+        sources: { opening: null, ending: null },
     });
     templates = $state<SegmentTemplates>({
         opening: null,

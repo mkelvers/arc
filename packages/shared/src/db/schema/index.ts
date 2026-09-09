@@ -856,6 +856,18 @@ export const animeEpisode = pgTable(
         openingEndSeconds: doublePrecision('opening_end_seconds'),
         endingStartSeconds: doublePrecision('ending_start_seconds'),
         endingEndSeconds: doublePrecision('ending_end_seconds'),
+        openingSkipTimesSource: varchar('opening_skip_times_source', {
+            length: 16,
+        }),
+        endingSkipTimesSource: varchar('ending_skip_times_source', {
+            length: 16,
+        }),
+        openingSkipTimesFetchedAt: timestamp('opening_skip_times_fetched_at', {
+            withTimezone: true,
+        }),
+        endingSkipTimesFetchedAt: timestamp('ending_skip_times_fetched_at', {
+            withTimezone: true,
+        }),
         skipTimesSource: varchar('skip_times_source', {
             length: 16,
         }),
