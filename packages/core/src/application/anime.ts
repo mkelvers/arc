@@ -472,7 +472,11 @@ export async function watchSegments(id: number, episodeId: string) {
             episodeId: context.episodes[context.currentIndex].id,
             episodeNumber: context.episodes[context.currentIndex].number,
             malId: context.anime.idMal,
-        }).catch(() => ({ opening: null, ending: null, source: null })),
+        }).catch(() => ({
+            opening: null,
+            ending: null,
+            sources: { opening: null, ending: null },
+        })),
         getSegmentTemplates(id, context.episodes[context.currentIndex].number).catch(() => ({
             opening: null,
             ending: null,

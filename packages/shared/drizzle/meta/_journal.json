@@ -589,6 +589,13 @@
             "when": 1788963156360,
             "tag": "0083_colorful_kronos",
             "breakpoints": true
+        },
+        {
+            "idx": 84,
+            "version": "7",
+            "when": 1788980417658,
+            "tag": "0084_per_kind_skip_times",
+            "breakpoints": true
         }
     ]
 }

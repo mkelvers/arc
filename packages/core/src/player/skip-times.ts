@@ -16,13 +16,19 @@ export type SkipInterval = z.infer<typeof SkipIntervalSchema>;
 export const EpisodeSkipTimesSchema = z.object({
     opening: SkipIntervalSchema.nullable(),
     ending: SkipIntervalSchema.nullable(),
-    source: SkipTimesSourceSchema.nullable(),
+    sources: z.object({
+        opening: SkipTimesSourceSchema.nullable(),
+        ending: SkipTimesSourceSchema.nullable(),
+    }),
 });
 
 export type EpisodeSkipTimes = {
     opening: SkipInterval | null;
     ending: SkipInterval | null;
-    source: SkipTimesSource | null;
+    sources: {
+        opening: SkipTimesSource | null;
+        ending: SkipTimesSource | null;
+    };
 };
 
 const SegmentTemplateSchema = z.object({
@@ -35,11 +41,7 @@ type SegmentTemplate = z.infer<typeof SegmentTemplateSchema>;
 export type SegmentTemplates = Record<SkipKind, SegmentTemplate | null>;
 
 export const SegmentSaveResultSchema = z.object({
-    times: z.object({
-        opening: SkipIntervalSchema.nullable(),
-        ending: SkipIntervalSchema.nullable(),
-        source: z.literal('manual'),
-    }),
+    times: EpisodeSkipTimesSchema,
     templates: z.object({
         opening: SegmentTemplateSchema.nullable(),
         ending: SegmentTemplateSchema.nullable(),
@@ -66,6 +68,24 @@ export function skipTimesDraft(times: EpisodeSkipTimes): SkipTimesDraft {
         ending: {
             start: times.ending?.start ?? null,
             end: times.ending?.end ?? null,
+        },
+    };
+}
+
+export function preferManualSkipTimes(
+    provider: EpisodeSkipTimes | null,
+    persisted: EpisodeSkipTimes
+): EpisodeSkipTimes {
+    if (!provider) {
+        return persisted;
+    }
+
+    return {
+        opening: persisted.sources.opening === 'manual' ? persisted.opening : provider.opening,
+        ending: persisted.sources.ending === 'manual' ? persisted.ending : provider.ending,
+        sources: {
+            opening: persisted.sources.opening === 'manual' ? 'manual' : provider.sources.opening,
+            ending: persisted.sources.ending === 'manual' ? 'manual' : provider.sources.ending,
         },
     };
 }

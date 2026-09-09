@@ -42,7 +42,7 @@ export const load: PageServerLoad = async ({ params, request, fetch }) => {
                 times: {
                     opening: null,
                     ending: null,
-                    source: null,
+                    sources: { opening: null, ending: null },
                 },
                 templates: {
                     opening: null,

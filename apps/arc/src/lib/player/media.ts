@@ -137,7 +137,7 @@ const subtitleLabels = {
     full: 'English',
     sdh: 'English SDH',
     forced: 'English Forced',
-    translated: 'Original translation',
+    translated: 'Translation',
 } satisfies Record<SubtitleKind, string>;
 
 /** The caption choices for the tracks an encode actually provides. */

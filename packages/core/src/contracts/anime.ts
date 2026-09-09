@@ -317,7 +317,10 @@ export const WatchSegmentsSchema = z.object({
                 end: z.number(),
             })
             .nullable(),
-        source: z.enum(['anikoto', 'aniskip', 'manual']).nullable(),
+        sources: z.object({
+            opening: z.enum(['anikoto', 'aniskip', 'manual']).nullable(),
+            ending: z.enum(['anikoto', 'aniskip', 'manual']).nullable(),
+        }),
     }),
     templates: z.object({
         opening: z

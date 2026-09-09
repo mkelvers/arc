@@ -23,7 +23,10 @@ import { normalizedProviderTitle, relatedCollectionTitle } from './matching';
 const anikotoUrl = 'https://anikototv.to';
 const catalogUrl = 'https://anikotoapi.site';
 const providerName = 'anikoto';
-const mediaHostSuffixes = [
+// MegaPlay returns the concrete media hostname in its source payload. Keep the
+// registrable domains here, rather than individual CDN shards, so new provider
+// subdomains work without another release while the proxy remains allowlisted.
+export const aniKotoMediaHostSuffixes = [
     'akirax.buzz',
     'anizara.store',
     'imgnex.top',
@@ -38,6 +41,7 @@ const mediaHostSuffixes = [
     'trycloud.pro',
     'watching.onl',
 ] as const;
+const aniKotoEmbedHostnames = ['megaplay.buzz', 'vidtube.site'] as const;
 const megaPlayMediaMirrorSuffixes = [
     'akirax.buzz',
     'mikora.top',
@@ -344,7 +348,7 @@ export function normalizeAniKotoMediaUrl(url: URL) {
         url.username ||
         url.password ||
         url.port ||
-        !mediaHostSuffixes.some(
+        !aniKotoMediaHostSuffixes.some(
             (suffix) => url.hostname === suffix || url.hostname.endsWith(`.${suffix}`)
         )
     ) {
@@ -730,7 +734,10 @@ export function parseAniKotoSkipData(value: JsonValue | undefined) {
         ? {
               opening,
               ending,
-              source: 'anikoto' as const,
+              sources: {
+                  opening: 'anikoto' as const,
+                  ending: 'anikoto' as const,
+              },
           }
         : null;
 }
@@ -1418,7 +1425,10 @@ async function findSeries(anime: AniListAnime) {
 
 export function validEmbed(value: string | undefined, mode: AniKotoServerMode) {
     const url = validHttpsUrl(value);
-    if (!url || !['megaplay.buzz', 'vidtube.site'].includes(url.hostname)) {
+    if (
+        !url ||
+        !aniKotoEmbedHostnames.includes(url.hostname as (typeof aniKotoEmbedHostnames)[number])
+    ) {
         return null;
     }
 

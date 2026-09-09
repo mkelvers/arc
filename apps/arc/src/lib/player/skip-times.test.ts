@@ -3,6 +3,7 @@ import { describe, expect, test } from 'bun:test';
 import {
     activeSkip,
     intervalFromTemplate,
+    preferManualSkipTimes,
     SegmentSaveResultSchema,
     skipTimesDraft,
     type EpisodeSkipTimes,
@@ -17,7 +18,7 @@ const times: EpisodeSkipTimes = {
         start: 1_320,
         end: 1_410,
     },
-    source: 'aniskip',
+    sources: { opening: 'aniskip', ending: 'aniskip' },
 };
 
 describe('activeSkip', () => {
@@ -44,8 +45,35 @@ describe('activeSkip', () => {
     });
 });
 
+test('manual provenance wins per segment while provider data fills the other segment', () => {
+    expect(
+        preferManualSkipTimes(
+            {
+                opening: { start: 78, end: 166 },
+                ending: { start: 1_310, end: 1_400 },
+                sources: { opening: 'anikoto', ending: 'anikoto' },
+            },
+            {
+                opening: { start: 80, end: 170 },
+                ending: null,
+                sources: { opening: 'manual', ending: null },
+            }
+        )
+    ).toEqual({
+        opening: { start: 80, end: 170 },
+        ending: { start: 1_310, end: 1_400 },
+        sources: { opening: 'manual', ending: 'anikoto' },
+    });
+});
+
 test('skipTimesDraft preserves absent endpoints for manual editing', () => {
-    expect(skipTimesDraft({ opening: null, ending: null, source: null })).toEqual({
+    expect(
+        skipTimesDraft({
+            opening: null,
+            ending: null,
+            sources: { opening: null, ending: null },
+        })
+    ).toEqual({
         opening: {
             start: null,
             end: null,
@@ -78,7 +106,7 @@ describe('SegmentSaveResultSchema', () => {
                     end: 198.5,
                 },
                 ending: null,
-                source: 'manual',
+                sources: { opening: 'manual', ending: 'manual' },
             },
             templates: {
                 opening: {
@@ -104,7 +132,7 @@ describe('SegmentSaveResultSchema', () => {
                 times: {
                     opening: null,
                     ending: null,
-                    source: 'manual',
+                    sources: { opening: 'manual', ending: 'manual' },
                 },
                 templates: {
                     opening: {

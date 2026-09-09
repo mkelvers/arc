@@ -19,35 +19,67 @@ type StoredSkipTimes = Pick<
     | 'openingEndSeconds'
     | 'endingStartSeconds'
     | 'endingEndSeconds'
+    | 'openingSkipTimesSource'
+    | 'endingSkipTimesSource'
+    | 'openingSkipTimesFetchedAt'
+    | 'endingSkipTimesFetchedAt'
     | 'skipTimesSource'
     | 'skipTimesFetchedAt'
 >;
 
+function skipTimesSource(value: string | null) {
+    return value === 'anikoto' || value === 'aniskip' || value === 'manual' ? value : null;
+}
+
 function storedTimes(row: StoredSkipTimes): EpisodeSkipTimes {
-    const source =
-        row.skipTimesSource === 'anikoto' ||
-        row.skipTimesSource === 'aniskip' ||
-        row.skipTimesSource === 'manual'
-            ? row.skipTimesSource
+    const legacySource = skipTimesSource(row.skipTimesSource);
+    const opening =
+        row.openingStartSeconds !== null && row.openingEndSeconds !== null
+            ? {
+                  start: row.openingStartSeconds,
+                  end: row.openingEndSeconds,
+              }
+            : null;
+    const ending =
+        row.endingStartSeconds !== null && row.endingEndSeconds !== null
+            ? {
+                  start: row.endingStartSeconds,
+                  end: row.endingEndSeconds,
+              }
             : null;
 
     return {
-        opening:
-            row.openingStartSeconds !== null && row.openingEndSeconds !== null
-                ? {
-                      start: row.openingStartSeconds,
-                      end: row.openingEndSeconds,
-                  }
-                : null,
-        ending:
-            row.endingStartSeconds !== null && row.endingEndSeconds !== null
-                ? {
-                      start: row.endingStartSeconds,
-                      end: row.endingEndSeconds,
-                  }
-                : null,
-        source,
+        opening,
+        ending,
+        sources: {
+            // Older rows only have one source column. Apply it to a segment
+            // that actually exists; an absent ending must remain discoverable.
+            opening: skipTimesSource(row.openingSkipTimesSource) ?? (opening ? legacySource : null),
+            ending: skipTimesSource(row.endingSkipTimesSource) ?? (ending ? legacySource : null),
+        },
     };
+}
+
+function automaticSegmentWriteCondition(kind: SkipKind) {
+    const source =
+        kind === 'opening'
+            ? animeEpisode.openingSkipTimesSource
+            : animeEpisode.endingSkipTimesSource;
+    const start =
+        kind === 'opening' ? animeEpisode.openingStartSeconds : animeEpisode.endingStartSeconds;
+    const end = kind === 'opening' ? animeEpisode.openingEndSeconds : animeEpisode.endingEndSeconds;
+
+    return or(
+        ne(source, 'manual'),
+        and(
+            isNull(source),
+            or(
+                isNull(start),
+                isNull(end),
+                or(isNull(animeEpisode.skipTimesSource), ne(animeEpisode.skipTimesSource, 'manual'))
+            )
+        )
+    );
 }
 
 interface EpisodeIdentity {
@@ -64,6 +96,10 @@ async function storedEpisodeTimes(anilistId: number, episodeId: string) {
             openingEndSeconds: animeEpisode.openingEndSeconds,
             endingStartSeconds: animeEpisode.endingStartSeconds,
             endingEndSeconds: animeEpisode.endingEndSeconds,
+            openingSkipTimesSource: animeEpisode.openingSkipTimesSource,
+            endingSkipTimesSource: animeEpisode.endingSkipTimesSource,
+            openingSkipTimesFetchedAt: animeEpisode.openingSkipTimesFetchedAt,
+            endingSkipTimesFetchedAt: animeEpisode.endingSkipTimesFetchedAt,
             skipTimesSource: animeEpisode.skipTimesSource,
             skipTimesFetchedAt: animeEpisode.skipTimesFetchedAt,
         })
@@ -82,14 +118,23 @@ export async function getEpisodeSkipTimes({
     const row = await storedEpisodeTimes(anilistId, episodeId);
 
     if (!row) {
-        return { opening: null, ending: null, source: null };
+        return {
+            opening: null,
+            ending: null,
+            sources: { opening: null, ending: null },
+        };
     }
 
     const stored = storedTimes(row);
-    const fresh =
-        row.skipTimesFetchedAt &&
-        Date.now() - row.skipTimesFetchedAt.getTime() < 30 * 24 * 60 * 60 * 1_000;
-    if (row.skipTimesSource === 'manual' || row.skipTimesSource === 'anikoto' || fresh) {
+    const fresh = (fetchedAt: Date | null) =>
+        fetchedAt !== null && Date.now() - fetchedAt.getTime() < 30 * 24 * 60 * 60 * 1_000;
+    const openingNeedsRefresh =
+        stored.sources.opening !== 'manual' &&
+        !fresh(row.openingSkipTimesFetchedAt ?? (stored.opening ? row.skipTimesFetchedAt : null));
+    const endingNeedsRefresh =
+        stored.sources.ending !== 'manual' &&
+        !fresh(row.endingSkipTimesFetchedAt ?? (stored.ending ? row.skipTimesFetchedAt : null));
+    if (!openingNeedsRefresh && !endingNeedsRefresh) {
         return stored;
     }
 
@@ -110,29 +155,45 @@ export async function getEpisodeSkipTimes({
     try {
         const remote = await fetchAniSkip(malId, episodeNumber);
         aniskipFailureUntil.delete(failureKey);
-        const [updated] = await db
-            .update(animeEpisode)
-            .set({
-                openingStartSeconds: remote.opening?.start ?? null,
-                openingEndSeconds: remote.opening?.end ?? null,
-                endingStartSeconds: remote.ending?.start ?? null,
-                endingEndSeconds: remote.ending?.end ?? null,
-                skipTimesSource: 'aniskip',
-                skipTimesFetchedAt: new Date(),
-            })
-            .where(
-                and(
-                    eq(animeEpisode.anilistId, anilistId),
-                    eq(animeEpisode.episodeId, episodeId),
-                    or(
-                        isNull(animeEpisode.skipTimesSource),
-                        ne(animeEpisode.skipTimesSource, 'manual')
-                    )
-                )
-            )
-            .returning({ episodeId: animeEpisode.episodeId });
+        const fetchedAt = new Date();
+        await db.transaction(async (tx) => {
+            if (openingNeedsRefresh) {
+                await tx
+                    .update(animeEpisode)
+                    .set({
+                        openingStartSeconds: remote.opening?.start ?? null,
+                        openingEndSeconds: remote.opening?.end ?? null,
+                        openingSkipTimesSource: 'aniskip',
+                        openingSkipTimesFetchedAt: fetchedAt,
+                    })
+                    .where(
+                        and(
+                            eq(animeEpisode.anilistId, anilistId),
+                            eq(animeEpisode.episodeId, episodeId),
+                            automaticSegmentWriteCondition('opening')
+                        )
+                    );
+            }
+            if (endingNeedsRefresh) {
+                await tx
+                    .update(animeEpisode)
+                    .set({
+                        endingStartSeconds: remote.ending?.start ?? null,
+                        endingEndSeconds: remote.ending?.end ?? null,
+                        endingSkipTimesSource: 'aniskip',
+                        endingSkipTimesFetchedAt: fetchedAt,
+                    })
+                    .where(
+                        and(
+                            eq(animeEpisode.anilistId, anilistId),
+                            eq(animeEpisode.episodeId, episodeId),
+                            automaticSegmentWriteCondition('ending')
+                        )
+                    );
+            }
+        });
 
-        return updated ? remote : getStoredEpisodeSkipTimes(anilistId, episodeId);
+        return getStoredEpisodeSkipTimes(anilistId, episodeId);
     } catch {
         aniskipFailureUntil.set(failureKey, Date.now() + 5 * 60 * 1_000);
         return stored;
@@ -145,7 +206,13 @@ async function getStoredEpisodeSkipTimes(
 ): Promise<EpisodeSkipTimes> {
     const row = await storedEpisodeTimes(anilistId, episodeId);
 
-    return row ? storedTimes(row) : { opening: null, ending: null, source: null };
+    return row
+        ? storedTimes(row)
+        : {
+              opening: null,
+              ending: null,
+              sources: { opening: null, ending: null },
+          };
 }
 
 export async function saveAniKotoSkipTimes({
@@ -157,30 +224,54 @@ export async function saveAniKotoSkipTimes({
     episodeId: string;
     times: EpisodeSkipTimes;
 }) {
-    if (times.source !== 'anikoto') {
+    if (times.sources.opening !== 'anikoto' && times.sources.ending !== 'anikoto') {
         return false;
     }
 
-    const [updated] = await db
-        .update(animeEpisode)
-        .set({
-            openingStartSeconds: times.opening?.start ?? null,
-            openingEndSeconds: times.opening?.end ?? null,
-            endingStartSeconds: times.ending?.start ?? null,
-            endingEndSeconds: times.ending?.end ?? null,
-            skipTimesSource: 'anikoto',
-            skipTimesFetchedAt: new Date(),
-        })
-        .where(
-            and(
-                eq(animeEpisode.anilistId, anilistId),
-                eq(animeEpisode.episodeId, episodeId),
-                or(isNull(animeEpisode.skipTimesSource), ne(animeEpisode.skipTimesSource, 'manual'))
-            )
-        )
-        .returning({ episodeId: animeEpisode.episodeId });
+    const fetchedAt = new Date();
+    let updated = false;
+    await db.transaction(async (tx) => {
+        if (times.sources.opening === 'anikoto') {
+            const [result] = await tx
+                .update(animeEpisode)
+                .set({
+                    openingStartSeconds: times.opening?.start ?? null,
+                    openingEndSeconds: times.opening?.end ?? null,
+                    openingSkipTimesSource: 'anikoto',
+                    openingSkipTimesFetchedAt: fetchedAt,
+                })
+                .where(
+                    and(
+                        eq(animeEpisode.anilistId, anilistId),
+                        eq(animeEpisode.episodeId, episodeId),
+                        automaticSegmentWriteCondition('opening')
+                    )
+                )
+                .returning({ episodeId: animeEpisode.episodeId });
+            updated ||= Boolean(result);
+        }
+        if (times.sources.ending === 'anikoto') {
+            const [result] = await tx
+                .update(animeEpisode)
+                .set({
+                    endingStartSeconds: times.ending?.start ?? null,
+                    endingEndSeconds: times.ending?.end ?? null,
+                    endingSkipTimesSource: 'anikoto',
+                    endingSkipTimesFetchedAt: fetchedAt,
+                })
+                .where(
+                    and(
+                        eq(animeEpisode.anilistId, anilistId),
+                        eq(animeEpisode.episodeId, episodeId),
+                        automaticSegmentWriteCondition('ending')
+                    )
+                )
+                .returning({ episodeId: animeEpisode.episodeId });
+            updated ||= Boolean(result);
+        }
+    });
 
-    return Boolean(updated);
+    return updated;
 }
 
 export async function getSegmentTemplates(
@@ -281,12 +372,16 @@ export async function saveEpisodeSegment(save: SegmentSave) {
                 ? {
                       openingStartSeconds: interval?.start ?? null,
                       openingEndSeconds: interval?.end ?? null,
+                      openingSkipTimesSource: 'manual' as const,
+                      openingSkipTimesFetchedAt: new Date(),
                       skipTimesSource: 'manual' as const,
                       skipTimesFetchedAt: new Date(),
                   }
                 : {
                       endingStartSeconds: interval?.start ?? null,
                       endingEndSeconds: interval?.end ?? null,
+                      endingSkipTimesSource: 'manual' as const,
+                      endingSkipTimesFetchedAt: new Date(),
                       skipTimesSource: 'manual' as const,
                       skipTimesFetchedAt: new Date(),
                   };

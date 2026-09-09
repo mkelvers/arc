@@ -102,7 +102,7 @@ describe('AniKoto provider rules', () => {
         expect(parseAniKotoSkipData({ intro: [80.5, 170.5], outro: [1_410, 1_500] })).toEqual({
             opening: { start: 80.5, end: 170.5 },
             ending: { start: 1_410, end: 1_500 },
-            source: 'anikoto',
+            sources: { opening: 'anikoto', ending: 'anikoto' },
         });
         expect(parseAniKotoSkipData({ intro: [170, 80], outro: ['1410', 1500] })).toBeNull();
         expect(
@@ -657,7 +657,7 @@ describe('AniKoto provider rules', () => {
             expect(sources.skipTimes).toEqual({
                 opening: { start: 80.5, end: 170.5 },
                 ending: { start: 1_410, end: 1_500 },
-                source: 'anikoto',
+                sources: { opening: 'anikoto', ending: 'anikoto' },
             });
         } finally {
             globalThis.fetch = originalFetch;
