@@ -108,6 +108,42 @@ test('rejects sources outside the AniKoto media hosts', async () => {
     });
 });
 
+test('allows the current AniKoto ImgNex media host', async () => {
+    const requested: string[] = [];
+    const response = await proxyStreamRequest(
+        streamRequest('https://ncdn.imgnex.top/anime/episode/master.m3u8'),
+        async (target) => {
+            requested.push(target.hostname);
+            return new Response('#EXTM3U\n#EXT-X-ENDLIST', {
+                headers: { 'Content-Type': 'application/vnd.apple.mpegurl' },
+            });
+        }
+    );
+
+    expect(response.status).toBe(200);
+    expect(requested).toEqual(['ncdn.imgnex.top']);
+});
+
+test('falls back from ImgNex anime paths to the MegaPlay media mirror', async () => {
+    const requested: Array<{ host: string; pathname: string }> = [];
+    const response = await proxyStreamRequest(
+        streamRequest('https://ncdn.imgnex.top/anime/series/episode/subtitles/english.vtt'),
+        async (target) => {
+            requested.push({ host: target.hostname, pathname: target.pathname });
+            return target.hostname === 'ncdn.imgnex.top'
+                ? new Response(null, { status: 502 })
+                : new Response('WEBVTT\n\n00:00.000 --> 00:01.000\nHello');
+        }
+    );
+
+    expect(response.status).toBe(200);
+    expect(requested).toEqual([
+        { host: 'ncdn.imgnex.top', pathname: '/anime/series/episode/subtitles/english.vtt' },
+        { host: 'megap.akirax.buzz', pathname: '/series/episode/subtitles/english.vtt' },
+    ]);
+    expect(await response.text()).toContain('WEBVTT');
+});
+
 test('rejects an upstream HTML response where an HLS playlist is expected', async () => {
     await expect(
         proxyStreamRequest(
