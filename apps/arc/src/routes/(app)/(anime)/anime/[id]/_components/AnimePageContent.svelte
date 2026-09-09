@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { onMount, untrack } from 'svelte';
+
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
     import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
@@ -7,107 +9,103 @@
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
     import AiringStatus from './AiringStatus.svelte';
     import WatchlistStatusMenu from './WatchlistStatusMenu.svelte';
-    import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
-    import {
-        AnimeArtworkSchema,
-        AnimePageDeferredSchema,
-        type AnimeArtwork,
-        type AnimePageDeferred,
-    } from '@arc/core/client';
+    import { AnimePageEpisodeUpdatesSchema, type AnimePageEpisodeUpdates } from '@arc/core/client';
     import { cn } from '$lib/utils';
     import type { PageData } from '../$types';
     import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
     import { m } from '$lib/i18n.svelte';
-    import Skeleton from '$lib/components/ui/skeleton/Skeleton.svelte';
-    import PageLoading from '$lib/components/ui/PageLoading.svelte';
 
     type PageResult = Awaited<PageData['page']>;
     type Props = { data: Extract<PageResult, { status: 'success' }>['data'] };
-    type AnimeDetails = Props['data']['anime'];
-    const pending = new Promise<never>(() => undefined);
 
     let { data }: Props = $props();
+    const initialData = untrack(() => data);
 
-    let enrichedAnime = $state<AnimeDetails | null>(null);
-    const anime = $derived(enrichedAnime ?? data.anime);
-    let page = $state({
-        artwork: Promise.resolve<AnimeArtwork>(null),
-        episodes: pending as Promise<AnimePageDeferred['episodes']>,
-        watchAction: pending as Promise<AnimePageDeferred['watchAction']>,
-        audioLabel: pending as Promise<string>,
-        franchise: pending as Promise<AnimePageDeferred['franchise']>,
-    });
+    let anime = $derived(data.anime);
+    let artwork = $derived(data.artwork);
+    let episodes = $state(initialData.episodes);
+    let watchAction = $state(initialData.watchAction);
+    let audioLabel = $state(initialData.audioLabel);
+    let episodeRevision = $state(initialData.episodeRevision);
+    let franchise = $derived(data.franchise);
     let detailsExpanded = $state(false);
-    let loadedBackdrop = $state<string | null>(null);
     let visibleEpisodeCount = $state(28);
-    let extendedMetadataLoading = $state(true);
-    let loadedAnimeId = $state<number | null>(null);
-    let artworkLoading = $state(true);
-    const loading = $derived(artworkLoading || loadedAnimeId !== data.anime.id);
-
-    async function loadDeferred() {
-        extendedMetadataLoading = true;
-        page.episodes = pending as Promise<AnimePageDeferred['episodes']>;
-        page.watchAction = pending as Promise<AnimePageDeferred['watchAction']>;
-        page.audioLabel = pending as Promise<string>;
-        page.franchise = pending as Promise<AnimePageDeferred['franchise']>;
-
-        try {
-            const response = await fetch(`/v1/anime/${data.anime.id}/deferred`);
-            if (!response.ok) {
-                throw new Error(`Deferred anime page request failed with ${response.status}`);
-            }
-            const result = AnimePageDeferredSchema.parse(await response.json());
-            enrichedAnime = result.anime;
-            page.episodes = Promise.resolve(result.episodes);
-            page.watchAction = Promise.resolve(result.watchAction);
-            page.audioLabel = Promise.resolve(result.audioLabel);
-            page.franchise = Promise.resolve(result.franchise);
-            visibleEpisodeCount = 28;
-            extendedMetadataLoading = false;
-        } catch {
-            extendedMetadataLoading = false;
-            page.episodes = Promise.resolve([]);
-            page.watchAction = Promise.resolve({
-                href: '#anime-episode-list',
-                kind: 'episodes' as const,
-                episode: null,
-            });
-            page.audioLabel = Promise.resolve('');
-            page.franchise = Promise.resolve(null);
-        }
-    }
-
-    async function loadArtwork() {
-        const animeId = data.anime.id;
-        try {
-            const response = await fetch(`/v1/anime/${animeId}/artwork`);
-            if (!response.ok) {
-                throw new Error(`Artwork request failed with ${response.status}`);
-            }
-            const artwork = AnimeArtworkSchema.parse(await response.json());
-            if (loadedAnimeId === animeId) {
-                page.artwork = Promise.resolve(artwork);
-            }
-        } catch {
-            if (loadedAnimeId === animeId) {
-                page.artwork = Promise.resolve(null);
-            }
-        } finally {
-            if (loadedAnimeId === animeId) {
-                artworkLoading = false;
-            }
-        }
-    }
+    let loadedAnimeId = $state(initialData.anime.id);
 
     $effect(() => {
         if (loadedAnimeId !== data.anime.id) {
             loadedAnimeId = data.anime.id;
-            extendedMetadataLoading = true;
-            artworkLoading = true;
-            page.artwork = Promise.resolve(null);
-            void Promise.all([loadDeferred(), loadArtwork()]);
+            episodes = data.episodes;
+            watchAction = data.watchAction;
+            audioLabel = data.audioLabel;
+            episodeRevision = data.episodeRevision;
+            visibleEpisodeCount = 28;
         }
+    });
+
+    onMount(() => {
+        if (anime.status !== 'RELEASING') {
+            return;
+        }
+
+        const controller = new AbortController();
+        let stopped = false;
+        let timer: ReturnType<typeof setTimeout>;
+        let warned = false;
+
+        const poll = async () => {
+            if (document.visibilityState === 'visible') {
+                try {
+                    const query = new URLSearchParams({
+                        known: episodes.map(({ id }) => id).join(','),
+                    });
+                    if (episodeRevision) {
+                        query.set('revision', episodeRevision);
+                    }
+
+                    const response = await fetch(`/v1/anime/${anime.id}/episodes/updates?${query}`, {
+                        cache: 'no-store',
+                        signal: controller.signal,
+                    });
+                    if (!response.ok) {
+                        throw new Error(`Episode update request failed with ${response.status}`);
+                    }
+
+                    const result: AnimePageEpisodeUpdates = AnimePageEpisodeUpdatesSchema.parse(
+                        await response.json()
+                    );
+                    warned = false;
+                    if (result.revision !== episodeRevision) {
+                        episodes = result.replace
+                            ? result.episodes
+                            : [...episodes, ...result.episodes].toSorted(
+                                  (left, right) => left.number - right.number
+                              );
+                        visibleEpisodeCount = Math.max(visibleEpisodeCount, episodes.length);
+                        watchAction = result.watchAction;
+                        audioLabel = result.audioLabel;
+                        episodeRevision = result.revision;
+                    }
+                } catch (cause) {
+                    if (!controller.signal.aborted && !warned) {
+                        warned = true;
+                        console.warn(`Episode update check failed for AniList ${anime.id}`, cause);
+                    }
+                }
+            }
+
+            if (!stopped) {
+                timer = setTimeout(poll, 60_000);
+            }
+        };
+
+        timer = setTimeout(poll, 60_000);
+
+        return () => {
+            stopped = true;
+            controller.abort();
+            clearTimeout(timer);
+        };
     });
 
     function showMoreEpisodes(total: number) {
@@ -115,30 +113,23 @@
     }
 </script>
 
-{#if loading}
-    <PageLoading label={m.anime_loading()} />
-{/if}
-
-<main class:hidden={loading} class="bg-canvas text-foreground">
+<main class="bg-canvas text-foreground">
     <h1 class="sr-only">{anime.title}</h1>
     <section>
         <figure
             class="anime-hero relative z-30 grid h-[calc(100dvh-10rem)] min-h-120 max-h-192 grid-cols-1 grid-rows-1 bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"
         >
-            {#await page.artwork then artwork}
-                {#if artwork?.selectedBackdrop}
-                    <div class="absolute inset-0 overflow-hidden">
-                        <ProgressiveImage
-                            src={artwork.selectedBackdrop.url}
-                            alt={anime.title}
-                            previewSize="w300"
-                            class="absolute inset-x-0 top-0 z-0 h-dvh w-full"
-                            imageClass="object-[45%_0%]"
-                            onready={() => (loadedBackdrop = artwork.selectedBackdrop?.url ?? null)}
-                        />
-                    </div>
-                {/if}
-            {/await}
+            {#if artwork?.selectedBackdrop}
+                <div class="absolute inset-0 overflow-hidden">
+                    <ProgressiveImage
+                        src={artwork.selectedBackdrop.url}
+                        alt={anime.title}
+                        previewSize="w300"
+                        class="absolute inset-x-0 top-0 z-0 h-dvh w-full"
+                        imageClass="object-[45%_0%]"
+                    />
+                </div>
+            {/if}
 
             <div
                 class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end font-bold sm:mt-5 sm:mr-8 lg:mr-12"
@@ -167,35 +158,22 @@
 
             <div class="z-20 col-start-1 row-start-1 min-w-0 self-end px-5 pb-10 sm:px-10 lg:px-16 lg:pb-20">
                 <div class="w-fit">
-                    {#await page.artwork then artwork}
-                        {#if artwork?.selectedLogo}
-                            <img
-                                src={artwork.selectedLogo.url}
-                                alt={anime.title}
-                                style:height={`clamp(${(5 * artwork.logoSize) / 100}rem, ${(6.4 * artwork.logoSize) / 100}vw, ${(8 * artwork.logoSize) / 100}rem)`}
-                                class={cn(
-                                    'max-w-[65vw] object-contain object-left opacity-0 transition-opacity duration-300 sm:max-w-md lg:max-w-lg 2xl:max-w-2xl',
-                                    (!artwork.selectedBackdrop ||
-                                        loadedBackdrop === artwork.selectedBackdrop.url) &&
-                                        'opacity-100'
-                                )}
-                            />
-                        {:else if !artwork}
-                            <h1
-                                class="max-w-3xl text-4xl leading-tight font-bold text-white sm:text-5xl lg:text-6xl"
-                            >
-                                {anime.title}
-                            </h1>
-                        {/if}
-                    {/await}
+                    {#if artwork?.selectedLogo}
+                        <img
+                            src={artwork.selectedLogo.url}
+                            alt={anime.title}
+                            style:height={`clamp(${(5 * artwork.logoSize) / 100}rem, ${(6.4 * artwork.logoSize) / 100}vw, ${(8 * artwork.logoSize) / 100}rem)`}
+                            class="max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-w-2xl"
+                        />
+                    {:else}
+                        <h1 class="max-w-3xl text-4xl leading-tight font-bold text-white sm:text-5xl lg:text-6xl">
+                            {anime.title}
+                        </h1>
+                    {/if}
                 </div>
 
                 {#if anime.status === 'RELEASING' && anime.nextAiringEpisode}
-                    <AiringStatus
-                        animeId={anime.id}
-                        airingAt={anime.nextAiringEpisode.airingAt}
-                        initialRevision={data.episodeRevision}
-                    />
+                    <AiringStatus airingAt={anime.nextAiringEpisode.airingAt} />
                 {/if}
 
                 <p
@@ -204,11 +182,9 @@
                         anime.status === 'RELEASING' && anime.nextAiringEpisode ? 'mt-3' : 'mt-8 sm:mt-10 lg:mt-11'
                     )}
                 >
-                    {#await page.audioLabel then audioLabel}
-                        {#if audioLabel}
-                            <span class="metadata-tag">{audioLabel}</span>
-                        {/if}
-                    {/await}
+                    {#if audioLabel}
+                        <span class="metadata-tag">{audioLabel}</span>
+                    {/if}
                     {#if anime.genres.length}
                         <span class="metadata-tag">
                             {#each anime.genres as genre, index}
@@ -258,29 +234,19 @@
                 <div
                     class="mt-7 flex max-sm:flex-wrap items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-8 lg:gap-2.5"
                 >
-                    {#await page.watchAction}
-                        <a
-                            href="#anime-episode-list"
-                            class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] sm:px-6"
-                        >
-                            <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
-                            {m.anime_view_episodes()}
-                        </a>
-                    {:then watchAction}
-                        <a
-                            href={watchAction.href}
-                            class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] sm:px-6"
-                        >
-                            <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
-                            {watchAction.kind === 'continue'
-                                ? m.anime_continue_watching({ episode: watchAction.episode ?? '' })
-                                : watchAction.kind === 'rewatch'
-                                  ? m.anime_rewatch()
-                                  : watchAction.kind === 'start'
-                                    ? m.anime_start_watching({ episode: watchAction.episode ?? '' })
-                                    : m.anime_view_episodes()}
-                        </a>
-                    {/await}
+                    <a
+                        href={watchAction.href}
+                        class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] sm:px-6"
+                    >
+                        <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
+                        {watchAction.kind === 'continue'
+                            ? m.anime_continue_watching({ episode: watchAction.episode ?? '' })
+                            : watchAction.kind === 'rewatch'
+                              ? m.anime_rewatch()
+                              : watchAction.kind === 'start'
+                                ? m.anime_start_watching({ episode: watchAction.episode ?? '' })
+                                : m.anime_view_episodes()}
+                    </a>
                     <WatchlistBookmark animeId={anime.id} title={anime.title} iconSize="1.65em" outlined />
                     <WatchlistStatusMenu
                         animeId={anime.id}
@@ -307,42 +273,30 @@
                         )}
                     >
                         <p class="max-w-3xl text-foreground">{anime.description}</p>
-                        <div class="space-y-3" aria-busy={extendedMetadataLoading}>
-                            {#if extendedMetadataLoading}
-                                <span class="sr-only">{m.anime_loading()}</span>
-                                {#each [m.anime_production(), m.anime_key_staff(), m.anime_rankings(), m.anime_audience(), m.anime_themes()] as label}
-                                    <p>
-                                        <strong class="font-normal text-foreground">{label}</strong>
-                                        <Skeleton
-                                            class="ml-1 inline-block h-3 w-32 rounded-sm align-middle sm:w-48"
-                                        />
-                                    </p>
-                                {/each}
-                            {:else}
-                                <p>
-                                    <strong class="font-normal text-foreground">{m.anime_production()}</strong>
-                                    {anime.studios.join(', ')}
-                                </p>
-                                <p>
-                                    <strong class="font-normal text-foreground">{m.anime_key_staff()}</strong>
-                                    {anime.staff}
-                                </p>
-                                <p>
-                                    <strong class="font-normal text-foreground">{m.anime_rankings()}</strong>
-                                    {anime.rankings.join(', ')}
-                                </p>
-                                <p>
-                                    <strong class="font-normal text-foreground">{m.anime_audience()}</strong>
-                                    {m.anime_members_favorites({
-                                        members: anime.members,
-                                        favorites: anime.favourites,
-                                    })}
-                                </p>
-                                <p>
-                                    <strong class="font-normal text-foreground">{m.anime_themes()}</strong>
-                                    {anime.themes.join(', ')}
-                                </p>
-                            {/if}
+                        <div class="space-y-3">
+                            <p>
+                                <strong class="font-normal text-foreground">{m.anime_production()}</strong>
+                                {anime.studios.join(', ')}
+                            </p>
+                            <p>
+                                <strong class="font-normal text-foreground">{m.anime_key_staff()}</strong>
+                                {anime.staff}
+                            </p>
+                            <p>
+                                <strong class="font-normal text-foreground">{m.anime_rankings()}</strong>
+                                {anime.rankings.join(', ')}
+                            </p>
+                            <p>
+                                <strong class="font-normal text-foreground">{m.anime_audience()}</strong>
+                                {m.anime_members_favorites({
+                                    members: anime.members,
+                                    favorites: anime.favourites,
+                                })}
+                            </p>
+                            <p>
+                                <strong class="font-normal text-foreground">{m.anime_themes()}</strong>
+                                {anime.themes.join(', ')}
+                            </p>
                             <p>
                                 <strong class="font-normal text-foreground">{m.anime_genres()}</strong>
                                 {#each anime.genres as genre, index}
@@ -376,66 +330,38 @@
     </section>
 
     <div class="px-3 sm:px-8 lg:px-14">
-        {#snippet loadingEpisodes()}
-            <section
-                id="anime-episode-list"
-                class="px-2 py-7 sm:pb-12 lg:pb-16"
-                aria-labelledby="anime-episodes-title"
-                aria-busy="true"
-                aria-live="polite"
-            >
-                <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
-                <span class="sr-only">{m.anime_loading_episodes()}</span>
+        <section
+            id="anime-episode-list"
+            class="px-2 py-7 sm:pb-12 lg:pb-16"
+            aria-labelledby="anime-episodes-title"
+            aria-live="polite"
+        >
+            <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
+            {#if episodes.length}
                 <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 hero:grid-cols-7">
-                    {#each Array.from({ length: 5 }) as _}
-                        <AnimeCardSkeleton variant="top" />
+                    {#each episodes.slice(0, visibleEpisodeCount) as episode}
+                        <EpisodeGridCard
+                            episode={episode}
+                            title={anime.title}
+                            image={artwork?.selectedBackdrop?.url ?? null}
+                        />
                     {/each}
                 </div>
-            </section>
-        {/snippet}
-
-        {#await page.episodes}
-            {@render loadingEpisodes()}
-        {:then episodes}
-            {#await page.artwork}
-                {@render loadingEpisodes()}
-            {:then artwork}
-                <section
-                    id="anime-episode-list"
-                    class="px-2 py-7 sm:pb-12 lg:pb-16"
-                    aria-labelledby="anime-episodes-title"
-                    aria-live="polite"
-                >
-                    <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
-                    {#if episodes.length}
-                        <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 hero:grid-cols-7">
-                            {#each episodes.slice(0, visibleEpisodeCount) as episode}
-                                <EpisodeGridCard
-                                    episode={episode}
-                                    title={anime.title}
-                                    image={artwork?.selectedBackdrop?.url ?? null}
-                                />
-                            {/each}
-                        </div>
-                        {#if visibleEpisodeCount < episodes.length}
-                            <Button
-                                variant="unstyled"
-                                type="button"
-                                class="mx-auto mt-8 flex min-h-11 w-full max-w-5xl items-center justify-center bg-[#192e38] px-5 text-xs font-bold text-white uppercase hover:brightness-[1.2] focus:outline-none active:outline-none"
-                                onclick={() => showMoreEpisodes(episodes.length)}
-                            >
-                                {m.anime_show_more_episodes()}
-                            </Button>
-                        {/if}
-                    {/if}
-                </section>
-            {/await}
-        {/await}
-
-        {#await page.franchise then franchise}
-            {#if franchise?.entries.length}
-                <FranchiseOrder order={franchise} currentAnimeId={anime.id} />
+                {#if visibleEpisodeCount < episodes.length}
+                    <Button
+                        variant="unstyled"
+                        type="button"
+                        class="mx-auto mt-8 flex min-h-11 w-full max-w-5xl items-center justify-center bg-[#192e38] px-5 text-xs font-bold text-white uppercase hover:brightness-[1.2] focus:outline-none active:outline-none"
+                        onclick={() => showMoreEpisodes(episodes.length)}
+                    >
+                        {m.anime_show_more_episodes()}
+                    </Button>
+                {/if}
             {/if}
-        {/await}
+        </section>
+
+        {#if franchise?.entries.length}
+            <FranchiseOrder order={franchise} currentAnimeId={anime.id} />
+        {/if}
     </div>
 </main>
