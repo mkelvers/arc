@@ -1,15 +1,17 @@
 import { Buffer } from 'node:buffer';
 import { z } from 'zod';
 
-import { WatchPlaybackSchema } from '@arc/core/server';
+import { EpisodeSkipTimesSchema, WatchPlaybackSchema } from '@arc/core/server';
 
 const playbackInputSchema = z.strictObject({
     error: z.boolean(),
+    skipTimes: EpisodeSkipTimesSchema.nullable().optional(),
     streams: z.record(z.string(), z.array(z.unknown())),
 });
 
 type PlaybackResponseInput = {
     error: boolean;
+    skipTimes?: z.infer<typeof EpisodeSkipTimesSchema> | null;
     streams: object;
 };
 
@@ -17,6 +19,7 @@ export function playbackResponse(value: PlaybackResponseInput) {
     const input = playbackInputSchema.parse(value);
     const validated = WatchPlaybackSchema.parse({
         ...input,
+        skipTimes: input.skipTimes ?? null,
         streams: {
             ...input.streams,
             sub: input.streams.sub ?? [],
