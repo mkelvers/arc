@@ -18,28 +18,30 @@ export const load: PageServerLoad = async ({ url, request, fetch }) => {
             }),
         };
     }
+    const results = await fetch(`${env.API_ORIGIN!}/v1/search?q=${encodeURIComponent(query)}`, {
+        headers: {
+            Cookie: request.headers.get('cookie') ?? '',
+            Authorization: request.headers.get('authorization') ?? '',
+        },
+    })
+        .then(async (response) => {
+            if (!response.ok) {
+                return {
+                    status: 'error' as const,
+                };
+            }
+
+            return {
+                status: 'success' as const,
+                data: SearchResponseSchema.parse(await response.json()),
+            };
+        })
+        .catch(() => ({
+            status: 'error' as const,
+        }));
+
     return {
         query,
-        results: fetch(`${env.API_ORIGIN!}/v1/search?q=${encodeURIComponent(query)}`, {
-            headers: {
-                Cookie: request.headers.get('cookie') ?? '',
-                Authorization: request.headers.get('authorization') ?? '',
-            },
-        })
-            .then(async (response) => {
-                if (!response.ok) {
-                    return {
-                        status: 'error' as const,
-                    };
-                }
-
-                return {
-                    status: 'success' as const,
-                    data: SearchResponseSchema.parse(await response.json()),
-                };
-            })
-            .catch(() => ({
-                status: 'error' as const,
-            })),
+        results: Promise.resolve(results),
     };
 };

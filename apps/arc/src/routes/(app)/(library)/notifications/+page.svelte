@@ -61,6 +61,10 @@
     $effect(() => {
         void data.notifications
             .then((result) => {
+                if (!result) {
+                    failed = true;
+                    return;
+                }
                 notifications = result.entries;
             })
             .catch(() => (failed = true));
