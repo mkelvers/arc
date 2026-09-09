@@ -243,16 +243,26 @@ export const AnimePageOverviewSchema = z.object({
     watchlistState: z.enum(['watching', 'plan_to_watch', 'completed', 'dropped']).nullable(),
 });
 
+const AnimePageWatchActionSchema = z.object({
+    href: z.string(),
+    kind: z.enum(['continue', 'start', 'rewatch', 'episodes']),
+    episode: z.string().nullable(),
+});
+
 export const AnimePageDeferredSchema = z.object({
     anime: AnimeDetailsSchema,
     episodes: z.array(EpisodeSchema),
-    watchAction: z.object({
-        href: z.string(),
-        kind: z.enum(['continue', 'start', 'rewatch', 'episodes']),
-        episode: z.string().nullable(),
-    }),
+    watchAction: AnimePageWatchActionSchema,
     audioLabel: z.string(),
     franchise: AnimePageFranchiseSchema,
+});
+
+export const AnimePageEpisodeUpdatesSchema = z.object({
+    revision: z.string().nullable(),
+    episodes: z.array(EpisodeSchema),
+    replace: z.boolean(),
+    watchAction: AnimePageWatchActionSchema,
+    audioLabel: z.string(),
 });
 
 export const AnimePageSchema = AnimePageOverviewSchema.and(AnimePageDeferredSchema).and(
@@ -261,6 +271,7 @@ export const AnimePageSchema = AnimePageOverviewSchema.and(AnimePageDeferredSche
 
 export type AnimePageOverview = z.infer<typeof AnimePageOverviewSchema>;
 export type AnimePageDeferred = z.infer<typeof AnimePageDeferredSchema>;
+export type AnimePageEpisodeUpdates = z.infer<typeof AnimePageEpisodeUpdatesSchema>;
 export type AnimeArtwork = z.infer<typeof AnimeArtworkSchema>;
 
 export const WatchPageSchema = z.object({
