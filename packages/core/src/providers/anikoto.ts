@@ -1,5 +1,6 @@
 import { and, eq, isNull, or } from 'drizzle-orm';
 import { load } from 'cheerio';
+import { createDecipheriv } from 'node:crypto';
 import { z } from 'zod';
 
 import { audioAvailabilityLabel, type AudioMode } from '../audio';
@@ -100,21 +101,31 @@ const serverResponseSchema = z.object({
         })
         .loose(),
 });
-const sourcePayloadSchema = z.object({
-    sources: z.object({
-        file: z.string().trim().min(1),
-    }),
-    tracks: z
-        .array(
-            z.object({
+const sourcePayloadSchema = z
+    .object({
+        sources: z
+            .object({
                 file: z.string().trim().min(1),
-                label: z.string(),
-                kind: z.string(),
-                default: z.boolean().optional(),
             })
-        )
-        .optional(),
-});
+            .optional(),
+        enc: z.string().trim().min(1).optional(),
+        tracks: z
+            .array(
+                z.object({
+                    file: z.string().trim().min(1),
+                    label: z.string(),
+                    kind: z.string(),
+                    default: z.boolean().optional(),
+                })
+            )
+            .optional(),
+    })
+    .refine(({ sources, enc }) => sources !== undefined || enc !== undefined);
+// MegaPlay exposes this client-side AES routine in its player script for the `enc` payload.
+const megaPlayEncryptionKey = Buffer.concat([Buffer.from('i?LMTAx0Q6,:}50U'), Buffer.alloc(16)]);
+const megaPlayEncryptionIv = Buffer.from([
+    87, 48, 59, 50, 55, 84, 111, 97, 85, 112, 108, 95, 80, 37, 39, 99,
+]);
 type AniKotoServerMode = Exclude<AudioMode, 'raw'> | 'hsub';
 
 interface AniKotoSeries {
@@ -681,13 +692,38 @@ export function parseMegaPlaySourceId(html: string) {
     return positiveId(id) ? id : null;
 }
 
+function decryptMegaPlaySourceFile(token: string) {
+    try {
+        const base64 = token.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+        const decipher = createDecipheriv(
+            'aes-256-cbc',
+            megaPlayEncryptionKey,
+            megaPlayEncryptionIv
+        );
+        const decrypted = Buffer.concat([
+            decipher.update(Buffer.from(padded, 'base64')),
+            decipher.final(),
+        ]);
+        const file = z
+            .object({ file: z.string().trim().min(1) })
+            .safeParse(JSON.parse(decrypted.toString('utf8')));
+        return file.success ? file.data.file : null;
+    } catch {
+        return null;
+    }
+}
+
 export function parseMegaPlaySource(value: JsonValue) {
     const parsed = sourcePayloadSchema.safeParse(value);
     if (!parsed.success) {
         return null;
     }
 
-    const mediaUrl = supportedMediaUrl(parsed.data.sources.file);
+    const sourceFile =
+        parsed.data.sources?.file ??
+        (parsed.data.enc ? decryptMegaPlaySourceFile(parsed.data.enc) : null);
+    const mediaUrl = sourceFile ? supportedMediaUrl(sourceFile) : null;
     if (!mediaUrl) {
         return null;
     }
