@@ -167,7 +167,6 @@
                     <ProgressiveImage
                         src={artwork.selectedBackdrop.url}
                         alt={anime.title}
-                        previewSize="w300"
                         class="absolute inset-x-0 top-0 z-0 h-dvh w-full"
                         imageClass="object-[45%_0%]"
                     />

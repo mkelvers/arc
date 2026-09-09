@@ -291,7 +291,6 @@
             <ProgressiveImage
                 src={poster}
                 alt=""
-                previewSize="w300"
                 class="absolute inset-0 opacity-35"
                 imageClass="scale-105 blur-xl"
             />
