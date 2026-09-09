@@ -10,6 +10,7 @@ import {
 } from '@arc/shared/graphql/generated/graphql';
 import { db } from '@arc/shared/db';
 import {
+    anime,
     animeEpisodeSync,
     animeRelation,
     animeRelease,
@@ -58,17 +59,18 @@ export async function storeAnimeRelease(media: AniListAnime, sourceFetchedAt = n
     const payloadHash = createHash('sha256').update(JSON.stringify(media)).digest('hex');
     const { effective, effectiveFetchedAt, relationProvider, updateRelations } =
         await db.transaction(async (tx) => {
+            await tx
+                .select({ id: anime.id })
+                .from(anime)
+                .where(eq(anime.id, sourceAnimeId))
+                .for('update');
             const [stored] = await tx
                 .select({ data: animeRelease.data })
                 .from(animeRelease)
                 .where(eq(animeRelease.anilistId, media.id))
                 .limit(1);
             const existingSources = await tx
-                .select({
-                    provider: providerSnapshot.provider,
-                    payload: providerSnapshot.payload,
-                    sourceFetchedAt: providerSnapshot.sourceFetchedAt,
-                })
+                .select({ provider: providerSnapshot.provider })
                 .from(providerSnapshot)
                 .where(
                     and(

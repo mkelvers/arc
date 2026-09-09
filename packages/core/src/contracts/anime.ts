@@ -172,7 +172,7 @@ export const SearchResponseSchema = z.array(AnimeSearchResultSchema);
 export const ReleaseCalendarSchema = z.object({
     events: z.array(
         z.object({
-            airingId: z.number().int().positive(),
+            airingId: z.union([z.number().int().positive(), z.string().regex(/^target:\d+:\d+$/)]),
             anilistId: AnimeIdSchema,
             episode: z.number().int().positive(),
             airingAt: z.iso.datetime(),

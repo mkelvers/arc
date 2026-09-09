@@ -40,7 +40,7 @@ describe('release calendar persistence fallback', () => {
         expect(entries).toEqual([
             snapshotEntry,
             {
-                airingId: 1_000_202_010,
+                airingId: 'target:202:10',
                 anilistId: 202,
                 episode: 10,
                 airingAt: new Date('2026-09-09T12:00:00.000Z'),
@@ -72,6 +72,35 @@ describe('release calendar persistence fallback', () => {
                 airingAt: new Date('2026-09-08T12:00:00.000Z'),
                 title: 'Updated title',
             },
+        ]);
+    });
+
+    test('gives persisted targets a collision-free identity', () => {
+        const entries = mergeReleaseCalendarEntries(
+            [],
+            [
+                {
+                    anilistId: 202,
+                    episode: 1001,
+                    airingAt: new Date('2026-09-09T12:00:00.000Z'),
+                    title: 'First target',
+                    synopsis: null,
+                    imageUrl: null,
+                },
+                {
+                    anilistId: 203,
+                    episode: 1,
+                    airingAt: new Date('2026-09-09T13:00:00.000Z'),
+                    title: 'Second target',
+                    synopsis: null,
+                    imageUrl: null,
+                },
+            ]
+        );
+
+        expect(entries.map(({ airingId }) => airingId)).toEqual([
+            'target:202:1001',
+            'target:203:1',
         ]);
     });
 });

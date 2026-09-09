@@ -106,4 +106,46 @@ describe('anime release source merging', () => {
             ])
         ).toBe('anilist');
     });
+
+    test('records fallback provenance when the primary relation object is missing', () => {
+        const result = mergeAnimeReleaseSnapshots([
+            snapshot('anilist', { id: 42, relations: null }, '2026-09-01T10:00:00Z'),
+            snapshot(
+                'kitsu',
+                {
+                    id: 42,
+                    relations: {
+                        edges: [
+                            {
+                                relationType: 'SEQUEL',
+                                node: {
+                                    id: 43,
+                                    idMal: null,
+                                    episodes: null,
+                                    type: 'ANIME',
+                                    format: null,
+                                    title: null,
+                                },
+                            },
+                        ],
+                    },
+                },
+                '2026-09-09T10:00:00Z'
+            ),
+        ]);
+
+        expect(result?.metadataFieldSources?.relations).toBe('kitsu');
+    });
+
+    test('records fallback provenance for isAdult', () => {
+        const result = mergeAnimeReleaseSnapshots([
+            snapshot('anilist', { id: 42, isAdult: undefined }, '2026-09-01T10:00:00Z'),
+            snapshot('kitsu', { id: 42, isAdult: true }, '2026-09-09T10:00:00Z'),
+        ]);
+
+        expect(result).toMatchObject({
+            isAdult: true,
+            metadataFieldSources: { isAdult: 'kitsu' },
+        });
+    });
 });

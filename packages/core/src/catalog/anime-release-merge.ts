@@ -131,12 +131,10 @@ function mergePair(
         fieldSources.episodes ??= fallbackProvider;
     if (primary.duration == null && fallback.duration != null)
         fieldSources.duration ??= fallbackProvider;
-    if (
-        primary.relations?.edges?.length !== undefined &&
-        !primary.relations.edges.length &&
-        fallback.relations?.edges?.length
-    )
+    if (!primary.relations?.edges?.length && fallback.relations?.edges?.length)
         fieldSources.relations ??= fallbackProvider;
+    if (primary.isAdult == null && fallback.isAdult != null)
+        fieldSources.isAdult ??= fallbackProvider;
     if (primary.averageScore == null && fallback.averageScore != null)
         fieldSources.averageScore ??= fallbackProvider;
     if (primary.popularity == null && fallback.popularity != null)

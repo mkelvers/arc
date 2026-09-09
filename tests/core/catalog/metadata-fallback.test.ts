@@ -9,7 +9,12 @@ import {
 import { kitsuFixture } from './fixtures/kitsu';
 import { toAnimeDetails } from '../../../packages/core/src/catalog/details';
 import { AniListAnimeOverviewSchema } from '../../../packages/core/src/catalog/anilist-types';
-import { animeRelease, providerSnapshot, type anilistQuerySnapshot } from '@arc/shared/db/schema';
+import {
+    anime,
+    animeRelease,
+    providerSnapshot,
+    type anilistQuerySnapshot,
+} from '@arc/shared/db/schema';
 import {
     AniListAnimeSchema,
     type AniListAnime,
@@ -40,11 +45,18 @@ type SourceRow = {
 };
 let storedSourceRows: SourceRow[] = [];
 type QueryRow = Snapshot | SourceRow | { data: unknown };
-type MockTable = typeof animeRelease | typeof providerSnapshot | typeof anilistQuerySnapshot;
+type MockTable =
+    | typeof anime
+    | typeof animeRelease
+    | typeof providerSnapshot
+    | typeof anilistQuerySnapshot;
 
 function queryRows(rows: QueryRow[]) {
     const query = Promise.resolve(rows);
-    return Object.assign(query, { limit: async () => rows });
+    return Object.assign(query, {
+        for: async (..._args: unknown[]) => rows,
+        limit: async () => rows,
+    });
 }
 
 function countSqlFragments(node: SqlNode | undefined, fragment: string): number {
@@ -63,17 +75,19 @@ const transaction = {
         from: (table: MockTable) => ({
             where: () =>
                 queryRows(
-                    table === animeRelease
-                        ? hasEmptyReleaseRow
-                            ? [{ data: null }]
-                            : storedRelease
-                              ? [{ data: storedRelease }]
-                              : storedReleaseData !== null
-                                ? [{ data: storedReleaseData }]
-                                : []
-                        : table === providerSnapshot
-                          ? storedSourceRows
-                          : storedSnapshots
+                    table === anime
+                        ? []
+                        : table === animeRelease
+                          ? hasEmptyReleaseRow
+                              ? [{ data: null }]
+                              : storedRelease
+                                ? [{ data: storedRelease }]
+                                : storedReleaseData !== null
+                                  ? [{ data: storedReleaseData }]
+                                  : []
+                          : table === providerSnapshot
+                            ? storedSourceRows
+                            : storedSnapshots
                 ),
         }),
     }),

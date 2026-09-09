@@ -12,7 +12,9 @@ import { plainText } from './anilist-text';
 import type { ReleaseCalendarEntry } from './release-calendar-parser';
 import { releaseCalendarWindow } from './release-calendar-window';
 
-type StoredReleaseCalendarEntry = ReleaseCalendarEntry & { airingId: number };
+type StoredReleaseCalendarEntry = Omit<ReleaseCalendarEntry, 'airingId'> & {
+    airingId: number | string;
+};
 type PersistedReleaseCalendarTarget = Omit<StoredReleaseCalendarEntry, 'airingId'>;
 const releaseSynopsisDataSchema = z.looseObject({
     description: z.string().nullable().optional(),
@@ -43,8 +45,7 @@ export function mergeReleaseCalendarEntries(
             ...target,
             synopsis: target.synopsis ?? existing?.synopsis ?? null,
             imageUrl: target.imageUrl ?? existing?.imageUrl ?? null,
-            airingId:
-                existing?.airingId ?? 1_000_000_000 + target.anilistId * 1_000 + target.episode,
+            airingId: existing?.airingId ?? `target:${target.anilistId}:${target.episode}`,
         });
     }
 

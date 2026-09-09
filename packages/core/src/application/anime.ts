@@ -182,11 +182,12 @@ export async function animePageEpisodeUpdates(
     const storedEpisodeIds = new Set(episodesWithProgress.map(({ id }) => id));
     const additions = episodesWithProgress.filter((episode) => !known.has(episode.id));
     const stale = [...known].some((knownEpisodeId) => !storedEpisodeIds.has(knownEpisodeId));
+    const replace = currentRevision !== revision && (stale || additions.length === 0);
 
     return {
         revision: currentRevision,
-        episodes: stale ? episodesWithProgress : additions,
-        replace: currentRevision !== revision && (stale || additions.length === 0),
+        episodes: replace ? episodesWithProgress : additions,
+        replace,
         watchAction: {
             href: target?.href ?? '#anime-episode-list',
             kind: allEpisodesCompleted

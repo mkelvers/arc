@@ -12,6 +12,7 @@ export type AnimeMetadataField =
     | 'coverImage'
     | 'bannerImage'
     | 'description'
+    | 'isAdult'
     | 'genres'
     | 'format'
     | 'status'
