@@ -20,6 +20,7 @@ import {
     matchesAniKotoTitle,
     normalizeAniKotoMediaUrl,
     parseAniKotoCatalogPage,
+    parseAniKotoSkipData,
     parseEpisodeList,
     parseSearchCandidates,
     parseMegaPlaySource,
@@ -98,6 +99,12 @@ describe('AniKoto provider rules', () => {
             ],
             dub: [],
         });
+        expect(parseAniKotoSkipData({ intro: [80.5, 170.5], outro: [1_410, 1_500] })).toEqual({
+            opening: { start: 80.5, end: 170.5 },
+            ending: { start: 1_410, end: 1_500 },
+            source: 'anikoto',
+        });
+        expect(parseAniKotoSkipData({ intro: [170, 80], outro: ['1410', 1500] })).toBeNull();
         expect(
             parseServerList({
                 status: 200,
@@ -610,7 +617,10 @@ describe('AniKoto provider rules', () => {
                     const mode = url.searchParams.get('get') === 'dub-link' ? 'dub' : 'sub';
                     return Response.json({
                         status: 200,
-                        result: { url: `https://megaplay.buzz/stream/${mode}/${mode}` },
+                        result: {
+                            url: `https://megaplay.buzz/stream/${mode}/${mode}`,
+                            skip_data: { intro: [80.5, 170.5], outro: [1_410, 1_500] },
+                        },
                     });
                 }
                 if (url.pathname === '/stream/getSources') {
@@ -641,9 +651,14 @@ describe('AniKoto provider rules', () => {
                 ['sub', 'dub']
             );
 
-            expect(sources.sub).toHaveLength(1);
-            expect(sources.dub).toHaveLength(1);
-            expect(sources.dub?.[0]?.subtitles).toEqual([]);
+            expect(sources.streams.sub).toHaveLength(1);
+            expect(sources.streams.dub).toHaveLength(1);
+            expect(sources.streams.dub?.[0]?.subtitles).toEqual([]);
+            expect(sources.skipTimes).toEqual({
+                opening: { start: 80.5, end: 170.5 },
+                ending: { start: 1_410, end: 1_500 },
+                source: 'anikoto',
+            });
         } finally {
             globalThis.fetch = originalFetch;
         }
@@ -703,7 +718,9 @@ describe('AniKoto provider rules', () => {
                 { id: 'anikoto:42:episode', number: 21 },
                 ['sub']
             );
-            expect(sources.sub?.map(({ server, subtitles }) => ({ server, subtitles }))).toEqual([
+            expect(
+                sources.streams.sub?.map(({ server, subtitles }) => ({ server, subtitles }))
+            ).toEqual([
                 {
                     server: 'HD-2',
                     subtitles: [{ kind: 'full', url: 'https://cdn.kryntal.top/1/english.vtt' }],

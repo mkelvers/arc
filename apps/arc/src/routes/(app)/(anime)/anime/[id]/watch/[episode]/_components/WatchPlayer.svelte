@@ -11,6 +11,7 @@
 
     interface Playback {
         streams: Sources;
+        skipTimes: EpisodeSkipTimes | null;
         error: boolean;
     }
 
@@ -115,7 +116,7 @@
                 result,
                 segments: {
                     canEdit: segments.canEdit,
-                    times: {
+                    times: result.skipTimes ?? {
                         opening: null,
                         ending: null,
                         source: null,
@@ -131,6 +132,7 @@
             void skipTimesRequest
                 .then((resolved) => {
                     if (
+                        (result.skipTimes && resolved.source !== 'manual') ||
                         cancelled ||
                         active?.anime.id !== pending.anime.id ||
                         active.currentEpisode.id !== pending.currentEpisode.id
@@ -210,8 +212,13 @@
                             ...active,
                             result: {
                                 streams,
+                                skipTimes: resolved.skipTimes ?? active.result.skipTimes,
                                 error: !Object.values(streams).some((sources) => sources?.length),
                             },
+                            segments:
+                                resolved.skipTimes && active.segments.times.source !== 'manual'
+                                    ? { ...active.segments, times: resolved.skipTimes }
+                                    : active.segments,
                         };
                     })
                     .catch(() => undefined);
@@ -234,7 +241,14 @@
 
             const result = WatchPlaybackSchema.parse(await response.json());
             if (active) {
-                active = { ...active, result };
+                active = {
+                    ...active,
+                    result,
+                    segments:
+                        result.skipTimes && active.segments.times.source !== 'manual'
+                            ? { ...active.segments, times: result.skipTimes }
+                            : active.segments,
+                };
             }
         } finally {
             retrying = false;

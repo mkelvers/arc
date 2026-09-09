@@ -55,6 +55,7 @@ export const load: PageServerLoad = async ({ params, request, fetch }) => {
         })
         .catch(() => ({
             streams: {},
+            skipTimes: null,
             error: true,
         }));
 

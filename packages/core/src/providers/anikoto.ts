@@ -8,9 +8,11 @@ import type { AnimeSeasonSelection } from '../season';
 import type { AnimeCard } from '../types';
 import { animeTitles, plainText } from '../catalog/anilist-text';
 import type { AniListAnime } from '../catalog/anilist-types';
+import { validSkipInterval } from '../playback/aniskip';
 import type { JsonValue } from '../user/utils';
 import type {
     PlaybackProvider,
+    ProviderPlayback,
     ProviderEpisode,
     ProviderEpisodeReference,
     ProviderStream,
@@ -106,9 +108,15 @@ const serverResponseSchema = z.object({
     result: z
         .object({
             url: z.string(),
+            skip_data: z.json().optional(),
         })
         .loose(),
 });
+const aniKotoSkipDataSchema = z.object({
+    intro: z.json().optional(),
+    outro: z.json().optional(),
+});
+const aniKotoSkipIntervalSchema = z.tuple([z.number(), z.number()]);
 const sourcePayloadSchema = z
     .object({
         sources: z
@@ -702,6 +710,29 @@ export function parseServerList(value: JsonValue) {
     });
 
     return servers;
+}
+
+export function parseAniKotoSkipData(value: JsonValue | undefined) {
+    const parsed = aniKotoSkipDataSchema.safeParse(value);
+    if (!parsed.success) {
+        return null;
+    }
+
+    const parseInterval = (candidate: JsonValue | undefined) => {
+        const interval = aniKotoSkipIntervalSchema.safeParse(candidate);
+        return interval.success
+            ? validSkipInterval({ start: interval.data[0], end: interval.data[1] })
+            : null;
+    };
+    const opening = parseInterval(parsed.data.intro);
+    const ending = parseInterval(parsed.data.outro);
+    return opening || ending
+        ? {
+              opening,
+              ending,
+              source: 'anikoto' as const,
+          }
+        : null;
 }
 
 export function parseMegaPlaySourceId(html: string) {
@@ -1442,7 +1473,10 @@ export async function resolveMegaPlay(embed: URL, signal: AbortSignal) {
 async function resolveServer(
     candidate: AniKotoServerCandidate,
     signal: AbortSignal
-): Promise<ProviderStream | null> {
+): Promise<{
+    stream: ProviderStream;
+    skipTimes: ReturnType<typeof parseAniKotoSkipData>;
+} | null> {
     const response = serverResponseSchema.parse(
         await requestJson(
             new URL(`/ajax/server?get=${encodeURIComponent(candidate.linkId)}`, anikotoUrl),
@@ -1461,9 +1495,12 @@ async function resolveServer(
     }
 
     return {
-        ...(await resolveMegaPlay(embed, signal)),
-        provider: providerName,
-        server: candidate.label,
+        stream: {
+            ...(await resolveMegaPlay(embed, signal)),
+            provider: providerName,
+            server: candidate.label,
+        },
+        skipTimes: parseAniKotoSkipData(response.result.skip_data),
     };
 }
 
@@ -1483,7 +1520,7 @@ async function getStreams(
     anime: AniListAnime,
     episode: ProviderEpisodeReference,
     modes: AudioMode[]
-): Promise<ProviderStreams> {
+): Promise<ProviderPlayback> {
     const routeMatch = episode.id.match(/^anikoto:(\d+):(.+)$/);
     let route: { seriesId: number; episodeId: string } | null = null;
     if (routeMatch) {
@@ -1531,10 +1568,13 @@ async function getStreams(
         }
     );
     const result: ProviderStreams = {};
+    const resolved = results.flatMap((value, index) =>
+        tasks[index] && value ? [{ ...value, mode: tasks[index].mode }] : []
+    );
     for (const mode of playableModes) {
         result[mode] = uniqueDirectStreams(
-            results.flatMap((stream, index) =>
-                tasks[index]?.mode === mode && stream ? [stream] : []
+            resolved.flatMap(({ mode: resultMode, stream }) =>
+                resultMode === mode ? [stream] : []
             )
         );
     }
@@ -1549,7 +1589,10 @@ async function getStreams(
             `AniKoto returned no playable ${playableModes.join('/')} stream for episode ${episode.id}`
         );
     }
-    return result;
+    return {
+        streams: result,
+        skipTimes: resolved.find(({ skipTimes }) => skipTimes)?.skipTimes ?? null,
+    };
 }
 
 export const anikotoProvider: PlaybackProvider = {
