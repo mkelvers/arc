@@ -132,7 +132,7 @@
             void skipTimesRequest
                 .then((resolved) => {
                     if (
-                        result.skipTimes ||
+                        (result.skipTimes && resolved.source !== 'manual') ||
                         cancelled ||
                         active?.anime.id !== pending.anime.id ||
                         active.currentEpisode.id !== pending.currentEpisode.id
@@ -215,6 +215,10 @@
                                 skipTimes: resolved.skipTimes ?? active.result.skipTimes,
                                 error: !Object.values(streams).some((sources) => sources?.length),
                             },
+                            segments:
+                                resolved.skipTimes && active.segments.times.source !== 'manual'
+                                    ? { ...active.segments, times: resolved.skipTimes }
+                                    : active.segments,
                         };
                     })
                     .catch(() => undefined);
@@ -240,7 +244,10 @@
                 active = {
                     ...active,
                     result,
-                    segments: result.skipTimes ? { ...active.segments, times: result.skipTimes } : active.segments,
+                    segments:
+                        result.skipTimes && active.segments.times.source !== 'manual'
+                            ? { ...active.segments, times: result.skipTimes }
+                            : active.segments,
                 };
             }
         } finally {
