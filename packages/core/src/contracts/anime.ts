@@ -249,6 +249,11 @@ const AnimePageWatchActionSchema = z.object({
     episode: z.string().nullable(),
 });
 
+export const AnimePageEpisodeInventorySchema = z.object({
+    status: z.enum(['ready', 'pending', 'failed']),
+    expectedCount: z.number().int().nonnegative().nullable(),
+});
+
 export const AnimePageDeferredSchema = z.object({
     anime: AnimeDetailsSchema,
     episodes: z.array(EpisodeSchema),
@@ -263,15 +268,20 @@ export const AnimePageEpisodeUpdatesSchema = z.object({
     replace: z.boolean(),
     watchAction: AnimePageWatchActionSchema,
     audioLabel: z.string(),
+    episodeInventory: AnimePageEpisodeInventorySchema,
 });
 
 export const AnimePageSchema = AnimePageOverviewSchema.and(AnimePageDeferredSchema).and(
-    z.object({ artwork: AnimeArtworkSchema })
+    z.object({
+        artwork: AnimeArtworkSchema,
+        episodeInventory: AnimePageEpisodeInventorySchema,
+    })
 );
 
 export type AnimePageOverview = z.infer<typeof AnimePageOverviewSchema>;
 export type AnimePageDeferred = z.infer<typeof AnimePageDeferredSchema>;
 export type AnimePageEpisodeUpdates = z.infer<typeof AnimePageEpisodeUpdatesSchema>;
+export type AnimePageEpisodeInventory = z.infer<typeof AnimePageEpisodeInventorySchema>;
 export type AnimeArtwork = z.infer<typeof AnimeArtworkSchema>;
 
 export const WatchPageSchema = z.object({

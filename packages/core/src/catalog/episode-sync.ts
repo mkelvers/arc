@@ -34,7 +34,11 @@ import {
     episodeMetadataRevisionAfterSync,
     nextRefreshAt,
 } from './episode-policy';
-import { availableEpisodeCount, providerEpisodeCount } from '../providers/inventory';
+import {
+    availableEpisodeCount,
+    episodeInventoryStatus,
+    providerEpisodeCount,
+} from '../providers/inventory';
 import {
     episodesForRelease,
     preferredEpisodeAirDate,
@@ -66,6 +70,25 @@ const inventoryRequests = new Map<number, ReturnType<typeof storedEpisodes>>();
 
 export function episodeInventoryBackfillKey(anilistId: number) {
     return `episode:backfill:${anilistId}`;
+}
+
+export async function getEpisodeInventoryState(
+    anime: Pick<AniListAnime, 'id' | 'status' | 'format' | 'episodes' | 'nextAiringEpisode'>,
+    storedEpisodeCount: number
+) {
+    const [task] = await db
+        .select({ state: maintenanceTask.state })
+        .from(maintenanceTask)
+        .where(eq(maintenanceTask.dedupeKey, episodeInventoryBackfillKey(anime.id)))
+        .limit(1);
+
+    return {
+        status: episodeInventoryStatus(anime, storedEpisodeCount, task?.state ?? null),
+        expectedCount:
+            anime.status === 'RELEASING'
+                ? availableEpisodeCount(anime)
+                : providerEpisodeCount(anime),
+    };
 }
 
 export async function ensureEpisodeInventoryBackfill(anilistId: number) {

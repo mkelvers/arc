@@ -3,6 +3,7 @@
 
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
+    import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
     import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
     import FranchiseOrder from './FranchiseOrder.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
@@ -27,6 +28,8 @@
     let watchAction = $state(initialData.watchAction);
     let audioLabel = $state(initialData.audioLabel);
     let episodeRevision = $state(initialData.episodeRevision);
+    let episodeInventory = $state(initialData.episodeInventory);
+    let retryingEpisodeInventory = $state(false);
     let franchise = $derived(data.franchise);
     let detailsExpanded = $state(false);
     let visibleEpisodeCount = $state(28);
@@ -39,12 +42,13 @@
             watchAction = data.watchAction;
             audioLabel = data.audioLabel;
             episodeRevision = data.episodeRevision;
+            episodeInventory = data.episodeInventory;
             visibleEpisodeCount = 28;
         }
     });
 
     onMount(() => {
-        if (anime.status !== 'RELEASING') {
+        if (episodeInventory.status !== 'pending' && anime.status !== 'RELEASING') {
             return;
         }
 
@@ -75,6 +79,8 @@
                         await response.json()
                     );
                     warned = false;
+                    const inventoryChanged = result.episodeInventory.status !== episodeInventory.status;
+                    episodeInventory = result.episodeInventory;
                     if (result.revision !== episodeRevision) {
                         episodes = result.replace
                             ? result.episodes
@@ -86,6 +92,9 @@
                         audioLabel = result.audioLabel;
                         episodeRevision = result.revision;
                     }
+                    if (inventoryChanged && result.episodeInventory.status === 'ready') {
+                        visibleEpisodeCount = Math.max(visibleEpisodeCount, episodes.length);
+                    }
                 } catch (cause) {
                     if (!controller.signal.aborted && !warned) {
                         warned = true;
@@ -94,12 +103,12 @@
                 }
             }
 
-            if (!stopped) {
+            if (!stopped && (episodeInventory.status === 'pending' || anime.status === 'RELEASING')) {
                 timer = setTimeout(poll, 60_000);
             }
         };
 
-        timer = setTimeout(poll, 60_000);
+        timer = setTimeout(poll, episodeInventory.status === 'pending' ? 2_000 : 60_000);
 
         return () => {
             stopped = true;
@@ -107,6 +116,22 @@
             clearTimeout(timer);
         };
     });
+
+    async function retryEpisodeInventory() {
+        retryingEpisodeInventory = true;
+        try {
+            const response = await fetch(`/v1/anime/${anime.id}/episodes/retry`, {
+                method: 'POST',
+            });
+            if (!response.ok) {
+                throw new Error(`Episode inventory retry failed with ${response.status}`);
+            }
+            window.location.reload();
+        } catch (cause) {
+            console.warn(`Episode inventory retry failed for AniList ${anime.id}`, cause);
+            retryingEpisodeInventory = false;
+        }
+    }
 
     function showMoreEpisodes(total: number) {
         visibleEpisodeCount = Math.min(total, visibleEpisodeCount + 28);
@@ -335,6 +360,7 @@
             class="px-2 py-7 sm:pb-12 lg:pb-16"
             aria-labelledby="anime-episodes-title"
             aria-live="polite"
+            aria-busy={episodeInventory.status === 'pending'}
         >
             <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
             {#if episodes.length}
@@ -357,6 +383,44 @@
                         {m.anime_show_more_episodes()}
                     </Button>
                 {/if}
+                {#if episodeInventory.status === 'pending'}
+                    <p class="mt-6 text-center text-sm text-muted" role="status">
+                        {m.anime_loading_episodes()}…
+                    </p>
+                {:else if episodeInventory.status === 'failed'}
+                    <div class="mx-auto max-w-md py-8 text-center" role="alert">
+                        <p class="text-sm text-muted">{m.anime_load_error()}</p>
+                        <Button
+                            type="button"
+                            class="mt-4 min-h-10 px-5 text-sm font-bold text-on-accent uppercase"
+                            disabled={retryingEpisodeInventory}
+                            onclick={retryEpisodeInventory}
+                        >
+                            {retryingEpisodeInventory ? m.retrying() : m.retry()}
+                        </Button>
+                    </div>
+                {/if}
+            {:else if episodeInventory.status === 'pending'}
+                <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 hero:grid-cols-7">
+                    {#each Array(5) as _}
+                        <AnimeCardSkeleton variant="top" />
+                    {/each}
+                </div>
+                <p class="mt-6 text-center text-sm text-muted" role="status">
+                    {m.anime_loading_episodes()}…
+                </p>
+            {:else if episodeInventory.status === 'failed'}
+                <div class="mx-auto max-w-md py-8 text-center" role="alert">
+                    <p class="text-sm text-muted">{m.anime_load_error()}</p>
+                    <Button
+                        type="button"
+                        class="mt-4 min-h-10 px-5 text-sm font-bold text-on-accent uppercase"
+                        disabled={retryingEpisodeInventory}
+                        onclick={retryEpisodeInventory}
+                    >
+                        {retryingEpisodeInventory ? m.retrying() : m.retry()}
+                    </Button>
+                </div>
             {/if}
         </section>
 

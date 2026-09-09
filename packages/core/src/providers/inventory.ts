@@ -1,6 +1,27 @@
 import type { AniListAnime } from '../catalog/anilist-types';
 import { coversExpectedEpisodes } from './matching';
 
+export type EpisodeInventoryStatus = 'ready' | 'pending' | 'failed';
+
+export function episodeInventoryStatus(
+    anime: Pick<AniListAnime, 'status'>,
+    storedEpisodeCount: number,
+    taskState?: 'pending' | 'running' | 'completed' | 'failed' | null
+): EpisodeInventoryStatus {
+    if (anime.status === 'NOT_YET_RELEASED') {
+        return 'ready';
+    }
+
+    if (taskState === 'pending' || taskState === 'running') {
+        return 'pending';
+    }
+    if (storedEpisodeCount > 0) {
+        return 'ready';
+    }
+
+    return taskState === 'failed' ? 'failed' : 'pending';
+}
+
 export function providerEpisodeCount(anime: Pick<AniListAnime, 'format' | 'episodes'>) {
     // AniList counts the individual short segments for TV_SHORT releases;
     // playback providers generally expose their packaged broadcast episodes.

@@ -15,6 +15,8 @@ import {
     discoverEpisodeInventory,
     ensureEpisodeInventoryBackfill,
     EpisodeInventoryUnresolvedError,
+    enqueueEpisodeInventoryBackfill,
+    getEpisodeInventoryState,
 } from '../catalog/episode-sync';
 import { getFranchiseOrder, getStoredFranchiseOrder } from '../catalog/franchise';
 import {
@@ -54,8 +56,11 @@ export async function animePageOverview(userId: string, id: number) {
     };
 }
 
-async function storedAnimePage(userId: string, id: number) {
-    const anime = await storedAnimeRelease(id);
+async function storedAnimePage(
+    userId: string,
+    id: number,
+    anime: Awaited<ReturnType<typeof storedAnimeRelease>>
+) {
     if (!anime) {
         return null;
     }
@@ -81,6 +86,10 @@ async function storedAnimePage(userId: string, id: number) {
         getEpisodePlaybackProgress(userId, id),
         anime.idMal ? getStoredFranchiseOrder(anime.idMal) : Promise.resolve(null),
     ]);
+    const episodeInventory = await getEpisodeInventoryState(anime, episodes.length);
+    if (episodeInventory.status === 'pending' && episodes.length === 0) {
+        await enqueueEpisodeInventoryBackfill(id);
+    }
     const episodesWithProgress = episodes.map((episode) => ({
         ...episode,
         progress: episodeProgress.get(episode.id) ?? null,
@@ -119,6 +128,7 @@ async function storedAnimePage(userId: string, id: number) {
             episode: target?.label ?? null,
         },
         audioLabel: episodeAudioAvailabilityLabel(episodesWithProgress),
+        episodeInventory,
         franchise,
         artwork: artwork?.artwork ?? null,
     };
@@ -141,7 +151,7 @@ export async function animePage(userId: string, id: number) {
         };
     }
 
-    return storedAnimePage(userId, id);
+    return storedAnimePage(userId, id, stored);
 }
 
 export async function animePageEpisodeUpdates(
@@ -163,6 +173,7 @@ export async function animePageEpisodeUpdates(
             getPlaybackProgress(userId, id),
             getEpisodePlaybackProgress(userId, id),
         ]);
+    const episodeInventory = await getEpisodeInventoryState(anime, episodes.length);
     const episodesWithProgress = episodes.map((episode) => ({
         ...episode,
         progress: episodeProgress.get(episode.id) ?? null,
@@ -198,7 +209,18 @@ export async function animePageEpisodeUpdates(
             episode: target?.label ?? null,
         },
         audioLabel: episodeAudioAvailabilityLabel(episodesWithProgress),
+        episodeInventory,
     };
+}
+
+export async function retryAnimePageEpisodeInventory(id: number) {
+    const anime = await storedAnimeRelease(id);
+    if (!anime) {
+        return null;
+    }
+
+    await enqueueEpisodeInventoryBackfill(id);
+    return getEpisodeInventoryState(anime, (await getEpisodes(anime)).length);
 }
 
 export async function animePageDeferred(userId: string, id: number) {
