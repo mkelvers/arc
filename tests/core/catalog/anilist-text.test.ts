@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 
-import { animeTitles, plainText } from '@arc/core';
+import { animeTitles, mediaTitle, plainText } from '@arc/core';
 
 describe('AniList catalog text', () => {
     test('preserves source priority while removing blank and duplicate titles', () => {
@@ -10,6 +10,15 @@ describe('AniList catalog text', () => {
                 synonyms: ['Alias', 'Alias', null],
             })
         ).toEqual(['Title', 'Alias']);
+    });
+
+    test('falls back from blank English titles', () => {
+        expect(
+            mediaTitle({
+                id: 42,
+                title: { english: '  ', romaji: 'Romaji title', native: 'Native title' },
+            })
+        ).toBe('Romaji title');
     });
 
     test('removes markup and trailing source notes from descriptions', () => {

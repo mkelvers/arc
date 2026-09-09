@@ -12,6 +12,10 @@ function valueOr<T>(primary: T | null | undefined, fallback: T | null | undefine
     return primary ?? fallback ?? null;
 }
 
+function nonBlankOr(primary: string | null | undefined, fallback: string | null | undefined) {
+    return primary?.trim() ? primary : fallback?.trim() ? fallback : null;
+}
+
 function listOr<T>(primary: T[] | null | undefined, fallback: T[] | null | undefined) {
     return primary?.length ? primary : (fallback ?? null);
 }
@@ -22,9 +26,9 @@ function titleOr(
 ): AniListAnime['title'] {
     if (!primary && !fallback) return null;
     return {
-        english: valueOr(primary?.english, fallback?.english),
-        romaji: valueOr(primary?.romaji, fallback?.romaji),
-        native: valueOr(primary?.native, fallback?.native),
+        english: nonBlankOr(primary?.english, fallback?.english),
+        romaji: nonBlankOr(primary?.romaji, fallback?.romaji),
+        native: nonBlankOr(primary?.native, fallback?.native),
     };
 }
 
