@@ -259,6 +259,7 @@ export const AnimePageDeferredSchema = z.object({
     episodes: z.array(EpisodeSchema),
     watchAction: AnimePageWatchActionSchema,
     audioLabel: z.string(),
+    episodeInventory: AnimePageEpisodeInventorySchema,
     franchise: AnimePageFranchiseSchema,
 });
 
@@ -272,10 +273,7 @@ export const AnimePageEpisodeUpdatesSchema = z.object({
 });
 
 export const AnimePageSchema = AnimePageOverviewSchema.and(AnimePageDeferredSchema).and(
-    z.object({
-        artwork: AnimeArtworkSchema,
-        episodeInventory: AnimePageEpisodeInventorySchema,
-    })
+    z.object({ artwork: AnimeArtworkSchema })
 );
 
 export type AnimePageOverview = z.infer<typeof AnimePageOverviewSchema>;

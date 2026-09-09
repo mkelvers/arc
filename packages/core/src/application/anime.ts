@@ -137,18 +137,7 @@ async function storedAnimePage(
 export async function animePage(userId: string, id: number) {
     const stored = await storedAnimeRelease(id);
     if (!stored) {
-        const deferred = await animePageDeferred(userId, id);
-        const [artwork, episodeRevision, watchlistState] = await Promise.all([
-            animePageArtwork(id),
-            getEpisodeRevision(id),
-            getWatchlistState(userId, id),
-        ]);
-        return {
-            ...deferred,
-            episodeRevision,
-            watchlistState,
-            artwork,
-        };
+        return storedAnimePage(userId, id, await getAnimeRelease(id));
     }
 
     return storedAnimePage(userId, id, stored);
@@ -271,6 +260,10 @@ export async function animePageDeferred(userId: string, id: number) {
     const target = continuation ?? episodes[0] ?? null;
     const allEpisodesCompleted =
         episodes.length > 0 && episodes.every((episode) => episode.progress?.hasCompleted);
+    const episodeInventory = await getEpisodeInventoryState(anime, episodes.length);
+    if (episodeInventory.status === 'pending' && episodes.length === 0) {
+        await enqueueEpisodeInventoryBackfill(id);
+    }
     const franchise = anime.idMal ? await getFranchiseOrder(anime.idMal).catch(() => null) : null;
 
     return {
@@ -290,6 +283,7 @@ export async function animePageDeferred(userId: string, id: number) {
             episode: target?.label ?? null,
         },
         audioLabel: episodeAudioAvailabilityLabel(episodes),
+        episodeInventory,
         franchise,
     };
 }
