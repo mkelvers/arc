@@ -33,6 +33,8 @@ export function kitsuFixture(kitsuId = '49235', anilistId = 182205, malId = 5997
                         startDate: '2026-04-03',
                         endDate: null,
                         averageRating: '82.44',
+                        popularityRank: 3823,
+                        ratingRank: 170,
                         userCount: 3036,
                         favoritesCount: 18,
                         posterImage: {
@@ -47,6 +49,7 @@ export function kitsuFixture(kitsuId = '49235', anilistId = 182205, malId = 5997
                             data: [mapping, malMapping].map(({ type, id }) => ({ type, id })),
                         },
                         genres: { data: [] },
+                        categories: { data: [] },
                         mediaRelationships: { data: [] },
                         staff: { data: [] },
                         productions: { data: [] },

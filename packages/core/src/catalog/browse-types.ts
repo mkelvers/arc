@@ -6,7 +6,7 @@ import type {
 } from '@arc/shared/graphql/generated/graphql';
 
 export interface BrowseCatalogEntry {
-    metadataSource?: 'kitsu';
+    metadataSource?: string;
     anilistId: number;
     title: string;
     searchText: string;

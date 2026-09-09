@@ -280,6 +280,18 @@ async function storedFranchiseOrder(malId: number) {
     return parsedStored?.success ? parsedStored.data.order : null;
 }
 
+export async function getStoredFranchiseOrder(malId: number): Promise<FranchiseOrder | null> {
+    const order = await storedFranchiseOrder(malId);
+    if (!order || !order.entries.some((entry) => entry.malId === malId)) {
+        return null;
+    }
+
+    return {
+        ...order,
+        entries: await currentPlayback(currentPrimaryFlags(order.entries)),
+    };
+}
+
 export async function refreshFranchiseOrder(malId: number, options: { force?: boolean } = {}) {
     return db.transaction(async (tx) => {
         await tx.execute(

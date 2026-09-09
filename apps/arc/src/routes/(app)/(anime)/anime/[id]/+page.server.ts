@@ -1,7 +1,7 @@
 import { env } from '$env/dynamic/private';
 import { error } from '@sveltejs/kit';
 
-import { AnimePageOverviewSchema } from '@arc/core/client';
+import { AnimePageSchema } from '@arc/core/client';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, depends, request, fetch }) => {
@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ params, depends, request, fetch }) 
 
                 return {
                     status: 'success' as const,
-                    data: AnimePageOverviewSchema.parse(await response.json()),
+                    data: AnimePageSchema.parse(await response.json()),
                 };
             })
             .catch((cause) => {

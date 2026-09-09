@@ -47,6 +47,8 @@ const animeAttributesSchema = z.object({
         .transform(Number)
         .pipe(z.number().min(0).max(100))
         .nullish(),
+    popularityRank: z.number().int().positive().nullish(),
+    ratingRank: z.number().int().positive().nullish(),
     userCount: z.number().int().nonnegative().nullish(),
     favoritesCount: z.number().int().nonnegative().nullish(),
     posterImage: z.object({ original: z.url().nullish(), large: z.url().nullish() }).nullish(),
@@ -94,6 +96,12 @@ function normalize(resource: Resource, resources: Map<string, Resource>) {
     if (resource.type !== 'anime' || id === null) return null;
     const attributes = animeAttributesSchema.parse(resource.attributes);
     const startDate = fuzzyDate(attributes.startDate);
+    const genres = related(resource, 'genres', resources).map((genre) =>
+        z.string().parse(genre.attributes.name)
+    );
+    const categories = related(resource, 'categories', resources).map((category) =>
+        z.string().parse(category.attributes.title)
+    );
     const relations = related(resource, 'mediaRelationships', resources).flatMap((relation) => {
         const destination = related(relation, 'destination', resources)[0];
         if (!destination || destination.type !== 'anime') return [];
@@ -161,9 +169,7 @@ function normalize(resource: Resource, resources: Map<string, Resource>) {
             },
             bannerImage: attributes.coverImage?.original ?? null,
             description: attributes.description ?? attributes.synopsis ?? null,
-            genres: related(resource, 'genres', resources).map((genre) =>
-                z.string().parse(genre.attributes.name)
-            ),
+            genres,
             format: attributes.subtype.toUpperCase(),
             status:
                 attributes.status === 'current'
@@ -185,11 +191,34 @@ function normalize(resource: Resource, resources: Map<string, Resource>) {
             averageScore: attributes.averageRating ?? null,
             popularity: attributes.userCount ?? null,
             favourites: attributes.favoritesCount ?? null,
-            rankings: null,
-            tags: null,
+            rankings: [
+                attributes.popularityRank
+                    ? {
+                          rank: attributes.popularityRank,
+                          type: 'POPULAR',
+                          year: null,
+                          season: null,
+                          allTime: true,
+                      }
+                    : null,
+                attributes.ratingRank
+                    ? {
+                          rank: attributes.ratingRank,
+                          type: 'RATED',
+                          year: null,
+                          season: null,
+                          allTime: true,
+                      }
+                    : null,
+            ].filter((ranking): ranking is NonNullable<typeof ranking> => ranking !== null),
+            tags: categories.map((name) => ({
+                name,
+                rank: null,
+                isGeneralSpoiler: false,
+                isMediaSpoiler: false,
+            })),
             studios: {
                 nodes: related(resource, 'productions', resources)
-                    .filter((production) => production.attributes.role === 'studio')
                     .flatMap((production) => related(production, 'company', resources))
                     .map((company) => ({ name: z.string().parse(company.attributes.name) })),
             },
@@ -325,7 +354,7 @@ export async function requestKitsu<Variables>(
                 'filter[id]': ids.slice(index, index + 20).join(','),
                 'page[limit]': '20',
                 include: details
-                    ? 'mappings,genres,mediaRelationships.destination,staff.person,productions.company'
+                    ? 'mappings,genres,categories,mediaRelationships.destination,staff.person,productions.company'
                     : 'mappings',
             });
             const requested = new Set(ids.slice(index, index + 20));
@@ -338,7 +367,7 @@ export async function requestKitsu<Variables>(
         }
         return anime;
     }
-    async function resolveIds(ids: number[], site: string) {
+    async function resolveIds(ids: number[], site: string, allowMissing = false) {
         if (!ids.length) return [];
         const mappings: Resource[] = [];
         for (let offset = 0; ; offset += 20) {
@@ -352,7 +381,7 @@ export async function requestKitsu<Variables>(
             mappings.push(...result.data);
             if (!result.links?.next) break;
         }
-        const kitsuIds = ids.map((id) => {
+        const resolvedIds = ids.flatMap((id) => {
             const matches = mappings.filter(
                 (mapping) =>
                     mapping.type === 'mappings' &&
@@ -365,21 +394,28 @@ export async function requestKitsu<Variables>(
                     return item && !Array.isArray(item) && item.type === 'anime' ? [item.id] : [];
                 })
             );
-            if (destinations.size !== 1)
+            if (destinations.size !== 1) {
+                if (allowMissing) return [];
                 throw new Error(`Kitsu has no unambiguous ${site} mapping for ${id}`);
-            return [...destinations][0]!;
+            }
+            return [{ externalId: id, kitsuId: [...destinations][0]! }];
         });
-        const anime = await loadAnime([...new Set(kitsuIds)], true);
+        const anime = await loadAnime(
+            [...new Set(resolvedIds.map(({ kitsuId }) => kitsuId))],
+            true
+        );
         await completeRelations(anime);
         const results = anime.map((entry) => normalize(entry, resources));
         // Check both directions. Never substitute a Kitsu or MAL number for an AniList ID.
-        return ids.map((id) => {
+        return resolvedIds.flatMap(({ externalId: id }) => {
             const matches = results.filter(
                 (entry) => entry && (site === 'anilist/anime' ? entry.id : entry.idMal) === id
             );
-            if (matches.length !== 1 || !matches[0])
+            if (matches.length !== 1 || !matches[0]) {
+                if (allowMissing) return [];
                 throw new Error(`Kitsu returned conflicting metadata for ${site}:${id}`);
-            return matches[0];
+            }
+            return [matches[0]];
         });
     }
     async function completeRelations(anime: Resource[]) {
@@ -403,7 +439,7 @@ export async function requestKitsu<Variables>(
     if (input.id !== undefined || input.ids !== undefined || input.malIds != null) {
         const ids = input.id !== undefined ? [input.id] : (input.ids ?? input.malIds ?? []);
         const site = input.malIds != null ? 'myanimelist/anime' : 'anilist/anime';
-        const media = await resolveIds(ids, site);
+        const media = await resolveIds(ids, site, operation === 'FranchiseMedia');
         const completed = media.filter((entry) => {
             if (
                 (['WatchlistAnime', 'DiscoveryAnime'].includes(operation) ||

@@ -15,8 +15,11 @@ import {
     discoverEpisodeInventory,
     ensureEpisodeInventoryBackfill,
     EpisodeInventoryUnresolvedError,
+    enqueueEpisodeInventoryBackfill,
+    getEpisodeInventoryState,
+    retryEpisodeInventoryBackfill,
 } from '../catalog/episode-sync';
-import { getFranchiseOrder } from '../catalog/franchise';
+import { getFranchiseOrder, getStoredFranchiseOrder } from '../catalog/franchise';
 import {
     AniKotoNoMatchError,
     isAniKotoTransientError,
@@ -52,6 +55,165 @@ export async function animePageOverview(userId: string, id: number) {
         episodeRevision,
         watchlistState,
     };
+}
+
+async function storedAnimePage(
+    userId: string,
+    id: number,
+    anime: Awaited<ReturnType<typeof storedAnimeRelease>>
+) {
+    if (!anime) {
+        return null;
+    }
+
+    const [
+        episodes,
+        artwork,
+        synopsis,
+        storedAiringSchedule,
+        episodeRevision,
+        watchlistState,
+        watchlist,
+        episodeProgress,
+        franchise,
+    ] = await Promise.all([
+        getEpisodes(anime),
+        getStoredMedia(id).catch(() => null),
+        resolveAnimeSynopsis(anime),
+        getStoredAiringSchedule(id),
+        getEpisodeRevision(id),
+        getWatchlistState(userId, id),
+        getPlaybackProgress(userId, id),
+        getEpisodePlaybackProgress(userId, id),
+        anime.idMal ? getStoredFranchiseOrder(anime.idMal) : Promise.resolve(null),
+    ]);
+    const episodeInventory = await getEpisodeInventoryState(anime, episodes.length);
+    if (episodeInventory.status === 'pending' && episodes.length === 0) {
+        await enqueueEpisodeInventoryBackfill(id);
+    }
+    const episodesWithProgress = episodes.map((episode) => ({
+        ...episode,
+        progress: episodeProgress.get(episode.id) ?? null,
+    }));
+    const details = toAnimeDetails(anime, synopsis, storedAiringSchedule);
+    const continuation = continuationEpisode(
+        watchlist,
+        episodesWithProgress,
+        details.status === 'FINISHED'
+    );
+    const target = continuation ?? episodesWithProgress[0] ?? null;
+    const allEpisodesCompleted =
+        episodesWithProgress.length > 0 &&
+        episodesWithProgress.every((episode) => episode.progress?.hasCompleted);
+
+    return {
+        anime: details,
+        episodeRevision,
+        watchlistState,
+        episodes: withMovieBackdrop(
+            anime,
+            episodesWithProgress,
+            artwork?.artwork.selectedBackdrop?.url
+        ),
+        watchAction: {
+            href: target?.href ?? '#anime-episode-list',
+            kind: allEpisodesCompleted
+                ? ('rewatch' as const)
+                : continuation
+                  ? ('continue' as const)
+                  : watchlist?.completed || watchlistState === 'completed'
+                    ? ('rewatch' as const)
+                    : target
+                      ? ('start' as const)
+                      : ('episodes' as const),
+            episode: target?.label ?? null,
+        },
+        audioLabel: episodeAudioAvailabilityLabel(episodesWithProgress),
+        episodeInventory,
+        franchise,
+        artwork: artwork?.artwork ?? null,
+    };
+}
+
+export async function animePage(userId: string, id: number) {
+    const stored = await storedAnimeRelease(id);
+    if (!stored) {
+        return storedAnimePage(userId, id, await getAnimeRelease(id));
+    }
+
+    return storedAnimePage(userId, id, stored);
+}
+
+export async function animePageEpisodeUpdates(
+    userId: string,
+    id: number,
+    revision: string | null,
+    knownEpisodeIds: string[]
+) {
+    const anime = await storedAnimeRelease(id);
+    if (!anime) {
+        return null;
+    }
+
+    const [currentRevision, episodes, watchlistState, watchlist, episodeProgress] =
+        await Promise.all([
+            getEpisodeRevision(id),
+            getEpisodes(anime),
+            getWatchlistState(userId, id),
+            getPlaybackProgress(userId, id),
+            getEpisodePlaybackProgress(userId, id),
+        ]);
+    const episodeInventory = await getEpisodeInventoryState(anime, episodes.length);
+    const episodesWithProgress = episodes.map((episode) => ({
+        ...episode,
+        progress: episodeProgress.get(episode.id) ?? null,
+    }));
+    const details = toAnimeDetails(anime, anime.description);
+    const continuation = continuationEpisode(
+        watchlist,
+        episodesWithProgress,
+        details.status === 'FINISHED'
+    );
+    const target = continuation ?? episodesWithProgress[0] ?? null;
+    const allEpisodesCompleted =
+        episodesWithProgress.length > 0 &&
+        episodesWithProgress.every((episode) => episode.progress?.hasCompleted);
+    const known = new Set(knownEpisodeIds);
+    const storedEpisodeIds = new Set(episodesWithProgress.map(({ id }) => id));
+    const additions = episodesWithProgress.filter((episode) => !known.has(episode.id));
+    const stale = [...known].some((knownEpisodeId) => !storedEpisodeIds.has(knownEpisodeId));
+    const replace = currentRevision !== revision && (stale || additions.length === 0);
+
+    return {
+        revision: currentRevision,
+        episodes: replace ? episodesWithProgress : additions,
+        replace,
+        watchAction: {
+            href: target?.href ?? '#anime-episode-list',
+            kind: allEpisodesCompleted
+                ? ('rewatch' as const)
+                : continuation
+                  ? ('continue' as const)
+                  : watchlist?.completed || watchlistState === 'completed'
+                    ? ('rewatch' as const)
+                    : target
+                      ? ('start' as const)
+                      : ('episodes' as const),
+            episode: target?.label ?? null,
+        },
+        audioLabel: episodeAudioAvailabilityLabel(episodesWithProgress),
+        episodeInventory,
+    };
+}
+
+export async function retryAnimePageEpisodeInventory(id: number) {
+    const anime = await storedAnimeRelease(id);
+    if (!anime) {
+        return null;
+    }
+
+    await retryEpisodeInventoryBackfill(id);
+    return getEpisodeInventoryState(anime, (await getEpisodes(anime)).length);
 }
 
 export async function animePageDeferred(userId: string, id: number) {
@@ -102,6 +264,10 @@ export async function animePageDeferred(userId: string, id: number) {
     const target = continuation ?? episodes[0] ?? null;
     const allEpisodesCompleted =
         episodes.length > 0 && episodes.every((episode) => episode.progress?.hasCompleted);
+    const episodeInventory = await getEpisodeInventoryState(anime, episodes.length);
+    if (episodeInventory.status === 'pending' && episodes.length === 0) {
+        await enqueueEpisodeInventoryBackfill(id);
+    }
     const franchise = anime.idMal ? await getFranchiseOrder(anime.idMal).catch(() => null) : null;
 
     return {
@@ -121,6 +287,7 @@ export async function animePageDeferred(userId: string, id: number) {
             episode: target?.label ?? null,
         },
         audioLabel: episodeAudioAvailabilityLabel(episodes),
+        episodeInventory,
         franchise,
     };
 }

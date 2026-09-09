@@ -9,7 +9,12 @@ import {
 import { kitsuFixture } from './fixtures/kitsu';
 import { toAnimeDetails } from '../../../packages/core/src/catalog/details';
 import { AniListAnimeOverviewSchema } from '../../../packages/core/src/catalog/anilist-types';
-import { animeRelease, type anilistQuerySnapshot } from '@arc/shared/db/schema';
+import {
+    anime,
+    animeRelease,
+    providerSnapshot,
+    type anilistQuerySnapshot,
+} from '@arc/shared/db/schema';
 import {
     AniListAnimeSchema,
     type AniListAnime,
@@ -33,6 +38,26 @@ let storedReleaseData: unknown | null = null;
 let hasEmptyReleaseRow = false;
 let retainsAuthoritativeSchedule = false;
 const releaseWrites: ReleaseWrite[] = [];
+type SourceRow = {
+    provider: string;
+    payload: AniListAnime;
+    sourceFetchedAt: Date;
+};
+let storedSourceRows: SourceRow[] = [];
+type QueryRow = Snapshot | SourceRow | { data: unknown };
+type MockTable =
+    | typeof anime
+    | typeof animeRelease
+    | typeof providerSnapshot
+    | typeof anilistQuerySnapshot;
+
+function queryRows(rows: QueryRow[]) {
+    const query = Promise.resolve(rows);
+    return Object.assign(query, {
+        for: async (..._args: unknown[]) => rows,
+        limit: async () => rows,
+    });
+}
 
 function countSqlFragments(node: SqlNode | undefined, fragment: string): number {
     return (
@@ -46,28 +71,52 @@ function countSqlFragments(node: SqlNode | undefined, fragment: string): number 
 
 const transaction = {
     execute: async () => {},
-    delete: () => ({ where: async () => {} }),
     select: () => ({
-        from: (table: typeof animeRelease | typeof anilistQuerySnapshot) => ({
-            where: () => ({
-                limit: async () =>
-                    table === animeRelease
-                        ? hasEmptyReleaseRow
-                            ? [{ data: null }]
-                            : storedRelease
-                              ? [{ data: storedRelease }]
-                              : storedReleaseData !== null
-                                ? [{ data: storedReleaseData }]
-                                : []
-                        : storedSnapshots,
-            }),
+        from: (table: MockTable) => ({
+            where: () =>
+                queryRows(
+                    table === anime
+                        ? []
+                        : table === animeRelease
+                          ? hasEmptyReleaseRow
+                              ? [{ data: null }]
+                              : storedRelease
+                                ? [{ data: storedRelease }]
+                                : storedReleaseData !== null
+                                  ? [{ data: storedReleaseData }]
+                                  : []
+                          : table === providerSnapshot
+                            ? storedSourceRows
+                            : storedSnapshots
+                ),
         }),
     }),
     update: () => ({ set: () => ({ where: async () => {} }) }),
-    insert: () => ({
-        values: (value: InsertValue) => ({
-            onConflictDoNothing: async () => {},
+    insert: (table: MockTable) => ({
+        values: (value: InsertValue | (SourceRow & { domain: string })) => ({
+            onConflictDoNothing: async () => {
+                if (table === providerSnapshot && 'provider' in value && value.payload) {
+                    const source = value as SourceRow;
+                    storedSourceRows.push({
+                        provider: source.provider,
+                        payload: source.payload,
+                        sourceFetchedAt: source.sourceFetchedAt,
+                    });
+                }
+            },
             onConflictDoUpdate: async (config: { setWhere?: SqlNode }) => {
+                if (table === providerSnapshot && 'provider' in value && value.payload) {
+                    const source = value as SourceRow;
+                    storedSourceRows = [
+                        ...storedSourceRows.filter((row) => row.provider !== source.provider),
+                        {
+                            provider: source.provider,
+                            payload: source.payload,
+                            sourceFetchedAt: source.sourceFetchedAt,
+                        },
+                    ];
+                    return;
+                }
                 if ('anilistId' in value) {
                     const emptyPlaceholderPredicate =
                         countSqlFragments(config.setWhere, 'is null') >= 9;
@@ -82,10 +131,11 @@ const transaction = {
                     hasEmptyReleaseRow = false;
                     return;
                 }
-                snapshots.push(value);
+                snapshots.push(value as Snapshot);
             },
         }),
     }),
+    delete: () => ({ where: async () => {} }),
 };
 mock.module('@arc/shared/db', () => ({
     db: {
@@ -98,6 +148,7 @@ mock.module('../../../packages/core/src/catalog/anilist-lease', () => ({
     coordinatedAniListRequest: <Result>(_operation: string, run: () => Promise<Result>) => run(),
 }));
 mock.module('../../../packages/core/src/catalog/identity', () => ({
+    findInternalAnimeId: async () => null,
     ensureInternalAnimeId: async () => 1,
 }));
 const { request } = await import('../../../packages/core/src/catalog/anilist-client');
@@ -108,6 +159,7 @@ afterEach(() => {
     snapshots.length = 0;
     storedSnapshots = [];
     storedRelease = null;
+    storedSourceRows = [];
     storedReleaseData = null;
     hasEmptyReleaseRow = false;
     retainsAuthoritativeSchedule = false;
@@ -285,7 +337,7 @@ test('does not overwrite a stored AniList release or schedule with partial fallb
     const { storeAnimeRelease } =
         await import('../../../packages/core/src/catalog/anilist-release');
     await storeAnimeRelease(fallback);
-    expect(snapshots).toHaveLength(0);
+    expect(storedSourceRows.map(({ provider }) => provider)).toEqual(['anilist', 'kitsu']);
     expect(storedRelease.nextAiringEpisode).toEqual({ episode: 22, airingAt: 1800000000 });
 });
 

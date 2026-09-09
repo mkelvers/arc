@@ -3,8 +3,10 @@ import { z } from 'zod';
 
 import {
     animePageDeferred,
+    animePage,
+    animePageEpisodeUpdates,
+    retryAnimePageEpisodeInventory,
     animePageArtwork,
-    animePageOverview,
     mediaPage,
     updateMedia,
     watchPage,
@@ -28,6 +30,10 @@ const MediaRequestSchema = z.discriminatedUnion('intent', [
         filePath: z.string().nullable(),
     }),
 ]);
+const EpisodeUpdatesQuerySchema = z.object({
+    revision: z.string().max(128).optional(),
+    known: z.string().max(16_000).optional(),
+});
 
 export const anime = new Hono<ApiEnvironment>();
 
@@ -35,10 +41,7 @@ anime.use('*', middleware);
 
 anime.get('/:anilistId', validate('param', AnimeParamSchema), async (context) => {
     return context.json(
-        await animePageOverview(
-            context.get('session').user.id,
-            context.req.valid('param').anilistId
-        )
+        await animePage(context.get('session').user.id, context.req.valid('param').anilistId)
     );
 });
 
@@ -60,6 +63,48 @@ anime.get('/:anilistId/artwork', validate('param', AnimeParamSchema), async (con
 anime.get('/:anilistId/episodes/revision', validate('param', AnimeParamSchema), async (context) =>
     context.json({ revision: await getEpisodeRevision(context.req.valid('param').anilistId) })
 );
+
+anime.get(
+    '/:anilistId/episodes/updates',
+    validate('param', AnimeParamSchema),
+    validate('query', EpisodeUpdatesQuerySchema),
+    async (context) => {
+        const { anilistId } = context.req.valid('param');
+        const { known, revision } = context.req.valid('query');
+        const updates = await animePageEpisodeUpdates(
+            context.get('session').user.id,
+            anilistId,
+            revision || null,
+            known ? known.split(',').filter(Boolean) : []
+        );
+        return updates
+            ? context.json(updates)
+            : context.json(
+                  {
+                      error: {
+                          code: 'NOT_FOUND',
+                          message: 'Anime not found',
+                      },
+                  },
+                  404
+              );
+    }
+);
+
+anime.post('/:anilistId/episodes/retry', validate('param', AnimeParamSchema), async (context) => {
+    const state = await retryAnimePageEpisodeInventory(context.req.valid('param').anilistId);
+    return state
+        ? context.json(state)
+        : context.json(
+              {
+                  error: {
+                      code: 'NOT_FOUND',
+                      message: 'Anime not found',
+                  },
+              },
+              404
+          );
+});
 
 anime.get(
     '/:anilistId/episodes/:episodeId',

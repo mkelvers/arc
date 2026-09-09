@@ -1,6 +1,6 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
-import { and, eq, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 
 import {
     AnimeDocument,
@@ -10,12 +10,14 @@ import {
 } from '@arc/shared/graphql/generated/graphql';
 import { db } from '@arc/shared/db';
 import {
+    anime,
     animeEpisodeSync,
     animeRelation,
     animeRelease,
     animeReleaseRequest,
+    providerSnapshot,
 } from '@arc/shared/db/schema';
-import { ensureInternalAnimeId } from './identity';
+import { ensureInternalAnimeId, findInternalAnimeId } from './identity';
 import { animeTitles } from './anilist-text';
 import {
     AniListAnimeOverviewSchema,
@@ -25,6 +27,9 @@ import {
     type AniListAnimeOverview,
 } from './anilist-types';
 import { request } from './anilist-client';
+import { mergeAnimeReleaseSnapshots, relationSnapshotProvider } from './anime-release-merge';
+
+const animeMetadataDomain = 'anime_metadata';
 
 function releaseValues(media: AniListAnime, sourceFetchedAt = new Date()) {
     return {
@@ -48,64 +53,185 @@ function releaseValues(media: AniListAnime, sourceFetchedAt = new Date()) {
 }
 
 export async function storeAnimeRelease(media: AniListAnime, sourceFetchedAt = new Date()) {
-    if (media.metadataSource === 'kitsu') {
-        const stored = await storedAnimeRelease(media.id);
-        // A partial fallback must never replace a richer authoritative release or its schedule.
-        if (stored && stored.metadataSource !== 'kitsu') return;
-    }
     const sourceAnimeId = await ensureInternalAnimeId(media.id, animeTitles(media)[0]);
-    const values = releaseValues(media, sourceFetchedAt);
+    const source = media.metadataSource ?? 'anilist';
+    const sourceMediaId = String(media.metadataSourceId ?? media.id);
+    const payloadHash = createHash('sha256').update(JSON.stringify(media)).digest('hex');
+    const { effective, effectiveFetchedAt, relationProvider, updateRelations } =
+        await db.transaction(async (tx) => {
+            await tx
+                .select({ id: anime.id })
+                .from(anime)
+                .where(eq(anime.id, sourceAnimeId))
+                .for('update');
+            const [stored] = await tx
+                .select({ data: animeRelease.data })
+                .from(animeRelease)
+                .where(eq(animeRelease.anilistId, media.id))
+                .limit(1);
+            const existingSources = await tx
+                .select({ provider: providerSnapshot.provider })
+                .from(providerSnapshot)
+                .where(
+                    and(
+                        eq(providerSnapshot.canonicalAnimeId, sourceAnimeId),
+                        eq(providerSnapshot.domain, animeMetadataDomain),
+                        eq(providerSnapshot.subjectType, 'anime')
+                    )
+                );
 
-    await db
-        .insert(animeRelease)
-        .values({ anilistId: media.id, ...values })
-        .onConflictDoUpdate({
-            target: animeRelease.anilistId,
-            set: values,
-            setWhere:
-                media.metadataSource === 'kitsu'
-                    ? or(
-                          and(
-                              isNull(animeRelease.data),
-                              isNull(animeRelease.imageUrl),
-                              isNull(animeRelease.status),
-                              isNull(animeRelease.format),
-                              isNull(animeRelease.malId),
-                              isNull(animeRelease.episodeCount),
-                              isNull(animeRelease.durationMinutes),
-                              isNull(animeRelease.nextAiringAt),
-                              isNull(animeRelease.nextAiringEpisode)
-                          ),
-                          sql`${animeRelease.data}->>'metadataSource' = 'kitsu'`
-                      )
-                    : undefined,
+            const storedMedia = stored ? AniListAnimeSchema.safeParse(stored.data) : null;
+            if (
+                storedMedia?.success &&
+                storedMedia.data.id === media.id &&
+                !existingSources.some(
+                    ({ provider }) => provider === (storedMedia.data.metadataSource ?? 'anilist')
+                )
+            ) {
+                const storedProvider = storedMedia.data.metadataSource ?? 'anilist';
+                await tx
+                    .insert(providerSnapshot)
+                    .values({
+                        provider: storedProvider,
+                        domain: animeMetadataDomain,
+                        subjectType: 'anime',
+                        subjectId: String(storedMedia.data.metadataSourceId ?? storedMedia.data.id),
+                        canonicalAnimeId: sourceAnimeId,
+                        payload: storedMedia.data,
+                        payloadHash: createHash('sha256')
+                            .update(JSON.stringify(storedMedia.data))
+                            .digest('hex'),
+                        firstSeenAt: new Date(),
+                        sourceFetchedAt,
+                        updatedAt: sourceFetchedAt,
+                    })
+                    .onConflictDoNothing();
+            }
+
+            await tx
+                .insert(providerSnapshot)
+                .values({
+                    provider: source,
+                    domain: animeMetadataDomain,
+                    subjectType: 'anime',
+                    subjectId: sourceMediaId,
+                    canonicalAnimeId: sourceAnimeId,
+                    payload: media,
+                    payloadHash,
+                    firstSeenAt: sourceFetchedAt,
+                    sourceFetchedAt,
+                    updatedAt: sourceFetchedAt,
+                })
+                .onConflictDoUpdate({
+                    target: [
+                        providerSnapshot.provider,
+                        providerSnapshot.domain,
+                        providerSnapshot.subjectType,
+                        providerSnapshot.subjectId,
+                        providerSnapshot.variant,
+                    ],
+                    set: {
+                        canonicalAnimeId: sourceAnimeId,
+                        payload: media,
+                        payloadHash,
+                        sourceFetchedAt,
+                        updatedAt: sourceFetchedAt,
+                    },
+                });
+
+            const sources = await tx
+                .select({
+                    provider: providerSnapshot.provider,
+                    payload: providerSnapshot.payload,
+                    sourceFetchedAt: providerSnapshot.sourceFetchedAt,
+                })
+                .from(providerSnapshot)
+                .where(
+                    and(
+                        eq(providerSnapshot.canonicalAnimeId, sourceAnimeId),
+                        eq(providerSnapshot.domain, animeMetadataDomain),
+                        eq(providerSnapshot.subjectType, 'anime')
+                    )
+                );
+            const releaseSnapshots = sources.flatMap((snapshot) => {
+                const parsed = AniListAnimeSchema.safeParse(snapshot.payload);
+                return parsed.success ? [{ ...snapshot, data: parsed.data }] : [];
+            });
+            const merged = mergeAnimeReleaseSnapshots(releaseSnapshots);
+            if (!merged || merged.id !== media.id) {
+                throw new Error(`Stored anime metadata is invalid for ${media.id}`);
+            }
+            if (source === 'kitsu' && stored?.data && !storedMedia?.success) {
+                return {
+                    effective: media,
+                    effectiveFetchedAt: sourceFetchedAt,
+                    relationProvider: null,
+                    updateRelations: false,
+                };
+            }
+            const effectiveFetchedAt = new Date(
+                Math.max(
+                    ...releaseSnapshots.map(({ sourceFetchedAt: fetchedAt }) => fetchedAt.getTime())
+                )
+            );
+
+            await tx
+                .insert(animeRelease)
+                .values({ anilistId: media.id, ...releaseValues(merged, effectiveFetchedAt) })
+                .onConflictDoUpdate({
+                    target: animeRelease.anilistId,
+                    set: releaseValues(merged, effectiveFetchedAt),
+                    setWhere:
+                        merged.metadataSource === 'kitsu'
+                            ? or(
+                                  and(
+                                      isNull(animeRelease.data),
+                                      isNull(animeRelease.imageUrl),
+                                      isNull(animeRelease.status),
+                                      isNull(animeRelease.format),
+                                      isNull(animeRelease.malId),
+                                      isNull(animeRelease.episodeCount),
+                                      isNull(animeRelease.durationMinutes),
+                                      isNull(animeRelease.nextAiringAt),
+                                      isNull(animeRelease.nextAiringEpisode)
+                                  ),
+                                  sql`${animeRelease.data}->>'metadataSource' = 'kitsu'`
+                              )
+                            : undefined,
+                });
+
+            return {
+                effective: merged,
+                effectiveFetchedAt,
+                relationProvider: relationSnapshotProvider(releaseSnapshots),
+                updateRelations: true,
+            };
         });
 
+    if (!updateRelations) return effective;
     const relations: Array<typeof animeRelation.$inferInsert> = [];
-    for (const edge of media.relations?.edges ?? []) {
-        if (!edge?.relationType || edge.node?.type !== 'ANIME') {
-            continue;
-        }
+    for (const edge of effective.relations?.edges ?? []) {
+        if (!edge?.relationType || edge.node?.type !== 'ANIME') continue;
 
         const targetAnimeId = await ensureInternalAnimeId(edge.node.id, animeTitles(edge.node)[0]);
         relations.push({
             sourceAnimeId,
             targetAnimeId,
             relationType: edge.relationType,
-            source: media.metadataSource ?? 'anilist',
-            verifiedAt: sourceFetchedAt,
-            updatedAt: sourceFetchedAt,
+            source: relationProvider ?? 'anilist',
+            verifiedAt: effectiveFetchedAt,
+            updatedAt: effectiveFetchedAt,
         });
     }
 
     await db.transaction(async (tx) => {
-        if (media.metadataSource !== 'kitsu') {
-            await tx.delete(animeRelation).where(eq(animeRelation.sourceAnimeId, sourceAnimeId));
-        }
+        await tx.delete(animeRelation).where(eq(animeRelation.sourceAnimeId, sourceAnimeId));
         if (relations.length) {
             await tx.insert(animeRelation).values(relations).onConflictDoNothing();
         }
     });
+
+    return effective;
 }
 
 export async function hydrateAnimeReleases(anilistIds: number[]) {
@@ -154,8 +280,7 @@ async function fetchAnimeRelease(id: number) {
         });
     }
 
-    await storeAnimeRelease(parsed.data);
-    return parsed.data;
+    return storeAnimeRelease(parsed.data);
 }
 
 export async function getAnimeOverview(id: number): Promise<AniListAnimeOverview> {
@@ -327,28 +452,38 @@ export async function storedAnimeRelease(id: number) {
     return null;
 }
 
+async function storedAnimeReleaseSource(id: number, provider: string) {
+    const internalAnimeId = await findInternalAnimeId(id);
+    if (!internalAnimeId) return null;
+
+    const [row] = await db
+        .select({
+            payload: providerSnapshot.payload,
+            sourceFetchedAt: providerSnapshot.sourceFetchedAt,
+        })
+        .from(providerSnapshot)
+        .where(
+            and(
+                eq(providerSnapshot.canonicalAnimeId, internalAnimeId),
+                eq(providerSnapshot.domain, animeMetadataDomain),
+                eq(providerSnapshot.subjectType, 'anime'),
+                eq(providerSnapshot.provider, provider)
+            )
+        )
+        .orderBy(desc(providerSnapshot.sourceFetchedAt))
+        .limit(1);
+    const parsed = row ? AniListAnimeSchema.safeParse(row.payload) : null;
+    return parsed?.success && parsed.data.id === id ? parsed.data : null;
+}
+
 export async function getAnimeRelease(id: number) {
     const stored = await storedAnimeRelease(id);
-    if (stored?.metadataSource === 'kitsu') {
-        const [release] = await db
-            .select({ sourceFetchedAt: animeRelease.sourceFetchedAt })
-            .from(animeRelease)
-            .where(eq(animeRelease.anilistId, id))
-            .limit(1);
-        if (release && release.sourceFetchedAt.getTime() <= Date.now() - 5 * 60 * 1_000) {
-            try {
-                return await refreshAnimeRelease(id, { force: true });
-            } catch {
-                return stored;
-            }
-        }
-    }
     return stored ?? refreshAnimeRelease(id, { force: true });
 }
 
 export async function refreshAnimeSchedule(id: number) {
     const stored = await storedAnimeRelease(id);
-    if (!stored || stored.metadataSource === 'kitsu') {
+    if (!stored || stored.metadataSource) {
         return refreshAnimeRelease(id, { force: true });
     }
 
@@ -360,8 +495,9 @@ export async function refreshAnimeSchedule(id: number) {
         });
     }
 
+    const authoritative = (await storedAnimeReleaseSource(id, 'anilist')) ?? stored;
     const updated = AniListAnimeSchema.parse({
-        ...stored,
+        ...authoritative,
         status: schedule.data.status,
         episodes: schedule.data.episodes,
         nextAiringEpisode: schedule.data.nextAiringEpisode,

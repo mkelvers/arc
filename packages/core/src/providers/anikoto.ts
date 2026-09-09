@@ -24,6 +24,7 @@ const providerName = 'anikoto';
 const mediaHostSuffixes = [
     'akirax.buzz',
     'anizara.store',
+    'imgnex.top',
     'kryntal.top',
     'lostproject.club',
     'megaplay.buzz',
@@ -34,6 +35,13 @@ const mediaHostSuffixes = [
     'tiktokcdn.com',
     'trycloud.pro',
     'watching.onl',
+] as const;
+const megaPlayMediaMirrorSuffixes = [
+    'akirax.buzz',
+    'mikora.top',
+    'norami.top',
+    'shiora.site',
+    'shiora.top',
 ] as const;
 export const aniKotoRequestTimeoutMs = 10_000;
 export const aniKotoMediaReferer = 'https://megaplay.buzz/';
@@ -345,6 +353,14 @@ export function normalizeAniKotoMediaUrl(url: URL) {
 
 export function aniKotoMediaCandidates(url: URL) {
     const candidates = [url];
+    if (url.hostname.endsWith('.imgnex.top') && url.pathname.startsWith('/anime/')) {
+        for (const suffix of megaPlayMediaMirrorSuffixes) {
+            const alternate = new URL(url);
+            alternate.hostname = `megap.${suffix}`;
+            alternate.pathname = url.pathname.slice('/anime'.length);
+            candidates.push(alternate);
+        }
+    }
     if (url.hostname.endsWith('.mikora.top')) {
         for (const suffix of ['shiora.site', 'akirax.buzz']) {
             const alternate = new URL(url);

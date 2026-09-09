@@ -25,6 +25,20 @@ test('resolves MAL IDs into AniList route IDs without contacting AniList', async
     });
 });
 
+test('keeps franchise metadata when one MAL ID has no Kitsu mapping', async () => {
+    const fixture = kitsuFixture();
+    server.use(
+        http.get('https://kitsu.app/api/edge/mappings', () => HttpResponse.json(fixture.mappings)),
+        http.get('https://kitsu.app/api/edge/anime', () => HttpResponse.json(fixture.anime))
+    );
+
+    await expect(requestKitsu('FranchiseMedia', { malIds: [59970, 61987] })).resolves.toMatchObject(
+        {
+            Page: { media: [{ id: 182205, idMal: 59970 }] },
+        }
+    );
+});
+
 test('rejects ambiguous mappings instead of routing to an arbitrary release', async () => {
     const fixture = kitsuFixture();
     server.use(
@@ -98,6 +112,83 @@ test('resolves related releases in a batch using their AniList and MAL mappings'
     expect(await requestKitsu('Anime', { id: 182205 })).toMatchObject({
         Media: {
             relations: { edges: [{ relationType: 'PREQUEL', node: { id: 106625, idMal: 38883 } }] },
+        },
+    });
+});
+
+test('maps Kitsu page metadata into Arc detail fields', async () => {
+    const fixture = kitsuFixture();
+    const category = {
+        id: '1',
+        type: 'categories',
+        attributes: { title: 'Fantasy' },
+        relationships: {},
+    };
+    const producer = {
+        id: '2',
+        type: 'producers',
+        attributes: { name: 'Example Pictures' },
+        relationships: {},
+    };
+    const production = {
+        id: '3',
+        type: 'mediaProductions',
+        attributes: { role: 'producer' },
+        relationships: { company: { data: { type: 'producers', id: '2' } } },
+    };
+    const staff = {
+        id: '4',
+        type: 'staff',
+        attributes: { role: 'Director' },
+        relationships: {
+            person: { data: { type: 'people', id: '5' } },
+        },
+    };
+    const person = {
+        id: '5',
+        type: 'people',
+        attributes: { name: 'Example Director' },
+        relationships: {},
+    };
+    const anime = {
+        ...fixture.anime.data[0]!,
+        attributes: {
+            ...fixture.anime.data[0]!.attributes,
+            averageRating: null,
+        },
+        relationships: {
+            ...fixture.anime.data[0]!.relationships,
+            categories: { data: [{ type: 'categories', id: '1' }] },
+            productions: { data: [{ type: 'mediaProductions', id: '3' }] },
+            staff: { data: [{ type: 'staff', id: '4' }] },
+        },
+    };
+    const animeResponse = {
+        data: [anime],
+        included: [...fixture.anime.included, category, producer, production, staff, person],
+    };
+    server.use(
+        http.get('https://kitsu.app/api/edge/mappings', () => HttpResponse.json(fixture.mappings)),
+        http.get('https://kitsu.app/api/edge/anime', () => HttpResponse.json(animeResponse))
+    );
+
+    await expect(requestKitsu('Anime', { id: 182205 })).resolves.toMatchObject({
+        Media: {
+            averageScore: null,
+            genres: [],
+            tags: [
+                {
+                    name: 'Fantasy',
+                    isGeneralSpoiler: false,
+                    isMediaSpoiler: false,
+                },
+            ],
+            rankings: [
+                { rank: 3823, type: 'POPULAR', allTime: true },
+                { rank: 170, type: 'RATED', allTime: true },
+            ],
+            studios: { nodes: [{ name: 'Example Pictures' }] },
+            staff: { edges: [{ role: 'Director', node: { name: { full: 'Example Director' } } }] },
         },
     });
 });

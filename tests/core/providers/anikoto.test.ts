@@ -424,6 +424,9 @@ describe('AniKoto provider rules', () => {
             'megap.shiora.site'
         );
         expect(
+            supportedMediaUrl('https://cdn.imgnex.top/anime/episode/master.m3u8')?.hostname
+        ).toBe('cdn.imgnex.top');
+        expect(
             aniKotoMediaCandidates(new URL('https://megap.shiora.top/video.m3u8')).map(
                 (candidate) => candidate.hostname
             )
@@ -433,6 +436,18 @@ describe('AniKoto provider rules', () => {
                 (candidate) => candidate.hostname
             )
         ).toEqual(['cdn.kryntal.top', 'cdn.watching.onl', 'ncdn.watching.onl']);
+        expect(
+            aniKotoMediaCandidates(
+                new URL('https://cdn.imgnex.top/anime/series/episode/master.m3u8')
+            ).map(({ hostname, pathname }) => ({ hostname, pathname }))
+        ).toEqual([
+            { hostname: 'cdn.imgnex.top', pathname: '/anime/series/episode/master.m3u8' },
+            { hostname: 'megap.akirax.buzz', pathname: '/series/episode/master.m3u8' },
+            { hostname: 'megap.mikora.top', pathname: '/series/episode/master.m3u8' },
+            { hostname: 'megap.norami.top', pathname: '/series/episode/master.m3u8' },
+            { hostname: 'megap.shiora.site', pathname: '/series/episode/master.m3u8' },
+            { hostname: 'megap.shiora.top', pathname: '/series/episode/master.m3u8' },
+        ]);
         expect(normalizeAniKotoMediaUrl(new URL('https://s2.norami.top/video.jpg'))?.hostname).toBe(
             's2.norami.top'
         );
@@ -491,12 +506,17 @@ describe('AniKoto provider rules', () => {
         const iv = Buffer.from([87, 48, 59, 50, 55, 84, 111, 97, 85, 112, 108, 95, 80, 37, 39, 99]);
         const cipher = createCipheriv('aes-256-cbc', key, iv);
         const enc = Buffer.concat([
-            cipher.update(JSON.stringify({ file: 'https://cdn.kryntal.top/master.m3u8' }), 'utf8'),
+            cipher.update(
+                JSON.stringify({
+                    file: 'https://cdn.imgnex.top/anime/series/episode/master.m3u8',
+                }),
+                'utf8'
+            ),
             cipher.final(),
         ]).toString('base64url');
 
         expect(parseMegaPlaySource({ enc })?.mediaUrl.toString()).toBe(
-            'https://cdn.kryntal.top/master.m3u8'
+            'https://cdn.imgnex.top/anime/series/episode/master.m3u8'
         );
     });
 

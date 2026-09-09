@@ -51,7 +51,7 @@ const AnimeDetailsSchema = z.object({
             airingAt: z.number().int(),
         })
         .nullable(),
-    score: z.number(),
+    score: z.number().nullable(),
     scoreSource: z.enum(['AniList', 'Kitsu']).optional(),
     members: z.string(),
     favourites: z.string(),
@@ -59,6 +59,8 @@ const AnimeDetailsSchema = z.object({
     studios: z.array(z.string()),
     staff: z.string(),
     rankings: z.array(z.string()),
+    startDate: z.string().nullable(),
+    endDate: z.string().nullable(),
 });
 
 const ArtworkImageSchema = z.object({
@@ -170,7 +172,7 @@ export const SearchResponseSchema = z.array(AnimeSearchResultSchema);
 export const ReleaseCalendarSchema = z.object({
     events: z.array(
         z.object({
-            airingId: z.number().int().positive(),
+            airingId: z.union([z.number().int().positive(), z.string().regex(/^target:\d+:\d+$/)]),
             anilistId: AnimeIdSchema,
             episode: z.number().int().positive(),
             airingAt: z.iso.datetime(),
@@ -243,16 +245,33 @@ export const AnimePageOverviewSchema = z.object({
     watchlistState: z.enum(['watching', 'plan_to_watch', 'completed', 'dropped']).nullable(),
 });
 
+const AnimePageWatchActionSchema = z.object({
+    href: z.string(),
+    kind: z.enum(['continue', 'start', 'rewatch', 'episodes']),
+    episode: z.string().nullable(),
+});
+
+export const AnimePageEpisodeInventorySchema = z.object({
+    status: z.enum(['ready', 'pending', 'failed']),
+    expectedCount: z.number().int().nonnegative().nullable(),
+});
+
 export const AnimePageDeferredSchema = z.object({
     anime: AnimeDetailsSchema,
     episodes: z.array(EpisodeSchema),
-    watchAction: z.object({
-        href: z.string(),
-        kind: z.enum(['continue', 'start', 'rewatch', 'episodes']),
-        episode: z.string().nullable(),
-    }),
+    watchAction: AnimePageWatchActionSchema,
     audioLabel: z.string(),
+    episodeInventory: AnimePageEpisodeInventorySchema,
     franchise: AnimePageFranchiseSchema,
+});
+
+export const AnimePageEpisodeUpdatesSchema = z.object({
+    revision: z.string().nullable(),
+    episodes: z.array(EpisodeSchema),
+    replace: z.boolean(),
+    watchAction: AnimePageWatchActionSchema,
+    audioLabel: z.string(),
+    episodeInventory: AnimePageEpisodeInventorySchema,
 });
 
 export const AnimePageSchema = AnimePageOverviewSchema.and(AnimePageDeferredSchema).and(
@@ -261,6 +280,8 @@ export const AnimePageSchema = AnimePageOverviewSchema.and(AnimePageDeferredSche
 
 export type AnimePageOverview = z.infer<typeof AnimePageOverviewSchema>;
 export type AnimePageDeferred = z.infer<typeof AnimePageDeferredSchema>;
+export type AnimePageEpisodeUpdates = z.infer<typeof AnimePageEpisodeUpdatesSchema>;
+export type AnimePageEpisodeInventory = z.infer<typeof AnimePageEpisodeInventorySchema>;
 export type AnimeArtwork = z.infer<typeof AnimeArtworkSchema>;
 
 export const WatchPageSchema = z.object({

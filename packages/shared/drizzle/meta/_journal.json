@@ -575,6 +575,20 @@
             "when": 1788534000000,
             "tag": "0081_restore_episode_sync_metadata_revision",
             "breakpoints": true
+        },
+        {
+            "idx": 82,
+            "version": "7",
+            "when": 1788957726342,
+            "tag": "0082_huge_molecule_man",
+            "breakpoints": true
+        },
+        {
+            "idx": 83,
+            "version": "7",
+            "when": 1788963156360,
+            "tag": "0083_colorful_kronos",
+            "breakpoints": true
         }
     ]
 }
