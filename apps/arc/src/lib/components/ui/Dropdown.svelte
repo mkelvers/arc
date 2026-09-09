@@ -57,7 +57,7 @@
         );
     }
 
-    function setOpen(nextOpen: boolean) {
+    function setOpen(nextOpen: boolean, focusMenu = false) {
         if (nextOpen === open) {
             return;
         }
@@ -65,9 +65,11 @@
         if (nextOpen) {
             previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
             open = true;
-            requestAnimationFrame(() => {
-                focusableElements()[0]?.focus();
-            });
+            if (focusMenu) {
+                requestAnimationFrame(() => {
+                    focusableElements()[0]?.focus();
+                });
+            }
             return;
         }
 
@@ -218,7 +220,7 @@
         data-testid="dropdown-trigger"
         class={cn('appearance-none border-0 bg-transparent p-0', triggerClass)}
         disabled={disabled}
-        onclick={() => setOpen(!open)}
+        onclick={(event) => setOpen(!open, event.detail === 0)}
     >
         {@render trigger()}
     </Button>
