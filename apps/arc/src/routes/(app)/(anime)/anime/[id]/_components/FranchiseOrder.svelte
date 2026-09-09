@@ -90,7 +90,7 @@
             id="franchise-order-filter"
             ariaLabel={`${m.franchise_filters()}: ${selectedFilterLabel}`}
             menuClass="mt-2 w-48 shadow-xl"
-            triggerClass="flex min-h-9 cursor-pointer items-center gap-2 px-2 text-xs font-semibold text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
+            triggerClass="flex min-h-9 cursor-pointer items-center justify-start gap-2 px-2 text-left text-xs font-semibold text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
         >
             {#snippet trigger()}
                 <ListBulletsIcon size="1rem" weight="bold" aria-hidden="true" />
@@ -107,7 +107,7 @@
                             role="menuitemradio"
                             aria-checked={filter === option.value}
                             class={cn(
-                                'flex min-h-11 w-full items-center px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none',
+                                'flex min-h-11 w-full items-center justify-start px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none',
                                 filter === option.value && 'text-foreground'
                             )}
                             onclick={() => (filter = option.value)}
