@@ -7,8 +7,8 @@
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
     import { cn } from '$lib/utils';
-    import errorArtwork from '$lib/assets/error-state.png';
-    import emptyArtwork from '$lib/assets/notifications-empty.png';
+    import errorArtwork from '$lib/assets/error-state.webp';
+    import emptyArtwork from '$lib/assets/notifications-empty.webp';
     import type { PageProps } from './$types';
 
     let { data }: PageProps = $props();

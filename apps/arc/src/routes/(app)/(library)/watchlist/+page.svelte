@@ -1,7 +1,7 @@
 <script lang="ts">
     import WatchlistPageContent from './_components/WatchlistPageContent.svelte';
     import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
-    import errorArtwork from '$lib/assets/error-state.png';
+    import errorArtwork from '$lib/assets/error-state.webp';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import { page } from '$app/state';
     import type { PageProps } from './$types';

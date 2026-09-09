@@ -2,7 +2,7 @@
     import { onMount } from 'svelte';
     import { CaretDownIcon } from 'phosphor-svelte';
 
-    import ccBackground from '$lib/assets/cc-background.png';
+    import ccBackground from '$lib/assets/cc-background.webp';
     import {
         subtitleBackgroundOpacities,
         subtitleBackgroundOrder,
