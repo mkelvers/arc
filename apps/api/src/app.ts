@@ -12,10 +12,18 @@ import { playback } from './routes/playback';
 import { maintenance } from './routes/maintenance';
 import { notifications } from './routes/notifications';
 import { watchlist } from './routes/watchlist';
+import { isReady } from './readiness';
 
 const app = new Hono();
 
 app.get('/health', (context) => context.json({ status: 'ok' }));
+app.get('/ready', async (context) => {
+    if (await isReady()) {
+        return context.json({ status: 'ready' });
+    }
+
+    return context.json({ status: 'not_ready' }, 503);
+});
 app.use('/v1/*', async (context, next) => {
     await next();
     context.header('Cache-Control', 'no-store');
