@@ -338,7 +338,7 @@ export async function requestKitsu<Variables>(
         }
         return anime;
     }
-    async function resolveIds(ids: number[], site: string) {
+    async function resolveIds(ids: number[], site: string, allowMissing = false) {
         if (!ids.length) return [];
         const mappings: Resource[] = [];
         for (let offset = 0; ; offset += 20) {
@@ -352,7 +352,7 @@ export async function requestKitsu<Variables>(
             mappings.push(...result.data);
             if (!result.links?.next) break;
         }
-        const kitsuIds = ids.map((id) => {
+        const resolvedIds = ids.flatMap((id) => {
             const matches = mappings.filter(
                 (mapping) =>
                     mapping.type === 'mappings' &&
@@ -365,21 +365,28 @@ export async function requestKitsu<Variables>(
                     return item && !Array.isArray(item) && item.type === 'anime' ? [item.id] : [];
                 })
             );
-            if (destinations.size !== 1)
+            if (destinations.size !== 1) {
+                if (allowMissing) return [];
                 throw new Error(`Kitsu has no unambiguous ${site} mapping for ${id}`);
-            return [...destinations][0]!;
+            }
+            return [{ externalId: id, kitsuId: [...destinations][0]! }];
         });
-        const anime = await loadAnime([...new Set(kitsuIds)], true);
+        const anime = await loadAnime(
+            [...new Set(resolvedIds.map(({ kitsuId }) => kitsuId))],
+            true
+        );
         await completeRelations(anime);
         const results = anime.map((entry) => normalize(entry, resources));
         // Check both directions. Never substitute a Kitsu or MAL number for an AniList ID.
-        return ids.map((id) => {
+        return resolvedIds.flatMap(({ externalId: id }) => {
             const matches = results.filter(
                 (entry) => entry && (site === 'anilist/anime' ? entry.id : entry.idMal) === id
             );
-            if (matches.length !== 1 || !matches[0])
+            if (matches.length !== 1 || !matches[0]) {
+                if (allowMissing) return [];
                 throw new Error(`Kitsu returned conflicting metadata for ${site}:${id}`);
-            return matches[0];
+            }
+            return [matches[0]];
         });
     }
     async function completeRelations(anime: Resource[]) {
@@ -403,7 +410,7 @@ export async function requestKitsu<Variables>(
     if (input.id !== undefined || input.ids !== undefined || input.malIds != null) {
         const ids = input.id !== undefined ? [input.id] : (input.ids ?? input.malIds ?? []);
         const site = input.malIds != null ? 'myanimelist/anime' : 'anilist/anime';
-        const media = await resolveIds(ids, site);
+        const media = await resolveIds(ids, site, operation === 'FranchiseMedia');
         const completed = media.filter((entry) => {
             if (
                 (['WatchlistAnime', 'DiscoveryAnime'].includes(operation) ||

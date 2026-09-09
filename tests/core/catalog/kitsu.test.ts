@@ -25,6 +25,20 @@ test('resolves MAL IDs into AniList route IDs without contacting AniList', async
     });
 });
 
+test('keeps franchise metadata when one MAL ID has no Kitsu mapping', async () => {
+    const fixture = kitsuFixture();
+    server.use(
+        http.get('https://kitsu.app/api/edge/mappings', () => HttpResponse.json(fixture.mappings)),
+        http.get('https://kitsu.app/api/edge/anime', () => HttpResponse.json(fixture.anime))
+    );
+
+    await expect(requestKitsu('FranchiseMedia', { malIds: [59970, 61987] })).resolves.toMatchObject(
+        {
+            Page: { media: [{ id: 182205, idMal: 59970 }] },
+        }
+    );
+});
+
 test('rejects ambiguous mappings instead of routing to an arbitrary release', async () => {
     const fixture = kitsuFixture();
     server.use(
