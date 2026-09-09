@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { AnimeSearchResultSchema } from '../search';
 import { AnimeCardPageSchema, AnimeCardSchema, EpisodeRevisionSchema } from '../types';
-import { SegmentSaveResultSchema } from '../player/skip-times';
+import { EpisodeSkipTimesSchema, SegmentSaveResultSchema } from '../player/skip-times';
 
 export const AnimeIdSchema = z.coerce.number().int().positive();
 
@@ -317,7 +317,7 @@ export const WatchSegmentsSchema = z.object({
                 end: z.number(),
             })
             .nullable(),
-        source: z.enum(['aniskip', 'manual']).nullable(),
+        source: z.enum(['anikoto', 'aniskip', 'manual']).nullable(),
     }),
     templates: z.object({
         opening: z
@@ -350,6 +350,7 @@ const PlaybackStreamSchema = z.strictObject({
 
 export const WatchPlaybackSchema = z.object({
     error: z.boolean(),
+    skipTimes: EpisodeSkipTimesSchema.nullable(),
     streams: z.strictObject({
         sub: z.array(PlaybackStreamSchema),
         dub: z.array(PlaybackStreamSchema),

@@ -25,7 +25,9 @@ type StoredSkipTimes = Pick<
 
 function storedTimes(row: StoredSkipTimes): EpisodeSkipTimes {
     const source =
-        row.skipTimesSource === 'aniskip' || row.skipTimesSource === 'manual'
+        row.skipTimesSource === 'anikoto' ||
+        row.skipTimesSource === 'aniskip' ||
+        row.skipTimesSource === 'manual'
             ? row.skipTimesSource
             : null;
 
@@ -87,7 +89,7 @@ export async function getEpisodeSkipTimes({
     const fresh =
         row.skipTimesFetchedAt &&
         Date.now() - row.skipTimesFetchedAt.getTime() < 30 * 24 * 60 * 60 * 1_000;
-    if (row.skipTimesSource === 'manual' || fresh) {
+    if (row.skipTimesSource === 'manual' || row.skipTimesSource === 'anikoto' || fresh) {
         return stored;
     }
 
@@ -144,6 +146,41 @@ async function getStoredEpisodeSkipTimes(
     const row = await storedEpisodeTimes(anilistId, episodeId);
 
     return row ? storedTimes(row) : { opening: null, ending: null, source: null };
+}
+
+export async function saveAniKotoSkipTimes({
+    anilistId,
+    episodeId,
+    times,
+}: {
+    anilistId: number;
+    episodeId: string;
+    times: EpisodeSkipTimes;
+}) {
+    if (times.source !== 'anikoto') {
+        return false;
+    }
+
+    const [updated] = await db
+        .update(animeEpisode)
+        .set({
+            openingStartSeconds: times.opening?.start ?? null,
+            openingEndSeconds: times.opening?.end ?? null,
+            endingStartSeconds: times.ending?.start ?? null,
+            endingEndSeconds: times.ending?.end ?? null,
+            skipTimesSource: 'anikoto',
+            skipTimesFetchedAt: new Date(),
+        })
+        .where(
+            and(
+                eq(animeEpisode.anilistId, anilistId),
+                eq(animeEpisode.episodeId, episodeId),
+                or(isNull(animeEpisode.skipTimesSource), ne(animeEpisode.skipTimesSource, 'manual'))
+            )
+        )
+        .returning({ episodeId: animeEpisode.episodeId });
+
+    return Boolean(updated);
 }
 
 export async function getSegmentTemplates(

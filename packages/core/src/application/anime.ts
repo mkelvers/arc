@@ -25,7 +25,11 @@ import {
     isAniKotoTransientError,
     anikotoProvider,
 } from '../providers/anikoto';
-import { getEpisodeSkipTimes, getSegmentTemplates } from '../playback/skip-times';
+import {
+    getEpisodeSkipTimes,
+    getSegmentTemplates,
+    saveAniKotoSkipTimes,
+} from '../playback/skip-times';
 import { resolveAnimeSynopsis } from '../catalog/synopsis';
 import {
     findMapping,
@@ -348,10 +352,24 @@ async function episodePlayback(
     modes: AudioMode[]
 ) {
     try {
-        const streams = await anikotoProvider.getStreams(anime, episode, modes);
+        const playback = await anikotoProvider.getStreams(anime, episode, modes);
+        if (playback.skipTimes) {
+            await saveAniKotoSkipTimes({
+                anilistId: anime.id,
+                episodeId: episode.id,
+                times: playback.skipTimes,
+            }).catch((cause) => {
+                logger.debug(
+                    `AniKoto skip times could not be saved for AniList ${anime.id} episode ${episode.number}`,
+                    cause
+                );
+            });
+        }
+
         return {
-            streams,
-            error: !Object.values(streams).some((sources) => sources?.length),
+            streams: playback.streams,
+            skipTimes: playback.skipTimes,
+            error: !Object.values(playback.streams).some((sources) => sources?.length),
         };
     } catch (cause) {
         logger.debug(
@@ -360,6 +378,7 @@ async function episodePlayback(
         );
         return {
             streams: {},
+            skipTimes: null,
             error: true,
         };
     }
