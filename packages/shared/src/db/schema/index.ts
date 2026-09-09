@@ -302,6 +302,67 @@ export const animeRelease = pgTable(
     ]
 );
 
+export const providerSnapshot = pgTable(
+    'provider_snapshot',
+    {
+        provider: varchar('provider', {
+            length: 32,
+        }).notNull(),
+        domain: varchar('domain', {
+            length: 32,
+        }).notNull(),
+        subjectType: varchar('subject_type', {
+            length: 32,
+        }).notNull(),
+        subjectId: text('subject_id').notNull(),
+        variant: varchar('variant', {
+            length: 64,
+        })
+            .notNull()
+            .default(''),
+        canonicalAnimeId: integer('canonical_anime_id').references(() => anime.id, {
+            onDelete: 'set null',
+        }),
+        payload: jsonb('payload').$type<unknown>().notNull(),
+        payloadHash: varchar('payload_hash', {
+            length: 64,
+        }).notNull(),
+        firstSeenAt: timestamp('first_seen_at', {
+            withTimezone: true,
+        })
+            .notNull()
+            .defaultNow(),
+        sourceFetchedAt: timestamp('source_fetched_at', {
+            withTimezone: true,
+        })
+            .notNull()
+            .defaultNow(),
+        updatedAt: timestamp('updated_at', {
+            withTimezone: true,
+        })
+            .notNull()
+            .defaultNow()
+            .$onUpdate(() => new Date()),
+    },
+    (table) => [
+        primaryKey({
+            columns: [
+                table.provider,
+                table.domain,
+                table.subjectType,
+                table.subjectId,
+                table.variant,
+            ],
+        }),
+        index('provider_snapshot_anime_domain_idx').on(
+            table.canonicalAnimeId,
+            table.domain,
+            table.provider
+        ),
+        index('provider_snapshot_refresh_idx').on(table.provider, table.domain, table.updatedAt),
+    ]
+);
+
 export const animeAiringSchedule = pgTable(
     'anime_airing_schedule',
     {
