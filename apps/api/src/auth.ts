@@ -34,6 +34,13 @@ export const auth = betterAuth({
         minPasswordLength: 12,
         maxPasswordLength: 128,
     },
+    session: {
+        cookieCache: {
+            enabled: true,
+            maxAge: 60,
+            strategy: 'compact',
+        },
+    },
     disabledPaths: [
         '/sign-in/email',
         '/is-username-available',

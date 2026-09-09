@@ -24,10 +24,12 @@ app.use('/v1/*', origin);
 
 app.all('/api/auth/*', (context) => auth.handler(context.req.raw));
 app.route('/v1/internal/maintenance', maintenance);
+// Keep this before wildcard-authenticated /v1 sub-apps so stream requests use
+// the cache-specific middleware instead of an authoritative session lookup.
+app.route('/v1', playback);
 app.route('/v1/accounts', accounts);
 app.route('/v1/anime', anime);
 app.route('/v1', catalog);
-app.route('/v1', playback);
 app.route('/v1/watchlist', watchlist);
 app.route('/v1/notifications', notifications);
 app.notFound((context) =>

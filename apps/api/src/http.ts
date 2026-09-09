@@ -32,6 +32,9 @@ export function validate<T extends z.ZodType, Target extends keyof ValidationTar
 
 export const middleware = createMiddleware<ApiEnvironment>(async (context, next) => {
     const session = await auth.api.getSession({
+        query: {
+            disableCookieCache: true,
+        },
         headers: context.req.raw.headers,
     });
     if (!session) {
@@ -47,6 +50,30 @@ export const middleware = createMiddleware<ApiEnvironment>(async (context, next)
     }
 
     context.set('session', session);
+    await next();
+});
+
+// Stream authentication uses Better Auth's short-lived signed cookie cache.
+export const streamMiddleware = createMiddleware(async (context, next) => {
+    const session = await auth.api.getSession({
+        headers: context.req.raw.headers,
+        returnHeaders: true,
+    });
+    if (!session.response) {
+        return context.json(
+            {
+                error: {
+                    code: 'AUTHENTICATION_REQUIRED',
+                    message: 'Authentication required',
+                },
+            },
+            401
+        );
+    }
+
+    for (const cookie of session.headers.getSetCookie()) {
+        context.header('set-cookie', cookie, { append: true });
+    }
     await next();
 });
 
