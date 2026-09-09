@@ -1,5 +1,6 @@
 import type { AudioMode } from '../audio';
 import type { AniListAnime } from '../catalog/anilist-types';
+import type { EpisodeSkipTimes } from '../player/skip-times';
 
 export interface ProviderEpisode {
     id: string;
@@ -32,6 +33,11 @@ export interface ProviderStream {
 
 export type ProviderStreams = Partial<Record<AudioMode, ProviderStream[]>>;
 
+export interface ProviderPlayback {
+    streams: ProviderStreams;
+    skipTimes: EpisodeSkipTimes | null;
+}
+
 export interface PlaybackProvider {
     name: string;
     getEpisodes(anime: AniListAnime): Promise<ProviderEpisode[]>;
@@ -39,5 +45,5 @@ export interface PlaybackProvider {
         anime: AniListAnime,
         episode: ProviderEpisodeReference,
         modes: AudioMode[]
-    ): Promise<ProviderStreams>;
+    ): Promise<ProviderPlayback>;
 }

@@ -1,9 +1,10 @@
 import { z } from 'zod';
 
 export type SkipKind = 'opening' | 'ending';
-type SkipTimesSource = 'aniskip' | 'manual';
+const SkipTimesSourceSchema = z.enum(['anikoto', 'aniskip', 'manual']);
+type SkipTimesSource = z.infer<typeof SkipTimesSourceSchema>;
 
-const SkipIntervalSchema = z
+export const SkipIntervalSchema = z
     .object({
         start: z.number().nonnegative(),
         end: z.number().positive(),
@@ -12,11 +13,17 @@ const SkipIntervalSchema = z
 
 export type SkipInterval = z.infer<typeof SkipIntervalSchema>;
 
-export interface EpisodeSkipTimes {
+export const EpisodeSkipTimesSchema = z.object({
+    opening: SkipIntervalSchema.nullable(),
+    ending: SkipIntervalSchema.nullable(),
+    source: SkipTimesSourceSchema.nullable(),
+});
+
+export type EpisodeSkipTimes = {
     opening: SkipInterval | null;
     ending: SkipInterval | null;
     source: SkipTimesSource | null;
-}
+};
 
 const SegmentTemplateSchema = z.object({
     fromEpisode: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
