@@ -57,8 +57,6 @@ export async function storedEpisodes(anime: AniListAnime) {
         db
             .select({
                 providerMediaId: animeProviderMapping.providerMediaId,
-                inventoryStatus: animeProviderMapping.inventoryStatus,
-                providerEpisodeCount: animeProviderMapping.providerEpisodeCount,
             })
             .from(animeProviderMapping)
             .where(
@@ -74,21 +72,11 @@ export async function storedEpisodes(anime: AniListAnime) {
             .where(eq(animeEpisode.anilistId, anime.id))
             .orderBy(asc(animeEpisode.number)),
     ]);
-    const mappingIsIncomplete =
-        anime.status === 'FINISHED' &&
-        anime.format !== 'TV_SHORT' &&
-        anime.episodes !== null &&
-        (mapping?.inventoryStatus === 'unresolved' ||
-            (mapping?.providerEpisodeCount !== null &&
-                mapping?.providerEpisodeCount !== undefined &&
-                mapping.providerEpisodeCount < anime.episodes));
-    const eligibleRows = mappingIsIncomplete
-        ? []
-        : mapping
-          ? rows.filter(({ episodeId }) =>
-                episodeId.startsWith(`anikoto:${mapping.providerMediaId}:`)
-            )
-          : rows;
+    const eligibleRows = mapping
+        ? rows.filter(({ episodeId }) =>
+              episodeId.startsWith(`anikoto:${mapping.providerMediaId}:`)
+          )
+        : rows;
     const uniqueEpisodes = new Map<number, (typeof rows)[number]>();
 
     for (const episode of eligibleRows.filter(({ episodeId }) => episodeId.includes(':'))) {

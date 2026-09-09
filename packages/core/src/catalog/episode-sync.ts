@@ -246,21 +246,6 @@ async function fetchAndStore(
     const regularEpisodeNumbers = new Set(
         source.flatMap(({ number }) => (Number.isInteger(number) && number > 0 ? [number] : []))
     );
-    if (
-        anime.status === 'FINISHED' &&
-        expected !== null &&
-        regularEpisodeNumbers.size !== expected
-    ) {
-        await recordAniKotoInventoryVerification(
-            anime,
-            providerEpisodes,
-            source,
-            expected,
-            'unresolved',
-            `Provider returned ${regularEpisodeNumbers.size} regular episodes; AniList expects ${expected}`
-        );
-        throw new EpisodeInventoryUnresolvedError(anime.id, expected, regularEpisodeNumbers.size);
-    }
     const now = new Date();
     await db.transaction(async (tx) => {
         const [sync, existing] = await Promise.all([
@@ -567,6 +552,23 @@ async function fetchAndStore(
             );
         }
     });
+
+    if (
+        anime.status === 'FINISHED' &&
+        expected !== null &&
+        regularEpisodeNumbers.size !== expected
+    ) {
+        const error = `Provider returned ${regularEpisodeNumbers.size} regular episodes; AniList expects ${expected}`;
+        await recordAniKotoInventoryVerification(
+            anime,
+            providerEpisodes,
+            source,
+            expected,
+            'unresolved',
+            error
+        );
+        throw new EpisodeInventoryUnresolvedError(anime.id, expected, regularEpisodeNumbers.size);
+    }
 
     await recordAniKotoInventoryVerification(anime, providerEpisodes, source, expected, 'verified');
 

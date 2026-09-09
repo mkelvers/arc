@@ -661,6 +661,7 @@ export async function getEpisodeMetadata(
                       stills,
                       async (still) => ({
                           filePath: still.file_path,
+                          hasEmbeddedTextOverlay: still.iso_639_1 != null,
                           voteAverage: still.vote_average,
                           voteCount: still.vote_count,
                           width: still.width,

@@ -553,7 +553,8 @@ export function matchesAniKotoFormat(providerFormat: string | null, animeFormat:
 
 export function matchesAniKotoEpisodeCount(
     providerEpisodeCount: number | undefined,
-    anime: Pick<AniListAnime, 'status' | 'format' | 'episodes'>
+    anime: Pick<AniListAnime, 'status' | 'format' | 'episodes'>,
+    exactIdentity = false
 ) {
     if (
         anime.status !== 'FINISHED' ||
@@ -564,7 +565,12 @@ export function matchesAniKotoEpisodeCount(
         return true;
     }
 
-    return providerEpisodeCount >= anime.episodes;
+    return (
+        providerEpisodeCount >= anime.episodes ||
+        // AniList can include a non-playable special in the total while AniKoto
+        // exposes only the numbered episodes for the exact release identity.
+        (exactIdentity && providerEpisodeCount > 0 && providerEpisodeCount === anime.episodes - 1)
+    );
 }
 
 export function parseSearchCandidates(html: string) {
@@ -1256,14 +1262,15 @@ async function findSeries(anime: AniListAnime) {
     const stored = await providerMediaId(anime.id);
     const storedId = positiveId(stored?.id);
     let fallbackSeries: AniKotoSeries | null = null;
-    if (storedId && stored?.inventoryStatus !== 'unresolved') {
+    if (storedId) {
         try {
             const series = await loadSeries(storedId);
+            const exactIdentity = matchesAniKotoIdentity(series, anime);
             if (
                 (matchesAniKotoIdentityOrTitle(series, anime) ||
                     matchesAniKotoRelatedIdentity(series, anime)) &&
                 matchesAniKotoFormat(series.format, anime.format) &&
-                matchesAniKotoEpisodeCount(series.episodeCount, anime)
+                matchesAniKotoEpisodeCount(series.episodeCount, anime, exactIdentity)
             ) {
                 if (series.audio.includes('dub')) {
                     return series;
@@ -1329,6 +1336,9 @@ async function findSeries(anime: AniListAnime) {
                 throw cause;
             }
         }
+        const exactIdentity = Boolean(
+            series && 'anilistId' in series && matchesAniKotoIdentity(series, anime)
+        );
         if (
             series &&
             matchesAniKotoFormat(
@@ -1340,7 +1350,7 @@ async function findSeries(anime: AniListAnime) {
                   matchesAniKotoRelatedIdentity(series, anime)
                 : matchesAniKotoTitle(candidate.title, titles)) &&
             ('episodeCount' in series
-                ? matchesAniKotoEpisodeCount(series.episodeCount, anime)
+                ? matchesAniKotoEpisodeCount(series.episodeCount, anime, exactIdentity)
                 : true)
         ) {
             if ('audio' in series && series.audio.includes('dub')) {
