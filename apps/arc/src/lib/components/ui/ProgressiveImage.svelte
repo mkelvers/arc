@@ -10,7 +10,7 @@
         loading?: 'eager' | 'lazy';
         previewLoading?: 'eager' | 'lazy';
         fetchpriority?: 'high' | 'low' | 'auto';
-        displaySize?: 'w342' | 'w500' | 'w780';
+        displaySize?: 'w342' | 'w500' | 'w780' | 'w1280';
         sizes?: string;
         loadFull?: boolean;
         ontransitionend?: (event: TransitionEvent) => void;
@@ -42,7 +42,7 @@
     const preview = $derived(src.replace(/(\/image\.tmdb\.org\/t\/p\/)[^/]+(?=\/|$)/, `$1${previewSize}`));
     const displaySrcSet = $derived(
         displaySize
-            ? [displaySize === 'w342' ? 'w185' : 'w342', displaySize]
+            ? [displaySize === 'w342' ? 'w185' : displaySize === 'w1280' ? 'w780' : 'w342', displaySize]
                   .map(
                       (size) =>
                           `${src.replace(/(\/image\.tmdb\.org\/t\/p\/)[^/]+(?=\/|$)/, `$1${size}`)} ${size.slice(1)}w`

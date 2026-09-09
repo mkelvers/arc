@@ -198,8 +198,10 @@
                             previewSize="w300"
                             class="col-start-1 row-start-1"
                             imageClass="object-top"
-                            previewLoading="eager"
-                            loading="eager"
+                            previewLoading={index === carousel.active || index === upcoming ? 'eager' : 'lazy'}
+                            loading={index === carousel.active || index === upcoming ? 'eager' : 'lazy'}
+                            displaySize="w1280"
+                            sizes="100vw"
                             fetchpriority={index === carousel.active ? 'high' : 'low'}
                             loadFull={index === carousel.active ||
                                 index === carousel.previous ||

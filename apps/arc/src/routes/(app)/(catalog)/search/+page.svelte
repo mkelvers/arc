@@ -3,8 +3,8 @@
     import { onMount, untrack } from 'svelte';
     import { XIcon } from 'phosphor-svelte';
     import { distinctSearchArtwork, AnimeSearchResultSchema, type AnimeSearchResult } from '@arc/core/client';
-    import emptyArtwork from '$lib/assets/search-empty.png';
-    import errorArtwork from '$lib/assets/error-state.png';
+    import emptyArtwork from '$lib/assets/search-empty.webp';
+    import errorArtwork from '$lib/assets/error-state.webp';
     import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import Button from '$lib/components/ui/button/button.svelte';

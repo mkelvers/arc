@@ -1,6 +1,6 @@
 <script lang="ts">
     import { page } from '$app/state';
-    import errorArtwork from '$lib/assets/error-state.png';
+    import errorArtwork from '$lib/assets/error-state.webp';
     import Logo from '$lib/components/ui/Logo.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
     import { m } from '$lib/i18n.svelte';
