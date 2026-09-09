@@ -216,45 +216,51 @@
                                 {#if index > 0}
                                     <span aria-hidden="true">,</span>
                                 {/if}
-                                <a
-                                    class="underline underline-offset-2"
-                                    href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
-                                >
-                                    {genre}
-                                </a>
+                                {#if anime.scoreSource === 'Kitsu'}
+                                    <span>{genre}</span>
+                                {:else}
+                                    <a
+                                        class="underline underline-offset-2"
+                                        href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
+                                    >
+                                        {genre}
+                                    </a>
+                                {/if}
                             {/each}
                         </span>
                     {/if}
                 </p>
 
-                <div
-                    class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm sm:text-base lg:mt-3.5 lg:gap-2.5 lg:text-base"
-                >
-                    <span class="relative flex items-center gap-0.5 text-subtle" aria-hidden="true">
-                        {#each Array(5) as _, index}
-                            <svg
-                                class:text-foreground={index < Math.round(anime.score / 20)}
-                                class="size-6 shrink-0 fill-current sm:size-7"
-                                viewBox="0 0 24 24"
-                                aria-hidden="true"
-                            >
-                                <path
-                                    d="m12 2 2.85 6.59L22 9.27 16.55 14l1.63 7L12 17.27 5.82 21l1.63-7L2 9.27l7.15-.68z"
-                                />
-                            </svg>
-                        {/each}
-                    </span>
-                    <span class="hidden text-border-strong sm:inline" aria-hidden="true">|</span>
-                    <strong>
-                        {m.shared_score({
-                            provider:
-                                anime.scoreSource === 'Kitsu'
-                                    ? m.shared_score_provider_kitsu()
-                                    : m.shared_score_provider_anilist(),
-                            score: anime.score,
-                        })}
-                    </strong>
-                </div>
+                {#if anime.score !== null}
+                    <div
+                        class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm sm:text-base lg:mt-3.5 lg:gap-2.5 lg:text-base"
+                    >
+                        <span class="relative flex items-center gap-0.5 text-subtle" aria-hidden="true">
+                            {#each Array(5) as _, index}
+                                <svg
+                                    class:text-foreground={index < Math.round(anime.score / 20)}
+                                    class="size-6 shrink-0 fill-current sm:size-7"
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                >
+                                    <path
+                                        d="m12 2 2.85 6.59L22 9.27 16.55 14l1.63 7L12 17.27 5.82 21l1.63-7L2 9.27l7.15-.68z"
+                                    />
+                                </svg>
+                            {/each}
+                        </span>
+                        <span class="hidden text-border-strong sm:inline" aria-hidden="true">|</span>
+                        <strong>
+                            {m.shared_score({
+                                provider:
+                                    anime.scoreSource === 'Kitsu'
+                                        ? m.shared_score_provider_kitsu()
+                                        : m.shared_score_provider_anilist(),
+                                score: anime.score,
+                            })}
+                        </strong>
+                    </div>
+                {/if}
 
                 <div
                     class="mt-7 flex max-sm:flex-wrap items-center gap-2 text-xs font-bold text-accent sm:text-sm lg:mt-8 lg:gap-2.5"
@@ -299,43 +305,65 @@
                     >
                         <p class="max-w-3xl text-foreground">{anime.description}</p>
                         <div class="space-y-3">
-                            <p>
-                                <strong class="font-normal text-foreground">{m.anime_production()}</strong>
-                                {anime.studios.join(', ')}
-                            </p>
-                            <p>
-                                <strong class="font-normal text-foreground">{m.anime_key_staff()}</strong>
-                                {anime.staff}
-                            </p>
-                            <p>
-                                <strong class="font-normal text-foreground">{m.anime_rankings()}</strong>
-                                {anime.rankings.join(', ')}
-                            </p>
-                            <p>
-                                <strong class="font-normal text-foreground">{m.anime_audience()}</strong>
-                                {m.anime_members_favorites({
-                                    members: anime.members,
-                                    favorites: anime.favourites,
-                                })}
-                            </p>
-                            <p>
-                                <strong class="font-normal text-foreground">{m.anime_themes()}</strong>
-                                {anime.themes.join(', ')}
-                            </p>
-                            <p>
-                                <strong class="font-normal text-foreground">{m.anime_genres()}</strong>
-                                {#each anime.genres as genre, index}
-                                    {#if index > 0}
-                                        <span aria-hidden="true">,</span>
-                                    {/if}
-                                    <a
-                                        class="underline underline-offset-2"
-                                        href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
-                                    >
-                                        {genre}
-                                    </a>
-                                {/each}
-                            </p>
+                            {#if anime.studios.length}
+                                <p>
+                                    <strong class="font-normal text-foreground">{m.anime_production()}</strong>
+                                    {anime.studios.join(', ')}
+                                </p>
+                            {/if}
+                            {#if anime.staff}
+                                <p>
+                                    <strong class="font-normal text-foreground">{m.anime_key_staff()}</strong>
+                                    {anime.staff}
+                                </p>
+                            {/if}
+                            {#if anime.rankings.length}
+                                <p>
+                                    <strong class="font-normal text-foreground">{m.anime_rankings()}</strong>
+                                    {anime.rankings.join(', ')}
+                                </p>
+                            {/if}
+                            {#if anime.members !== '0' || anime.favourites !== '0'}
+                                <p>
+                                    <strong class="font-normal text-foreground">{m.anime_audience()}</strong>
+                                    {m.anime_members_favorites({
+                                        members: anime.members,
+                                        favorites: anime.favourites,
+                                    })}
+                                </p>
+                            {/if}
+                            {#if anime.startDate || anime.endDate}
+                                <p>
+                                    <strong class="font-normal text-foreground">{m.anime_aired()}</strong>
+                                    {anime.startDate ?? '?'}{anime.endDate ? ` – ${anime.endDate}` : ''}
+                                </p>
+                            {/if}
+                            {#if anime.themes.length}
+                                <p>
+                                    <strong class="font-normal text-foreground">{m.anime_themes()}</strong>
+                                    {anime.themes.join(', ')}
+                                </p>
+                            {/if}
+                            {#if anime.genres.length}
+                                <p>
+                                    <strong class="font-normal text-foreground">{m.anime_genres()}</strong>
+                                    {#each anime.genres as genre, index}
+                                        {#if index > 0}
+                                            <span aria-hidden="true">,</span>
+                                        {/if}
+                                        {#if anime.scoreSource === 'Kitsu'}
+                                            <span>{genre}</span>
+                                        {:else}
+                                            <a
+                                                class="underline underline-offset-2"
+                                                href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
+                                            >
+                                                {genre}
+                                            </a>
+                                        {/if}
+                                    {/each}
+                                </p>
+                            {/if}
                         </div>
                     </section>
                 </div>
