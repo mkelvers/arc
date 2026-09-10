@@ -19,10 +19,14 @@ export const handle: Handle = async ({ event, resolve }) => {
             signal: AbortSignal.timeout(8_000),
         });
     } catch {
-        return new Response('Arc is temporarily unavailable', { status: 503 });
+        return new Response('Arc is temporarily unavailable', {
+            status: 503
+        });
     }
     if (!response.ok) {
-        return new Response('Arc is temporarily unavailable', { status: 503 });
+        return new Response('Arc is temporarily unavailable', {
+            status: 503
+        });
     }
 
     const session = SessionResponseSchema.parse(await response.json());
