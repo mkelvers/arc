@@ -68,12 +68,16 @@
                 {#if artwork?.selectedLogo}
                     <img
                         src={artwork.selectedLogo.url}
-                        alt={anime.title}
+                        alt=""
+                        aria-hidden="true"
                         style:height={`clamp(${(5 * artwork.logoSize) / 100}rem, ${(6.4 * artwork.logoSize) / 100}vw, ${(8 * artwork.logoSize) / 100}rem)`}
                         class="max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-w-2xl"
                     />
                 {:else}
-                    <p class="max-w-3xl text-4xl leading-tight font-bold text-white sm:text-5xl lg:text-6xl">
+                    <p
+                        aria-hidden="true"
+                        class="max-w-3xl text-4xl leading-tight font-bold text-white sm:text-5xl lg:text-6xl"
+                    >
                         {anime.title}
                     </p>
                 {/if}

@@ -29,6 +29,7 @@
     let lastActive = $state(active);
     let hoverPaused = $state(false);
     let focusPaused = $state(false);
+    let pointerPaused = $state(false);
     let pointerId = $state<number | null>(null);
     let startX = 0;
     let startY = 0;
@@ -54,7 +55,7 @@
     });
 
     $effect(() => {
-        if (hoverPaused || focusPaused || prefersReducedMotion.current || count < 2) {
+        if (hoverPaused || focusPaused || pointerPaused || prefersReducedMotion.current || count < 2) {
             return;
         }
 
@@ -86,6 +87,7 @@
         }
 
         pointerId = event.pointerId;
+        pointerPaused = true;
         startX = event.clientX;
         startY = event.clientY;
         dragging = false;
@@ -123,6 +125,7 @@
         }
 
         pointerId = null;
+        pointerPaused = false;
         dragging = false;
     }
 
@@ -162,6 +165,7 @@
     onpointerup={handlePointerUp}
     onpointercancel={() => {
         pointerId = null;
+        pointerPaused = false;
         dragging = false;
     }}
 >
@@ -169,7 +173,12 @@
         {@render children(index, index === active, index === previous)}
     {/each}
 
-    {@render overlay?.(select, active, previous, hoverPaused || focusPaused || prefersReducedMotion.current)}
+    {@render overlay?.(
+        select,
+        active,
+        previous,
+        hoverPaused || focusPaused || pointerPaused || prefersReducedMotion.current
+    )}
 </section>
 
 <svelte:window onclick={handleClick} />
