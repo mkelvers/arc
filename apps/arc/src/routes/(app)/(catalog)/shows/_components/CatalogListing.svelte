@@ -4,7 +4,7 @@
 
     import { browseSearchParams, type BrowseFilters } from '@arc/core/client';
     import type { AnimeCard as AnimeCardModel } from '@arc/core/client';
-    import emptyArtwork from '$lib/assets/browse-empty.png';
+    import emptyArtwork from '$lib/assets/browse-empty.webp';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';

@@ -12,10 +12,18 @@ import { playback } from './routes/playback';
 import { maintenance } from './routes/maintenance';
 import { notifications } from './routes/notifications';
 import { watchlist } from './routes/watchlist';
+import { isReady } from './readiness';
 
 const app = new Hono();
 
 app.get('/health', (context) => context.json({ status: 'ok' }));
+app.get('/ready', async (context) => {
+    if (await isReady()) {
+        return context.json({ status: 'ready' });
+    }
+
+    return context.json({ status: 'not_ready' }, 503);
+});
 app.use('/v1/*', async (context, next) => {
     await next();
     context.header('Cache-Control', 'no-store');
@@ -24,10 +32,12 @@ app.use('/v1/*', origin);
 
 app.all('/api/auth/*', (context) => auth.handler(context.req.raw));
 app.route('/v1/internal/maintenance', maintenance);
+// Keep this before wildcard-authenticated /v1 sub-apps so stream requests use
+// the cache-specific middleware instead of an authoritative session lookup.
+app.route('/v1', playback);
 app.route('/v1/accounts', accounts);
 app.route('/v1/anime', anime);
 app.route('/v1', catalog);
-app.route('/v1', playback);
 app.route('/v1/watchlist', watchlist);
 app.route('/v1/notifications', notifications);
 app.notFound((context) =>

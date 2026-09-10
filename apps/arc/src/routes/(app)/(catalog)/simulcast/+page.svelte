@@ -3,7 +3,7 @@
     import { CaretDownIcon } from 'phosphor-svelte';
 
     import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '@arc/core/client';
-    import emptyArtwork from '$lib/assets/simulcast-empty.png';
+    import emptyArtwork from '$lib/assets/simulcast-empty.webp';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';

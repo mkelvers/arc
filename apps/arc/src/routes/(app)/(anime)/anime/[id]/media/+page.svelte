@@ -177,7 +177,6 @@
                             <ProgressiveImage
                                 src={image.url}
                                 alt={`${data.anime.title} backdrop`}
-                                previewSize="w300"
                                 class="aspect-video w-full"
                             />
                             <span class="block px-3 py-2 text-xs text-subtle">

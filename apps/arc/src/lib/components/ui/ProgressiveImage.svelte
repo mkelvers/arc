@@ -4,15 +4,12 @@
     interface Props {
         src: string;
         alt: string;
-        previewSize?: 'w92' | 'w300';
         class?: string;
         imageClass?: string;
         loading?: 'eager' | 'lazy';
-        previewLoading?: 'eager' | 'lazy';
         fetchpriority?: 'high' | 'low' | 'auto';
-        displaySize?: 'w342' | 'w500' | 'w780';
+        displaySize?: 'w342' | 'w500' | 'w780' | 'w1280';
         sizes?: string;
-        loadFull?: boolean;
         ontransitionend?: (event: TransitionEvent) => void;
         onready?: () => void;
     }
@@ -20,29 +17,31 @@
     let {
         src,
         alt,
-        previewSize = 'w92',
         class: className,
         imageClass,
         loading = 'lazy',
-        previewLoading = loading,
         fetchpriority = 'auto',
         displaySize,
         sizes,
-        loadFull = true,
         ontransitionend,
         onready,
     }: Props = $props();
 
-    let loadedSrc = $state<string | null>(null);
-    let imageFailed = $state(false);
-    let previewFailed = $state(false);
-    const displaySrc = $derived(
+    let element = $state<HTMLDivElement>();
+    let visible = $state(false);
+    let loaded = $state('');
+    let failed = $state('');
+    const fullSrc = $derived(
         displaySize ? src.replace(/(\/image\.tmdb\.org\/t\/p\/)[^/]+(?=\/|$)/, `$1${displaySize}`) : src
     );
-    const preview = $derived(src.replace(/(\/image\.tmdb\.org\/t\/p\/)[^/]+(?=\/|$)/, `$1${previewSize}`));
-    const displaySrcSet = $derived(
+    const previewSrc = $derived(
+        src
+            .replace(/(\/image\.tmdb\.org\/t\/p\/)(?:original|w\d+)(?=\/|$)/, '$1w300')
+            .replace(/(\/anilistcdn\/media\/anime\/cover\/)(?:extraLarge|large)(?=\/|$)/, '$1medium')
+    );
+    const fullSrcSet = $derived(
         displaySize
-            ? [displaySize === 'w342' ? 'w185' : 'w342', displaySize]
+            ? [displaySize === 'w342' ? 'w185' : displaySize === 'w1280' ? 'w780' : 'w342', displaySize]
                   .map(
                       (size) =>
                           `${src.replace(/(\/image\.tmdb\.org\/t\/p\/)[^/]+(?=\/|$)/, `$1${size}`)} ${size.slice(1)}w`
@@ -50,51 +49,80 @@
                   .join(', ')
             : undefined
     );
-    const ready = $derived(loadedSrc === displaySrc);
+
+    $effect(() => {
+        if (!element || loading === 'eager' || visible) {
+            return;
+        }
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry?.isIntersecting) {
+                    visible = true;
+                    observer.disconnect();
+                }
+            },
+            { rootMargin: '160px 0px' }
+        );
+        observer.observe(element);
+
+        return () => observer.disconnect();
+    });
 </script>
 
-<div class={cn('relative size-full overflow-hidden', className)} ontransitionend={ontransitionend}>
+<div
+    bind:this={element}
+    class={cn('relative size-full overflow-hidden', className)}
+    ontransitionend={ontransitionend}
+>
     <div
         class="absolute inset-0 bg-surface transition-opacity duration-300"
-        class:opacity-0={ready || imageFailed}
-        aria-hidden={imageFailed || undefined}
+        class:opacity-0={loaded === fullSrc}
+        aria-hidden={loaded === fullSrc || undefined}
     >
-        {#if !previewFailed}
+        {#if previewSrc !== fullSrc}
             <img
-                src={preview}
+                src={previewSrc}
                 alt=""
                 class={cn('size-full scale-110 object-cover blur-xl', imageClass)}
-                loading={previewLoading}
+                loading={loading}
+                decoding="async"
                 aria-hidden="true"
-                onerror={() => (previewFailed = true)}
+                onload={(event) => {
+                    if (event.currentTarget instanceof HTMLImageElement) {
+                        event.currentTarget.hidden = false;
+                    }
+                }}
+                onerror={(event) => {
+                    if (event.currentTarget instanceof HTMLImageElement) {
+                        event.currentTarget.hidden = true;
+                    }
+                }}
             />
         {/if}
     </div>
-    {#if loadFull && !imageFailed}
+    {#if (loading === 'eager' || visible) && failed !== fullSrc}
         <img
-            src={displaySrc}
-            srcset={displaySrcSet}
+            src={fullSrc}
+            srcset={fullSrcSet}
             sizes={sizes}
             alt={alt}
             class={cn(
                 'absolute inset-0 size-full object-cover transition-opacity duration-300',
                 imageClass,
-                ready ? 'opacity-100' : 'opacity-0'
+                loaded === fullSrc ? 'opacity-100' : 'opacity-0'
             )}
             loading={loading}
             fetchpriority={fetchpriority}
+            decoding="async"
             onload={() => {
-                loadedSrc = displaySrc;
+                loaded = fullSrc;
                 onready?.();
             }}
-            onerror={() => (imageFailed = true)}
+            onerror={() => {
+                failed = fullSrc;
+                loaded = '';
+            }}
         />
-    {:else if imageFailed}
-        <div
-            class="absolute inset-0 grid place-items-center bg-surface"
-            role={alt ? 'img' : undefined}
-            aria-label={alt || undefined}
-            aria-hidden={alt ? undefined : 'true'}
-        ></div>
     {/if}
 </div>

@@ -1,13 +1,12 @@
 <script lang="ts">
     import { enhance } from '$app/forms';
     import type { ContinueWatchingCard } from '@arc/core/client';
-    import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
-    import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
     import XIcon from 'phosphor-svelte/lib/XIcon';
     import Card from '$lib/components/ui/card/Card.svelte';
     import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
+    import HorizontalRail from '$lib/components/ui/HorizontalRail.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import { m } from '$lib/i18n.svelte';
 
@@ -16,79 +15,24 @@
     }
 
     let { anime }: Props = $props();
-    let removedAnimeIds = $state(new Set<number>());
-    let visibleAnime = $derived(anime.filter((entry) => !removedAnimeIds.has(entry.animeId)));
-    let rail = $state<HTMLDivElement>();
-    let canScrollLeft = $state(false);
-    let canScrollRight = $state(false);
-
-    function updateScroll() {
-        if (!rail) {
-            return;
-        }
-
-        const hasOverflow = rail.scrollWidth > rail.clientWidth + 2;
-        canScrollLeft = hasOverflow && rail.scrollLeft > 2;
-        canScrollRight = hasOverflow && rail.scrollLeft + rail.clientWidth < rail.scrollWidth - 2;
-
-        const firstCard = rail.firstElementChild;
-        if (firstCard instanceof HTMLElement) {
-            rail.parentElement?.style.setProperty('--rail-control-center', `${firstCard.clientWidth * 0.28}px`);
-        }
-    }
-
-    function move(direction: -1 | 1) {
-        if (!rail) {
-            return;
-        }
-
-        const firstCard = rail.children[0];
-        const secondCard = rail.children[1];
-        const measuredPitch =
-            firstCard instanceof HTMLElement && secondCard instanceof HTMLElement
-                ? secondCard.offsetLeft - firstCard.offsetLeft
-                : rail.clientWidth;
-        const cardPitch = measuredPitch > 0 ? measuredPitch : rail.clientWidth;
-        const cardsPerPage = Math.max(1, Math.floor(rail.clientWidth / cardPitch));
-
-        rail.scrollBy({ left: direction * cardsPerPage * cardPitch, behavior: 'smooth' });
-    }
-
-    $effect(() => {
-        const visibleAnimeCount = visibleAnime.length;
-
-        if (!rail) {
-            return;
-        }
-
-        if (!visibleAnimeCount) {
-            canScrollLeft = false;
-            canScrollRight = false;
-            return;
-        }
-
-        updateScroll();
-        const observer = new ResizeObserver(updateScroll);
-        observer.observe(rail);
-
-        return () => observer.disconnect();
-    });
+    let removed = $state(new Set<number>());
+    let entries = $derived(anime.filter((entry) => !removed.has(entry.animeId)));
 </script>
 
-{#if visibleAnime.length}
+{#if entries.length}
     <section
         class="continue-watching-section relative z-20 col-start-1 row-start-2 row-end-3 self-end px-5 sm:px-10 lg:px-16 wide:row-start-1 wide:row-end-3 min-w-0"
         aria-labelledby="continue-watching"
     >
         <h2 id="continue-watching" class="mb-5 text-xl font-bold sm:text-2xl">{m.continue_watching()}</h2>
 
-        <div class="relative [--rail-control-center:50%]">
-            <div
-                bind:this={rail}
-                onscroll={updateScroll}
-                class="scrollbar-hidden grid min-w-0 snap-x snap-mandatory grid-flow-col auto-cols-[calc((100vw-3.75rem)/1.35)] gap-3 overflow-x-auto overscroll-x-contain pb-4 scroll-smooth min-[30em]:auto-cols-[calc((100vw-4.75rem)/2.1)] min-[35.5em]:auto-cols-[calc((100vw-5.75rem)/2.7)] sm:auto-cols-[calc((100vw-8.75rem)/3.25)] sm:gap-4 lg:auto-cols-[calc((100vw-18.375rem)/4.25)] lg:gap-7.5 2xl:auto-cols-[calc((100vw-20.25rem)/5.25)]"
-            >
-                {#each visibleAnime as entry (entry.animeId)}
+        <HorizontalRail
+            label={m.continue_watching()}
+            controlOffset={0.28}
+            trackClass="scrollbar-hidden grid min-w-0 snap-x snap-mandatory grid-flow-col auto-cols-[calc((100vw-3.75rem)/1.35)] gap-3 overflow-x-auto overscroll-x-contain pb-4 scroll-smooth min-[30em]:auto-cols-[calc((100vw-4.75rem)/2.1)] min-[35.5em]:auto-cols-[calc((100vw-5.75rem)/2.7)] sm:auto-cols-[calc((100vw-8.75rem)/3.25)] sm:gap-4 lg:auto-cols-[calc((100vw-18.375rem)/4.25)] lg:gap-7.5 2xl:auto-cols-[calc((100vw-20.25rem)/5.25)]"
+        >
+            {#snippet children()}
+                {#each entries as entry (entry.animeId)}
                     <div class="group relative min-w-0 snap-start">
                         <Card variant="compact" class="min-w-0 p-2">
                             <a
@@ -113,7 +57,6 @@
                                     <ProgressiveImage
                                         src={entry.backdrop}
                                         alt=""
-                                        previewSize="w300"
                                         class="absolute inset-0 transition-opacity duration-200 group-hover:opacity-0 group-focus-within:opacity-0"
                                     />
                                     <ProgressiveImage
@@ -162,13 +105,13 @@
                             method="POST"
                             action="?/removeContinueWatching"
                             use:enhance={() => {
-                                removedAnimeIds = new Set(removedAnimeIds).add(entry.animeId);
+                                removed = new Set(removed).add(entry.animeId);
 
                                 return async ({ update, result }) => {
                                     if (result.type === 'failure' || result.type === 'error') {
-                                        const nextRemovedAnimeIds = new Set(removedAnimeIds);
-                                        nextRemovedAnimeIds.delete(entry.animeId);
-                                        removedAnimeIds = nextRemovedAnimeIds;
+                                        const nextRemoved = new Set(removed);
+                                        nextRemoved.delete(entry.animeId);
+                                        removed = nextRemoved;
                                     }
 
                                     await update();
@@ -190,31 +133,7 @@
                         </form>
                     </div>
                 {/each}
-            </div>
-
-            {#if canScrollLeft}
-                <Button
-                    variant="unstyled"
-                    type="button"
-                    class="absolute top-(--rail-control-center) left-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
-                    aria-label={`${m.continue_watching()}: ${m.shared_previous()}`}
-                    onclick={() => move(-1)}
-                >
-                    <CaretLeftIcon size="1.65rem" weight="bold" aria-hidden="true" />
-                </Button>
-            {/if}
-
-            {#if canScrollRight}
-                <Button
-                    variant="unstyled"
-                    type="button"
-                    class="absolute top-(--rail-control-center) right-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
-                    aria-label={`${m.continue_watching()}: ${m.shared_next()}`}
-                    onclick={() => move(1)}
-                >
-                    <CaretRightIcon size="1.65rem" weight="bold" aria-hidden="true" />
-                </Button>
-            {/if}
-        </div>
+            {/snippet}
+        </HorizontalRail>
     </section>
 {/if}

@@ -9,8 +9,8 @@
         RadioButtonIcon,
     } from 'phosphor-svelte';
 
-    import emptyArtwork from '$lib/assets/watchlist-empty.png';
-    import filteredEmptyArtwork from '$lib/assets/watchlist-filter-empty.png';
+    import emptyArtwork from '$lib/assets/watchlist-empty.webp';
+    import filteredEmptyArtwork from '$lib/assets/watchlist-filter-empty.webp';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
