@@ -3,7 +3,7 @@ import { migrate } from 'drizzle-orm/postgres-js/migrator';
 
 import { logger } from '@arc/core/server';
 import { db } from '@arc/shared/db';
-import { markMigrationsReady } from './readiness';
+import { areMigrationsReady, markMigrationsReady } from './readiness';
 import { runMigrationsWithRetry } from './startup';
 
 const isProduction = process.env.NODE_ENV === 'production';
@@ -15,7 +15,22 @@ if (!isProduction) {
 const server = Bun.serve({
     port: process.env.PORT,
     idleTimeout: 60,
-    fetch: app.fetch,
+    fetch(request, server) {
+        const path = new URL(request.url).pathname;
+        if (!['/health', '/ready'].includes(path) && !areMigrationsReady()) {
+            return Response.json(
+                {
+                    error: {
+                        code: 'NOT_READY',
+                        message: 'Database migrations are still running',
+                    },
+                },
+                { status: 503 }
+            );
+        }
+
+        return app.fetch(request, server);
+    },
 });
 
 if (isProduction) {

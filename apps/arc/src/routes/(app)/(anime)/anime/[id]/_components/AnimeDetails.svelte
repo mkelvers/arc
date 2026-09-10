@@ -21,6 +21,7 @@
         >
             <section
                 id="anime-details"
+                inert={!expanded}
                 class={cn(
                     'grid min-h-24 min-w-0 max-w-432 grid-cols-1 gap-8 overflow-hidden text-xs leading-5 text-muted md:grid-cols-2 md:gap-12 lg:gap-28 lg:text-sm lg:leading-6',
                     !expanded && 'mask-[linear-gradient(to_bottom,black_45%,transparent_100%)]'

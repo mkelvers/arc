@@ -88,6 +88,11 @@
                 loading={loading}
                 decoding="async"
                 aria-hidden="true"
+                onload={(event) => {
+                    if (event.currentTarget instanceof HTMLImageElement) {
+                        event.currentTarget.hidden = false;
+                    }
+                }}
                 onerror={(event) => {
                     if (event.currentTarget instanceof HTMLImageElement) {
                         event.currentTarget.hidden = true;

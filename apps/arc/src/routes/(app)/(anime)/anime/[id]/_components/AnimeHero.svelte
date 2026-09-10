@@ -25,6 +25,8 @@
     <figure
         class="anime-hero relative z-30 grid h-[calc(100dvh-10rem)] min-h-120 max-h-192 grid-cols-1 grid-rows-1 bg-black before:pointer-events-none before:col-start-1 before:row-start-1 before:z-10 before:h-full after:pointer-events-none after:col-start-1 after:row-start-1 after:z-10 after:h-full sm:min-h-150 lg:min-h-175 lg:max-h-300"
     >
+        <h1 class="sr-only">{anime.title}</h1>
+
         {#if artwork?.selectedBackdrop}
             <div class="absolute inset-0 overflow-hidden">
                 <ProgressiveImage
@@ -71,9 +73,9 @@
                         class="max-w-[65vw] object-contain object-left sm:max-w-md lg:max-w-lg 2xl:max-w-2xl"
                     />
                 {:else}
-                    <h1 class="max-w-3xl text-4xl leading-tight font-bold text-white sm:text-5xl lg:text-6xl">
+                    <p class="max-w-3xl text-4xl leading-tight font-bold text-white sm:text-5xl lg:text-6xl">
                         {anime.title}
-                    </h1>
+                    </p>
                 {/if}
             </div>
 

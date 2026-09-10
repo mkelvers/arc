@@ -24,8 +24,6 @@
 </script>
 
 <main class="bg-canvas text-foreground">
-    <h1 class="sr-only">{data.anime.title}</h1>
-
     <AnimeHero
         anime={data.anime}
         artwork={data.artwork}

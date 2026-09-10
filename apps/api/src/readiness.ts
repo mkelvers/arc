@@ -8,6 +8,10 @@ export function markMigrationsReady() {
     migrationsReady = true;
 }
 
+export function areMigrationsReady() {
+    return migrationsReady;
+}
+
 export async function isReady() {
     if (!migrationsReady) {
         return false;

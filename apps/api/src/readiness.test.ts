@@ -19,7 +19,10 @@ test('stays unready until startup migrations finish', async () => {
 });
 
 test('reports the database as unready when the readiness query fails', async () => {
+    markMigrationsReady();
+    execute.mockClear();
     execute.mockRejectedValueOnce(new Error('database unavailable'));
 
     expect(await isReady()).toBe(false);
+    expect(execute).toHaveBeenCalledTimes(1);
 });

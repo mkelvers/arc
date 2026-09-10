@@ -27,11 +27,14 @@
 
     let previous = $state<number | null>(null);
     let lastActive = $state(active);
-    let paused = $state(false);
+    let hoverPaused = $state(false);
+    let focusPaused = $state(false);
     let pointerId = $state<number | null>(null);
     let startX = 0;
     let startY = 0;
     let dragging = false;
+    let suppressClick = $state(false);
+    let carousel = $state<HTMLElement>();
 
     $effect(() => {
         if (!count) {
@@ -51,7 +54,7 @@
     });
 
     $effect(() => {
-        if (paused || prefersReducedMotion.current || count < 2) {
+        if (hoverPaused || focusPaused || prefersReducedMotion.current || count < 2) {
             return;
         }
 
@@ -60,9 +63,17 @@
     });
 
     function select(index: number) {
-        if (count) {
-            active = ((index % count) + count) % count;
+        if (!count) {
+            return false;
         }
+
+        const next = ((index % count) + count) % count;
+        if (next === active) {
+            return false;
+        }
+
+        active = next;
+        return true;
     }
 
     function handlePointerDown(event: PointerEvent) {
@@ -108,20 +119,44 @@
         const deltaY = event.clientY - startY;
         if (dragging && Math.abs(deltaX) >= 48 && Math.abs(deltaX) > Math.abs(deltaY)) {
             event.preventDefault();
-            select(active + (deltaX < 0 ? 1 : -1));
+            suppressClick = select(active + (deltaX < 0 ? 1 : -1));
         }
 
         pointerId = null;
         dragging = false;
     }
+
+    function handleClick(event: MouseEvent) {
+        if (!suppressClick || !(carousel && event.target instanceof Node && carousel.contains(event.target))) {
+            return;
+        }
+
+        suppressClick = false;
+        event.preventDefault();
+    }
+
+    function handleFocusOut(event: FocusEvent) {
+        if (
+            event.currentTarget instanceof HTMLElement &&
+            event.relatedTarget instanceof Node &&
+            event.currentTarget.contains(event.relatedTarget)
+        ) {
+            return;
+        }
+
+        focusPaused = false;
+    }
 </script>
 
 <section
+    bind:this={carousel}
     class={cn('relative', className)}
     aria-roledescription="carousel"
     aria-label={ariaLabel}
-    onmouseenter={() => (paused = true)}
-    onmouseleave={() => (paused = false)}
+    onmouseenter={() => (hoverPaused = true)}
+    onmouseleave={() => (hoverPaused = false)}
+    onfocusin={() => (focusPaused = true)}
+    onfocusout={handleFocusOut}
     onpointerdown={handlePointerDown}
     onpointermove={handlePointerMove}
     onpointerup={handlePointerUp}
@@ -134,5 +169,7 @@
         {@render children(index, index === active, index === previous)}
     {/each}
 
-    {@render overlay?.(select, active, previous, paused || prefersReducedMotion.current)}
+    {@render overlay?.(select, active, previous, hoverPaused || focusPaused || prefersReducedMotion.current)}
 </section>
+
+<svelte:window onclick={handleClick} />

@@ -32,7 +32,10 @@
     let { highlights }: Props = $props();
     let active = $state(0);
     let ready = $state({ backdrops: new Set<number>(), logos: new Set<number>() });
-    const activeAnime = $derived(highlights[active]);
+    const activeIndex = $derived(
+        highlights.length ? ((active % highlights.length) + highlights.length) % highlights.length : 0
+    );
+    const activeAnime = $derived(highlights[activeIndex]);
 </script>
 
 {#if highlights.length}
@@ -74,8 +77,8 @@
                             alt={isActive ? anime.title : ''}
                             class="col-start-1 row-start-1"
                             imageClass="object-top"
-                            loading="lazy"
-                            fetchpriority="low"
+                            loading={isActive ? 'eager' : 'lazy'}
+                            fetchpriority={isActive ? 'high' : 'low'}
                             onready={() => {
                                 ready.backdrops = new Set(ready.backdrops).add(anime.id);
                             }}

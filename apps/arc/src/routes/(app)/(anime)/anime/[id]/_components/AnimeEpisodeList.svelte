@@ -59,21 +59,15 @@
     }
 
     function applyUpdate(result: AnimePageEpisodeUpdates) {
-        const inventoryChanged = result.episodeInventory.status !== episodeInventory.status;
         episodeInventory = result.episodeInventory;
 
         if (result.revision !== episodeRevision) {
             episodes = result.replace
                 ? result.episodes
                 : [...episodes, ...result.episodes].toSorted((left, right) => left.number - right.number);
-            visibleEpisodeCount = Math.max(visibleEpisodeCount, episodes.length);
             episodeRevision = result.revision;
             onupdate(result);
             return true;
-        }
-
-        if (inventoryChanged && result.episodeInventory.status === 'ready') {
-            visibleEpisodeCount = Math.max(visibleEpisodeCount, episodes.length);
         }
 
         return false;

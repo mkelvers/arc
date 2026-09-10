@@ -60,10 +60,15 @@
         }
 
         syncControls();
-        const observer = new ResizeObserver(syncControls);
-        observer.observe(track);
+        const resizeObserver = new ResizeObserver(syncControls);
+        resizeObserver.observe(track);
+        const mutationObserver = new MutationObserver(syncControls);
+        mutationObserver.observe(track, { childList: true });
 
-        return () => observer.disconnect();
+        return () => {
+            resizeObserver.disconnect();
+            mutationObserver.disconnect();
+        };
     });
 </script>
 
