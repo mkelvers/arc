@@ -466,6 +466,10 @@ describe('AniKoto provider rules', () => {
         expect(supportedSubtitleUrl('https://cdn.kryntal.top/track.vtt')?.pathname).toBe(
             '/track.vtt'
         );
+        expect(
+            supportedSubtitleUrl('https://fetch.nexabloom.top/anime/episode/subtitles/eng-2.vtt')
+                ?.hostname
+        ).toBe('fetch.nexabloom.top');
     });
 
     test('rejects iframe embeds and unsupported source payloads', () => {
@@ -659,6 +663,91 @@ describe('AniKoto provider rules', () => {
                 ending: { start: 1_410, end: 1_500 },
                 sources: { opening: 'anikoto', ending: 'anikoto' },
             });
+        } finally {
+            globalThis.fetch = originalFetch;
+        }
+    });
+
+    test('resolves playback from the AniKoto API episode embeds', async () => {
+        const originalFetch = globalThis.fetch;
+        globalThis.fetch = Object.assign(
+            async (target: URL | RequestInfo) => {
+                const url = new URL(String(target));
+                if (url.origin === 'https://anikotoapi.site' && url.pathname === '/series/43') {
+                    return Response.json({
+                        ok: true,
+                        data: {
+                            anime: {
+                                id: 43,
+                                title: 'Test Anime',
+                                alternative: null,
+                                ani_id: 182205,
+                                mal_id: null,
+                                poster: null,
+                                description: null,
+                                score: null,
+                                is_sub: 1,
+                                is_dub: 0,
+                                status: null,
+                                terms_by_type: null,
+                            },
+                            episodes: [
+                                {
+                                    number: 21,
+                                    title: 'Episode 21',
+                                    episode_embed_id: '123',
+                                    embed_url: {
+                                        sub: 'https://megaplay.buzz/stream/s-2/123/sub',
+                                    },
+                                },
+                            ],
+                        },
+                    });
+                }
+                if (url.origin === 'https://megaplay.buzz' && url.pathname.endsWith('/123/sub')) {
+                    return new Response('<div data-id="123"></div>');
+                }
+                if (
+                    url.origin === 'https://megaplay.buzz' &&
+                    url.pathname === '/stream/getSources'
+                ) {
+                    return Response.json({
+                        tracks: [
+                            {
+                                file: 'https://fetch.nexabloom.top/anime/episode/subtitles/eng-2.vtt',
+                                label: 'English',
+                                kind: 'captions',
+                                default: true,
+                            },
+                        ],
+                        sources: { file: 'https://cdn.kryntal.top/episode/master.m3u8' },
+                    });
+                }
+                throw new Error(`unexpected request: ${url}`);
+            },
+            { preconnect: originalFetch.preconnect }
+        );
+        try {
+            const sources = await anikotoProvider.getStreams(
+                { id: 182205 } as Parameters<typeof anikotoProvider.getStreams>[0],
+                { id: 'anikoto:43:legacy', number: 21 },
+                ['sub']
+            );
+
+            expect(sources.streams.sub).toEqual([
+                {
+                    provider: 'anikoto',
+                    server: 'MegaPlay',
+                    url: 'https://cdn.kryntal.top/episode/master.m3u8',
+                    quality: null,
+                    subtitles: [
+                        {
+                            kind: 'full',
+                            url: 'https://fetch.nexabloom.top/anime/episode/subtitles/eng-2.vtt',
+                        },
+                    ],
+                },
+            ]);
         } finally {
             globalThis.fetch = originalFetch;
         }

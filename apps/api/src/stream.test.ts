@@ -144,6 +144,26 @@ test('falls back from ImgNex anime paths to the MegaPlay media mirror', async ()
     expect(await response.text()).toContain('WEBVTT');
 });
 
+test('falls back from NexaBloom anime paths to the MegaPlay media mirror', async () => {
+    const requested: Array<{ host: string; pathname: string }> = [];
+    const response = await proxyStreamRequest(
+        streamRequest('https://fetch.nexabloom.top/anime/series/episode/subtitles/english.vtt'),
+        async (target) => {
+            requested.push({ host: target.hostname, pathname: target.pathname });
+            return target.hostname === 'fetch.nexabloom.top'
+                ? new Response(null, { status: 502 })
+                : new Response('WEBVTT\n\n00:00.000 --> 00:01.000\nHello');
+        }
+    );
+
+    expect(response.status).toBe(200);
+    expect(requested).toEqual([
+        { host: 'fetch.nexabloom.top', pathname: '/anime/series/episode/subtitles/english.vtt' },
+        { host: 'megap.akirax.buzz', pathname: '/series/episode/subtitles/english.vtt' },
+    ]);
+    expect(await response.text()).toContain('WEBVTT');
+});
+
 test('rejects an upstream HTML response where an HLS playlist is expected', async () => {
     await expect(
         proxyStreamRequest(

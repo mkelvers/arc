@@ -34,6 +34,7 @@ export const aniKotoMediaHostSuffixes = [
     'lostproject.club',
     'megaplay.buzz',
     'mikora.top',
+    'nexabloom.top',
     'norami.top',
     'shiora.site',
     'shiora.top',
@@ -102,6 +103,12 @@ const seriesResponseSchema = z.object({
                     number: z.union([z.number(), z.string()]),
                     title: z.string(),
                     episode_embed_id: z.string(),
+                    embed_url: z
+                        .object({
+                            sub: z.string().url().optional(),
+                            dub: z.string().url().optional(),
+                        })
+                        .optional(),
                 })
             ),
         })
@@ -162,6 +169,11 @@ interface AniKotoSeries {
     format: string | null;
     status: string | null;
     audio: AudioMode[];
+    episodes: Array<{
+        number: number;
+        title: string;
+        embedUrl: Partial<Record<Exclude<AudioMode, 'raw'>, string>>;
+    }>;
 }
 
 interface SearchCandidate {
@@ -365,7 +377,10 @@ export function normalizeAniKotoMediaUrl(url: URL) {
 
 export function aniKotoMediaCandidates(url: URL) {
     const candidates = [url];
-    if (url.hostname.endsWith('.imgnex.top') && url.pathname.startsWith('/anime/')) {
+    if (
+        (url.hostname.endsWith('.imgnex.top') || url.hostname.endsWith('.nexabloom.top')) &&
+        url.pathname.startsWith('/anime/')
+    ) {
         for (const suffix of megaPlayMediaMirrorSuffixes) {
             const alternate = new URL(url);
             alternate.hostname = `megap.${suffix}`;
@@ -483,6 +498,20 @@ export function parseSeries(value: JsonValue): AniKotoSeries | null {
         ...(Number(anime.is_sub) > 0 ? (['sub'] as const) : []),
         ...(Number(anime.is_dub) > 0 ? (['dub'] as const) : []),
     ];
+    const episodes = parsed.data.data.episodes.map((episode) => {
+        const embedUrl: Partial<Record<Exclude<AudioMode, 'raw'>, string>> = {};
+        if (episode.embed_url?.sub) {
+            embedUrl.sub = episode.embed_url.sub;
+        }
+        if (episode.embed_url?.dub) {
+            embedUrl.dub = episode.embed_url.dub;
+        }
+        return {
+            number: Number(episode.number),
+            title: episode.title.trim(),
+            embedUrl,
+        };
+    });
 
     return {
         id,
@@ -505,6 +534,7 @@ export function parseSeries(value: JsonValue): AniKotoSeries | null {
                 'not yet aired': 'NOT_YET_RELEASED',
             }[anime.status?.trim().toLowerCase() ?? ''] ?? null,
         audio: modes,
+        episodes,
     };
 }
 
@@ -1547,6 +1577,46 @@ async function getStreams(
         }
     }
     const episodeSeries = route ? null : await findSeries(anime);
+    const apiSeries = route ? await loadSeries(route.seriesId).catch(() => null) : null;
+    const apiEpisode = apiSeries?.episodes.find((candidate) => candidate.number === episode.number);
+    if (apiEpisode && Object.keys(apiEpisode.embedUrl).length) {
+        const playableModes = [...new Set(modes)].filter(
+            (mode): mode is Exclude<AudioMode, 'raw'> =>
+                mode !== 'raw' && apiEpisode.embedUrl[mode] !== undefined
+        );
+        const deadline = AbortSignal.timeout(30_000);
+        const resolved = await Promise.all(
+            playableModes.map(async (mode) => {
+                const embed = validEmbed(apiEpisode.embedUrl[mode], mode);
+                if (!embed) {
+                    return null;
+                }
+                try {
+                    const source = await resolveMegaPlay(embed, deadline);
+                    return {
+                        mode,
+                        stream: {
+                            ...source,
+                            provider: providerName,
+                            server: 'MegaPlay',
+                        } satisfies ProviderStream,
+                    };
+                } catch {
+                    return null;
+                }
+            })
+        );
+        const streams: ProviderStreams = {};
+        for (const mode of playableModes) {
+            const stream = resolved.find((value) => value?.mode === mode)?.stream;
+            if (stream) {
+                streams[mode] = [stream];
+            }
+        }
+        if (Object.values(streams).some((sources) => sources?.length)) {
+            return { streams, skipTimes: null };
+        }
+    }
     const episodes = parseEpisodeList(
         await requestJson(
             new URL(`/ajax/episode/list/${route?.seriesId ?? episodeSeries?.id}`, anikotoUrl)
