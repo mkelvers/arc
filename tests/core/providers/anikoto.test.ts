@@ -668,7 +668,7 @@ describe('AniKoto provider rules', () => {
         }
     });
 
-    test('resolves playback from the AniKoto API episode embeds', async () => {
+    test('keeps the catalog embed when server-list discovery is unavailable', async () => {
         const originalFetch = globalThis.fetch;
         globalThis.fetch = Object.assign(
             async (target: URL | RequestInfo) => {
@@ -703,6 +703,12 @@ describe('AniKoto provider rules', () => {
                             ],
                         },
                     });
+                }
+                if (
+                    url.origin === 'https://anikototv.to' &&
+                    url.pathname === '/ajax/episode/list/43'
+                ) {
+                    return Response.json({ status: 500, result: 'bad request' });
                 }
                 if (url.origin === 'https://megaplay.buzz' && url.pathname.endsWith('/123/sub')) {
                     return new Response('<div data-id="123"></div>');
@@ -746,6 +752,122 @@ describe('AniKoto provider rules', () => {
                             url: 'https://fetch.nexabloom.top/anime/episode/subtitles/eng-2.vtt',
                         },
                     ],
+                },
+            ]);
+        } finally {
+            globalThis.fetch = originalFetch;
+        }
+    });
+
+    test('enumerates AniKoto server sources when the catalog also has an embed', async () => {
+        const originalFetch = globalThis.fetch;
+        globalThis.fetch = Object.assign(
+            async (target: URL | RequestInfo) => {
+                const url = new URL(String(target));
+                if (url.origin === 'https://anikotoapi.site' && url.pathname === '/series/43') {
+                    return Response.json({
+                        ok: true,
+                        data: {
+                            anime: {
+                                id: 43,
+                                title: 'Test Anime',
+                                alternative: null,
+                                ani_id: 182205,
+                                mal_id: null,
+                                poster: null,
+                                description: null,
+                                score: null,
+                                is_sub: 1,
+                                is_dub: 0,
+                                status: null,
+                                terms_by_type: null,
+                            },
+                            episodes: [
+                                {
+                                    number: 21,
+                                    title: 'Episode 21',
+                                    episode_embed_id: '123',
+                                    embed_url: {
+                                        sub: 'https://megaplay.buzz/stream/s-2/123/sub',
+                                    },
+                                },
+                            ],
+                        },
+                    });
+                }
+                if (
+                    url.origin === 'https://anikototv.to' &&
+                    url.pathname === '/ajax/episode/list/43'
+                ) {
+                    return Response.json({
+                        status: 200,
+                        result: '<a data-ids="episode" data-num="21" data-sub="1"></a>',
+                    });
+                }
+                if (url.origin === 'https://anikototv.to' && url.pathname === '/ajax/server/list') {
+                    return Response.json({
+                        status: 200,
+                        result: `<div class="type" data-type="sub"><ul>
+                            <li data-link-id="vidstream">Vidstream-2</li>
+                            <li data-link-id="hd">HD-2</li>
+                        </ul></div>`,
+                    });
+                }
+                if (url.origin === 'https://anikototv.to' && url.pathname === '/ajax/server') {
+                    const linkId = url.searchParams.get('get');
+                    return Response.json({
+                        status: 200,
+                        result: {
+                            url:
+                                linkId === 'hd'
+                                    ? 'https://megaplay.buzz/stream/s-2/123/sub?s=bcdn'
+                                    : 'https://megaplay.buzz/stream/s-2/123/sub',
+                        },
+                    });
+                }
+                if (url.origin === 'https://megaplay.buzz' && url.pathname.endsWith('/123/sub')) {
+                    return new Response(
+                        `<div data-id="${url.searchParams.get('s') === 'bcdn' ? '2' : '1'}"></div>`
+                    );
+                }
+                if (
+                    url.origin === 'https://megaplay.buzz' &&
+                    url.pathname === '/stream/getSources'
+                ) {
+                    const selector = url.searchParams.get('s');
+                    return Response.json({
+                        sources: {
+                            file: `https://${selector === 'bcdn' ? 'ncdn.imgnex.top' : 'fetch.nexabloom.top'}/anime/episode/master.m3u8`,
+                        },
+                        tracks: [
+                            {
+                                file: 'https://fetch.nexabloom.top/anime/episode/subtitles/eng.vtt',
+                                label: 'English',
+                                kind: 'captions',
+                                default: true,
+                            },
+                        ],
+                    });
+                }
+                throw new Error(`unexpected request: ${url}`);
+            },
+            { preconnect: originalFetch.preconnect }
+        );
+        try {
+            const sources = await anikotoProvider.getStreams(
+                { id: 182205 } as Parameters<typeof anikotoProvider.getStreams>[0],
+                { id: 'anikoto:43:episode', number: 21 },
+                ['sub']
+            );
+
+            expect(sources.streams.sub?.map(({ server, url }) => ({ server, url }))).toEqual([
+                {
+                    server: 'Vidstream-2',
+                    url: 'https://fetch.nexabloom.top/anime/episode/master.m3u8',
+                },
+                {
+                    server: 'HD-2',
+                    url: 'https://ncdn.imgnex.top/anime/episode/master.m3u8',
                 },
             ]);
         } finally {
