@@ -148,17 +148,17 @@ Cheers!
             { mode: 'off', label: 'Off' },
         ]);
         expect(subtitleOptionsFor(['translated'])).toEqual([
-            { mode: 'translated', label: 'Translation' },
+            { mode: 'translated', label: 'English (SUB)' },
             { mode: 'off', label: 'Off' },
         ]);
         expect(subtitleOptionsFor(['full', 'translated'])).toEqual([
             { mode: 'full', label: 'English' },
-            { mode: 'translated', label: 'Translation' },
+            { mode: 'translated', label: 'English (SUB)' },
             { mode: 'off', label: 'Off' },
         ]);
     });
 
-    test('uses same-provider translated captions only when a dub has no native track', () => {
+    test('keeps same-provider translated captions available when a dub track fails', () => {
         const sub: Stream = {
             provider: 'anikoto',
             server: 'VidPlay-1',
@@ -190,27 +190,17 @@ Cheers!
                     dub: [
                         {
                             ...dub,
-                            subtitles: [
-                                {
-                                    kind: 'full',
-                                    url: '/dub.vtt',
-                                },
-                            ],
+                            subtitles: [{ kind: 'full', url: '/dub.vtt' }],
                         },
                     ],
                 },
                 'dub',
                 {
                     ...dub,
-                    subtitles: [
-                        {
-                            kind: 'full',
-                            url: '/dub.vtt',
-                        },
-                    ],
+                    subtitles: [{ kind: 'full', url: '/dub.vtt' }],
                 }
             ).sub
-        ).toBeNull();
+        ).toMatchObject({ kind: 'translated', url: '/sub.vtt', source: sub });
     });
 
     test('prefers translated captions from the active server', () => {

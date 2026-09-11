@@ -108,6 +108,63 @@ test('clearing a track clears the English indicator immediately', async () => {
     expect(captions.cues).toEqual([]);
 });
 
+test('falls back to SUB captions when the DUB track cannot be loaded', async () => {
+    const sub: Stream = {
+        provider: 'anikoto',
+        server: 'MegaPlay',
+        url: '/sub.mp4',
+        quality: null,
+        subtitles: [{ kind: 'full', url: '/sub.vtt' }],
+    };
+    const dub: Stream = {
+        provider: 'anikoto',
+        server: 'MegaPlay',
+        url: '/dub.mp4',
+        quality: null,
+        subtitles: [{ kind: 'full', url: '/dub.vtt' }],
+    };
+    mockFetch(async (url) =>
+        String(url) === '/dub.vtt' ? new Response(null, { status: 502 }) : new Response(vtt)
+    );
+
+    const captions = new Captions();
+    await captions.load({ sub: [sub], dub: [dub] }, 'dub', dub, dub.url);
+
+    expect(captions.mode).toBe('translated');
+    expect(captions.cues).toEqual([{ start: 6.75, end: 7.74, text: 'What is this?' }]);
+});
+
+test('prefers fuller SUB dialogue over a sparse DUB signs track', async () => {
+    const sub: Stream = {
+        provider: 'anikoto',
+        server: 'MegaPlay',
+        url: '/sub.mp4',
+        quality: null,
+        subtitles: [{ kind: 'full', url: '/sub.vtt' }],
+    };
+    const dub: Stream = {
+        provider: 'anikoto',
+        server: 'MegaPlay',
+        url: '/dub.mp4',
+        quality: null,
+        subtitles: [{ kind: 'full', url: '/dub.vtt' }],
+    };
+    mockFetch(async (url) => {
+        if (String(url) === '/dub.vtt') {
+            return new Response('WEBVTT\n\n00:01.000 --> 00:02.000\n[Door opens]\n');
+        }
+        return new Response(
+            'WEBVTT\n\n00:01.000 --> 00:02.000\nHello.\n\n00:03.000 --> 00:04.000\nHow are you?\n'
+        );
+    });
+
+    const captions = new Captions();
+    await captions.load({ sub: [sub], dub: [dub] }, 'dub', dub, dub.url);
+
+    expect(captions.mode).toBe('translated');
+    expect(captions.cues.map(({ text }) => text)).toEqual(['Hello.', 'How are you?']);
+});
+
 test('preserves the selected SDH mode across an internal reload clear', async () => {
     const captions = new Captions();
     captions.select('sdh');

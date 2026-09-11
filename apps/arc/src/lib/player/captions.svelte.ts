@@ -213,7 +213,13 @@ export class Captions {
                 kinds.push(track.kind);
             });
 
-            if (mode === 'dub' && own.length === 0 && sub && subCues) {
+            const ownCueCount = ownCues.reduce(
+                (count, cues) => Math.max(count, cues?.length ?? 0),
+                0
+            );
+            const useTranslatedSubtitles =
+                mode === 'dub' && subCues !== null && subCues.length > ownCueCount;
+            if (mode === 'dub' && sub && subCues && (useTranslatedSubtitles || !kinds.length)) {
                 let offsets: Awaited<ReturnType<Captions['fallbackOffsets']>> = null;
                 try {
                     offsets = await this.fallbackOffsets(
@@ -236,7 +242,10 @@ export class Captions {
             }
 
             this.options = subtitleOptionsFor(kinds);
-            const selectedKind = this.preferredKind(kinds, mode, selectedMode);
+            const selectedKind =
+                useTranslatedSubtitles && kinds.includes('translated')
+                    ? 'translated'
+                    : this.preferredKind(kinds, mode, selectedMode);
             if (this.enabled && selectedKind) {
                 this.mode = selectedKind;
                 this.cues = this.loaded[selectedKind] ?? [];

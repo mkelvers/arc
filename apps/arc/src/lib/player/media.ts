@@ -65,13 +65,13 @@ export function subtitleTracks(
     }
 
     const own = stream.subtitles.map((subtitle) => ({ ...subtitle, source: stream }));
-    if (mode !== 'dub' || own.length > 0) {
+    if (mode !== 'dub') {
         return { own, sub: null };
     }
 
-    // Use the same provider's sub encode only when the dub has no native
-    // English track. The provider/server remain attached for alignment and
-    // provenance; another provider is never borrowed.
+    // Keep the same provider's sub encode available as a fallback when a dub
+    // track is missing or cannot be loaded. Native dub captions still win;
+    // the provider/server remain attached for alignment and provenance.
     const subSource =
         sources.sub
             ?.filter(
@@ -137,7 +137,7 @@ const subtitleLabels = {
     full: 'English',
     sdh: 'English SDH',
     forced: 'English Forced',
-    translated: 'Translation',
+    translated: 'English (Sub)',
 } satisfies Record<SubtitleKind, string>;
 
 /** The caption choices for the tracks an encode actually provides. */
