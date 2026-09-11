@@ -1,5 +1,5 @@
 import { goto } from '$app/navigation';
-import type { AudioMode } from '@arc/core/client';
+import { audioModeOrder, type AudioMode } from '@arc/core/client';
 import type HlsType from 'hls.js';
 import { tick } from 'svelte';
 import { Captions } from './captions.svelte';
@@ -121,7 +121,21 @@ export class Playback {
     private sources: Sources;
 
     sync(sources: Sources, next: string | null) {
-        const sourcesChanged = sources !== this.sources;
+        const sourcesChanged = audioModeOrder.some((mode) => {
+            const previous = this.sources[mode] ?? [];
+            const nextSources = sources[mode] ?? [];
+            return (
+                previous.length !== nextSources.length ||
+                nextSources.some((stream, index) => {
+                    const previousStream = previous[index];
+                    return (
+                        previousStream?.provider !== stream.provider ||
+                        previousStream?.server !== stream.server ||
+                        previousStream?.url !== stream.url
+                    );
+                })
+            );
+        });
         this.sources = sources;
         this.next = next;
         if (sourcesChanged && this.error && this.mounted) {
@@ -151,7 +165,7 @@ export class Playback {
 
     private get preferredSources() {
         const ordered = orderStreams(this.modeSources, this.quality);
-        if (!this.captions.enabled) {
+        if (!this.captions.enabled || this.mode !== 'sub') {
             return ordered;
         }
 

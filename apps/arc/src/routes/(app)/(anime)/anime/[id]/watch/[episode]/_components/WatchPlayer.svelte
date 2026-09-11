@@ -1,6 +1,5 @@
 <script lang="ts">
-    import { WatchPlaybackSchema } from '@arc/core/client';
-    import { audioModeOrder } from '@arc/core/client';
+    import { audioModeOrder, WatchPlaybackSchema } from '@arc/core/client';
     import type { AnimeEpisode } from '@arc/core/client';
     import type { Sources } from '$lib/player/media';
     import { preferManualSkipTimes, type EpisodeSkipTimes, type SegmentTemplates } from '@arc/core/client';
@@ -35,12 +34,12 @@
         nextEpisode?: AnimeEpisode | null;
         fallbackImage?: string | null;
         playbackEndpoint: string;
-        playback: Promise<Playback>;
+        playback: Playback;
         poster?: string | null;
         segments: {
             canEdit: boolean;
-            times: Promise<EpisodeSkipTimes>;
-            templates: Promise<SegmentTemplates>;
+            times: EpisodeSkipTimes;
+            templates: SegmentTemplates;
         };
         startAt?: number;
         progressEventAt: number;
@@ -81,16 +80,12 @@
         progressEventAt,
     }: Props = $props();
     let active = $state<ActiveEpisode | null>(null);
-    let transitioning = $state(true);
     let retrying = $state(false);
 
-    // Start playback as soon as its sources resolve. Skip data is optional and
-    // may fill in later, while the request snapshots prevent an older episode
-    // from replacing the persistent player after navigation.
+    // Playback and segment data are resolved by the page load. Keep the
+    // current player mounted while navigation updates its input, and only
+    // merge in a background refresh when the initial response was incomplete.
     $effect(() => {
-        const playbackRequest = playback;
-        const skipTimesRequest = segments.times;
-        const segmentTemplatesRequest = segments.templates;
         const pending = {
             anime,
             logo,
@@ -103,128 +98,75 @@
             startAt,
             progressEventAt,
         };
+        active = {
+            ...pending,
+            result: playback,
+            segments: {
+                canEdit: segments.canEdit,
+                times: preferManualSkipTimes(playback.skipTimes, segments.times),
+                templates: segments.templates,
+            },
+        };
+
+        const missingModes = audioModeOrder.filter(
+            (mode) => mode in playback.streams && !playback.streams[mode]?.length
+        );
+        if (!missingModes.length) {
+            return;
+        }
+
         let cancelled = false;
-        transitioning = true;
+        void fetch(playbackEndpoint, { cache: 'no-store' })
+            .then(async (response) => {
+                if (!response.ok) {
+                    return null;
+                }
+                return WatchPlaybackSchema.parse(await response.json());
+            })
+            .then((resolved) => {
+                const current = active;
+                if (
+                    !resolved ||
+                    cancelled ||
+                    !current ||
+                    current.anime.id !== pending.anime.id ||
+                    current.currentEpisode.id !== pending.currentEpisode.id
+                ) {
+                    return;
+                }
 
-        void playbackRequest.then((result) => {
-            if (cancelled) {
-                return;
-            }
-
-            active = {
-                ...pending,
-                result,
-                segments: {
-                    canEdit: segments.canEdit,
-                    times: result.skipTimes ?? {
-                        opening: null,
-                        ending: null,
-                        sources: { opening: null, ending: null },
-                    },
-                    templates: {
-                        opening: null,
-                        ending: null,
-                    },
-                },
-            };
-            transitioning = false;
-
-            void skipTimesRequest
-                .then((resolved) => {
-                    if (
-                        cancelled ||
-                        active?.anime.id !== pending.anime.id ||
-                        active.currentEpisode.id !== pending.currentEpisode.id
-                    ) {
-                        return;
+                const streams = { ...current.result.streams };
+                for (const mode of audioModeOrder) {
+                    const sources = resolved.streams[mode];
+                    if (sources?.length) {
+                        streams[mode] = [
+                            ...(streams[mode] ?? []),
+                            ...sources.filter(
+                                (source) =>
+                                    !streams[mode]?.some(
+                                        (existing) =>
+                                            existing.url === source.url && existing.provider === source.provider
+                                    )
+                            ),
+                        ];
                     }
-
-                    active = {
-                        ...active,
-                        segments: {
-                            ...active.segments,
-                            times: preferManualSkipTimes(result.skipTimes, resolved),
-                        },
-                    };
-                })
-                .catch(() => undefined);
-
-            void segmentTemplatesRequest
-                .then((resolved) => {
-                    if (
-                        cancelled ||
-                        active?.anime.id !== pending.anime.id ||
-                        active.currentEpisode.id !== pending.currentEpisode.id
-                    ) {
-                        return;
-                    }
-
-                    active = {
-                        ...active,
-                        segments: {
-                            ...active.segments,
-                            templates: resolved,
-                        },
-                    };
-                })
-                .catch(() => undefined);
-
-            const missingModes = audioModeOrder.filter(
-                (mode) => mode in result.streams && !result.streams[mode]?.length
-            );
-            if (missingModes.length) {
-                void fetch(playbackEndpoint)
-                    .then(async (response) => {
-                        if (!response.ok) {
-                            return null;
-                        }
-                        return WatchPlaybackSchema.parse(await response.json());
-                    })
-                    .then((resolved) => {
-                        if (
-                            !resolved ||
-                            cancelled ||
-                            active?.anime.id !== pending.anime.id ||
-                            active.currentEpisode.id !== pending.currentEpisode.id
-                        ) {
-                            return;
-                        }
-
-                        const streams = { ...active.result.streams };
-                        for (const mode of audioModeOrder) {
-                            const sources = resolved.streams[mode];
-                            if (sources?.length) {
-                                streams[mode] = [
-                                    ...(streams[mode] ?? []),
-                                    ...sources.filter(
-                                        (source) =>
-                                            !streams[mode]?.some(
-                                                (existing) =>
-                                                    existing.url === source.url &&
-                                                    existing.provider === source.provider
-                                            )
-                                    ),
-                                ];
-                            }
-                        }
-                        active = {
-                            ...active,
-                            result: {
-                                streams,
-                                skipTimes: resolved.skipTimes ?? active.result.skipTimes,
-                                error: !Object.values(streams).some((sources) => sources?.length),
-                            },
-                            segments: resolved.skipTimes
-                                ? {
-                                      ...active.segments,
-                                      times: preferManualSkipTimes(resolved.skipTimes, active.segments.times),
-                                  }
-                                : active.segments,
-                        };
-                    })
-                    .catch(() => undefined);
-            }
-        });
+                }
+                active = {
+                    ...current,
+                    result: {
+                        streams,
+                        skipTimes: resolved.skipTimes ?? current.result.skipTimes,
+                        error: !Object.values(streams).some((sources) => sources?.length),
+                    },
+                    segments: resolved.skipTimes
+                        ? {
+                              ...current.segments,
+                              times: preferManualSkipTimes(resolved.skipTimes, current.segments.times),
+                          }
+                        : current.segments,
+                };
+            })
+            .catch(() => undefined);
 
         return () => {
             cancelled = true;
@@ -276,10 +218,9 @@
         segments={active.segments}
         unavailable={!Object.values(active.result.streams).some((streams) => streams?.length)}
         error={active.result.error}
-        transitioning={transitioning}
         retrying={retrying}
         onretry={retry}
-        onSourceFailure={() => void retry()}
+        onSourceFailure={retry}
     />
 {:else}
     <section
