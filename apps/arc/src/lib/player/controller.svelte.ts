@@ -345,7 +345,7 @@ export class Player {
         video.addEventListener('progress', () => this.media.updateBuffered(), { signal });
         video.addEventListener('waiting', () => this.media.handleWaiting(), { signal });
         video.addEventListener('canplay', () => this.media.handleCanPlay(), { signal });
-        video.addEventListener('error', () => void this.media.tryNextSource(), { signal });
+        video.addEventListener('error', () => this.media.handleVideoError(), { signal });
         video.addEventListener('play', () => this.progress.played(), { signal });
         video.addEventListener(
             'playing',

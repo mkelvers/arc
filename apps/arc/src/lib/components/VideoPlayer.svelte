@@ -389,10 +389,15 @@
     {/if}
 
     {#if player.media.error && !unavailable && !player.changingEpisode}
+        {@const decodeFailed = player.media.failure === 'decode'}
         <div role="alert" class="absolute inset-0 z-20 grid place-items-center bg-black px-6 text-center">
             <div>
-                <p class="text-base font-bold">{m.player_load_failed()}</p>
-                <p class="mt-2 text-sm text-white/65">{m.player_tried_provider()}</p>
+                <p class="text-base font-bold">
+                    {decodeFailed ? m.player_decode_failed() : m.player_load_failed()}
+                </p>
+                <p class="mt-2 text-sm text-white/65">
+                    {decodeFailed ? m.player_decode_detail() : m.player_tried_provider()}
+                </p>
                 <Button
                     variant="unstyled"
                     type="button"

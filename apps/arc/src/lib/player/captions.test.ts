@@ -108,6 +108,17 @@ test('clearing a track clears the English indicator immediately', async () => {
     expect(captions.cues).toEqual([]);
 });
 
+test('reports a native media decode failure separately from source exhaustion', async () => {
+    const player = playerFor({ sub: [streams[0]] });
+    Object.defineProperty(player.video, 'error', { value: { code: 3 } });
+
+    player.handleVideoError();
+    await Promise.resolve();
+
+    expect(player.error).toBe(true);
+    expect(player.failure).toBe('decode');
+});
+
 test('falls back to SUB captions when the DUB track cannot be loaded', async () => {
     const sub: Stream = {
         provider: 'anikoto',

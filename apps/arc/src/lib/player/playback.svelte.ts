@@ -27,6 +27,9 @@ interface HlsQuality {
 
 const defaultQuality = '1080p';
 
+export type PlaybackFailure = 'network' | 'decode' | 'mixed';
+type SourceFailure = Exclude<PlaybackFailure, 'mixed'>;
+
 export class Playback {
     mode = $state<AudioMode>('sub');
     playing = $state(false);
@@ -42,6 +45,7 @@ export class Playback {
     hlsCurrentQuality = $state<string | null>(null);
     sourceIndex = $state(0);
     error = $state(false);
+    failure = $state<PlaybackFailure | null>(null);
     video!: HTMLVideoElement;
     scrubbing = false;
     readonly captions = new Captions();
@@ -54,6 +58,7 @@ export class Playback {
     private autoplayAttempted = false;
     private changingSource = false;
     private pendingSourceFailure: string | null = null;
+    private pendingSourceFailureKind: SourceFailure = 'network';
     private pendingSeekTarget: number | null = null;
     private resumeAfterSeek = false;
     private seekInFlight = false;
@@ -68,6 +73,7 @@ export class Playback {
     private exhaustedModes = new Set<AudioMode>();
     private sourceRefreshRequested = false;
     private segmentOffsetRequest: AbortController | null = null;
+    private sourceFailureKinds = new Set<SourceFailure>();
 
     private async loadSegmentOffsets(source: string, active: Stream | undefined) {
         this.segmentOffsetRequest?.abort();
@@ -287,7 +293,10 @@ export class Playback {
         this.sourceChain = this.preferredSources;
         this.sourceIndex = 0;
         this.pendingSourceFailure = null;
+        this.pendingSourceFailureKind = 'network';
+        this.sourceFailureKinds.clear();
         this.error = false;
+        this.failure = null;
         this.loading = true;
         this.buffered = 0;
     }
@@ -442,7 +451,10 @@ export class Playback {
                     return;
                 }
 
-                void this.tryNextSource(source);
+                void this.tryNextSource(
+                    source,
+                    data.type === Hls.ErrorTypes.MEDIA_ERROR ? 'decode' : 'network'
+                );
             });
             hls.loadSource(source);
             hls.attachMedia(video);
@@ -538,15 +550,25 @@ export class Playback {
         }
     }
 
-    async tryNextSource(failedSource = this.src) {
+    handleVideoError() {
+        const code = this.video.error?.code;
+        const failure: SourceFailure = code === 3 || code === 4 ? 'decode' : 'network';
+        void this.tryNextSource(this.src, failure);
+    }
+
+    async tryNextSource(failedSource = this.src, failure: SourceFailure = 'network') {
         if (failedSource !== this.src) {
             return;
         }
         if (this.changingSource) {
             this.pendingSourceFailure = failedSource;
+            this.pendingSourceFailureKind = failure;
             return;
         }
         this.changingSource = true;
+        if (failedSource) {
+            this.sourceFailureKinds.add(failure);
+        }
 
         if (this.sourceIndex + 1 >= this.activeSources.length) {
             this.exhaustedModes.add(this.mode);
@@ -565,9 +587,11 @@ export class Playback {
                 } finally {
                     this.changingSource = false;
                     const pending = this.pendingSourceFailure;
+                    const pendingKind = this.pendingSourceFailureKind;
                     this.pendingSourceFailure = null;
+                    this.pendingSourceFailureKind = 'network';
                     if (pending === this.src) {
-                        void this.tryNextSource(pending);
+                        void this.tryNextSource(pending, pendingKind);
                     }
                 }
                 return;
@@ -579,6 +603,8 @@ export class Playback {
             this.destroyHls();
             this.loading = false;
             this.error = true;
+            this.failure =
+                this.sourceFailureKinds.size === 1 ? [...this.sourceFailureKinds][0] : 'mixed';
             this.playing = false;
             if (!this.sourceRefreshRequested) {
                 this.sourceRefreshRequested = true;
@@ -599,9 +625,11 @@ export class Playback {
         } finally {
             this.changingSource = false;
             const pending = this.pendingSourceFailure;
+            const pendingKind = this.pendingSourceFailureKind;
             this.pendingSourceFailure = null;
+            this.pendingSourceFailureKind = 'network';
             if (pending === this.src) {
-                void this.tryNextSource(pending);
+                void this.tryNextSource(pending, pendingKind);
             }
         }
     }
@@ -671,6 +699,7 @@ export class Playback {
         const video = this.video;
         this.duration = video.duration;
         this.error = false;
+        this.failure = null;
         const startTarget = playbackStartTarget(startAt, this.resumeAt, this.autoplayAttempted);
         this.resumeAt = null;
         if (startTarget !== null) {
