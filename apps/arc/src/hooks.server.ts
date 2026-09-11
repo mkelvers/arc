@@ -20,12 +20,12 @@ export const handle: Handle = async ({ event, resolve }) => {
         });
     } catch {
         return new Response('Arc is temporarily unavailable', {
-            status: 503
+            status: 503,
         });
     }
     if (!response.ok) {
         return new Response('Arc is temporarily unavailable', {
-            status: 503
+            status: 503,
         });
     }
 
