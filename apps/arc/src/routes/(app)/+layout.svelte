@@ -93,7 +93,7 @@
                             aria-label="Categories"
                             class="absolute top-full left-0 z-50 w-[min(52rem,calc(100vw-2rem))] bg-header-hover shadow-2xl"
                         >
-                            <div class="grid grid-cols-[minmax(12rem,1fr)_1px_minmax(0,2fr)]">
+                            <div class="grid grid-cols-[minmax(12rem,1fr)_minmax(0,2fr)]">
                                 <div>
                                     <a
                                         href="/shows/new"
@@ -120,8 +120,7 @@
                                         {m.nav_release_calendar()}
                                     </a>
                                 </div>
-                                <div class="bg-border" aria-hidden="true"></div>
-                                <div class="min-w-0 py-5">
+                                <div class="min-w-0 border-l border-border py-5">
                                     <p class="mb-3 px-5 text-xs font-bold tracking-wide text-muted uppercase">
                                         Genres
                                     </p>
