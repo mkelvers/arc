@@ -77,6 +77,7 @@ export function selectWatchlistEntries(
                       {
                           ...card,
                           audioLabel: audioAvailabilityLabel([...audio]),
+                          audio: [...audio],
                           state: entry.state,
                           addedAt: entry.addedAt?.getTime() ?? null,
                           updatedAt: entry.updatedAt?.getTime() ?? null,
@@ -102,6 +103,5 @@ export function selectWatchlistEntries(
                 return selection.order === 'newest' ? -time : time;
             }
             return left.title.localeCompare(right.title, 'en');
-        })
-        .map(({ addedAt: _addedAt, updatedAt: _updatedAt, ...entry }) => entry);
+        });
 }

@@ -1,11 +1,9 @@
 import { env } from '$env/dynamic/private';
 import { WatchlistPageResponseSchema } from '@arc/core/client';
-import { WatchlistSelectionSchema } from '$lib/watchlist';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ request, url, fetch }) => {
-    const selection = WatchlistSelectionSchema.parse(Object.fromEntries(url.searchParams));
-    const page = await fetch(`${env.API_ORIGIN!}/v1/watchlist?${new URLSearchParams(selection)}`, {
+export const load: PageServerLoad = async ({ request, fetch }) => {
+    const page = await fetch(`${env.API_ORIGIN!}/v1/watchlist`, {
         headers: {
             Cookie: request.headers.get('cookie') ?? '',
             Authorization: request.headers.get('authorization') ?? '',
@@ -27,8 +25,5 @@ export const load: PageServerLoad = async ({ request, url, fetch }) => {
             status: 'error' as const,
         }));
 
-    return {
-        selection,
-        page: Promise.resolve(page),
-    };
+    return { page: Promise.resolve(page) };
 };

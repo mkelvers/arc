@@ -4,7 +4,6 @@
     import errorArtwork from '$lib/assets/error-state.webp';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
-    import { page } from '$app/state';
     import type { PageProps } from './$types';
     import { m } from '$lib/i18n.svelte';
 
@@ -27,7 +26,7 @@
                     aria-hidden="true"
                 >
                     {#each Array.from({ length: 12 }) as _, index (index)}
-                        <AnimeCardSkeleton></AnimeCardSkeleton>
+                        <AnimeCardSkeleton />
                     {/each}
                 </div>
             </section>
@@ -35,7 +34,7 @@
     </main>
 {:then result}
     {#if result.status === 'success'}
-        <WatchlistPageContent data={{ ...result.data, selection: data.selection }}></WatchlistPageContent>
+        <WatchlistPageContent data={result.data} />
     {:else}
         <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
             <div class="mx-auto w-full max-w-384 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
@@ -52,7 +51,7 @@
                         <Button
                             variant="default"
                             size="lg"
-                            href={page.url.pathname + page.url.search}
+                            href="/watchlist"
                             class="text-xs font-bold uppercase active:scale-[0.97]"
                         >
                             {m.watchlist_retry()}

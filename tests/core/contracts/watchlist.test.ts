@@ -1,8 +1,23 @@
 import { describe, expect, test } from 'bun:test';
 
-import { WatchlistPageResponseSchema, WatchlistUpdateSchema } from '@arc/core';
+import {
+    WatchlistPageResponseSchema,
+    WatchlistSelectionSchema,
+    WatchlistUpdateSchema,
+} from '@arc/core';
 
 describe('watchlist contracts', () => {
+    test('defaults an empty selection for the unfiltered watchlist endpoint', () => {
+        expect(WatchlistSelectionSchema.parse({})).toEqual({
+            state: 'all',
+            sort: 'updated',
+            order: 'newest',
+            language: 'all',
+            media: 'all',
+            type: 'all',
+        });
+    });
+
     test('accepts an optional trimmed title on updates', () => {
         expect(
             WatchlistUpdateSchema.parse({ state: 'plan_to_watch', title: '  Frieren  ' })
@@ -25,12 +40,15 @@ describe('watchlist contracts', () => {
                         title: 'Frieren',
                         image: '',
                         audioLabel: '',
+                        audio: [],
                         format: null,
                         status: null,
                         score: 0,
                         genres: [],
                         synopsis: '',
                         state: 'plan_to_watch',
+                        addedAt: null,
+                        updatedAt: null,
                         pendingMetadata: true,
                     },
                 ],
