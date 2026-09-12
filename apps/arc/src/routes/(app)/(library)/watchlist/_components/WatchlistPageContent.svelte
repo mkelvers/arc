@@ -15,7 +15,6 @@
     import Button from '$lib/components/ui/button/button.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
-    import MenuOption from '$lib/components/ui/MenuOption.svelte';
     import { watchlist } from '$lib/watchlist.svelte';
     import type { PageData } from '../$types';
     import WatchlistPendingCard from './WatchlistPendingCard.svelte';
@@ -33,6 +32,24 @@
         return `/watchlist?${new URLSearchParams({ ...data.selection, ...patch })}`;
     }
 </script>
+
+{#snippet menuOption(optionHref: string, isSelected: boolean, label: string)}
+    <a
+        role="menuitemradio"
+        aria-checked={isSelected}
+        href={optionHref}
+        class:text-foreground={isSelected}
+        class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+    >
+        {#if isSelected}
+            <RadioButtonIcon size="1.25rem" weight="fill" class="text-input-accent" aria-hidden="true"
+            ></RadioButtonIcon>
+        {:else}
+            <CircleIcon size="1.25rem" weight="regular" aria-hidden="true"></CircleIcon>
+        {/if}
+        {label}
+    </a>
+{/snippet}
 
 <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
     <div class="mx-auto w-full max-w-384 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
@@ -250,42 +267,42 @@
                                     <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
                                         {m.watchlist_language()}
                                     </p>
-                                    <MenuOption
-                                        href={href({ language: 'all' })}
-                                        selected={data.selection.language === 'all'}
-                                        label={m.watchlist_all()}
-                                    ></MenuOption>
-                                    <MenuOption
-                                        href={href({ language: 'sub' })}
-                                        selected={data.selection.language === 'sub'}
-                                        label={m.watchlist_subtitled()}
-                                    ></MenuOption>
-                                    <MenuOption
-                                        href={href({ language: 'dub' })}
-                                        selected={data.selection.language === 'dub'}
-                                        label={m.watchlist_dubbed()}
-                                    ></MenuOption>
+                                    {@render menuOption(
+                                        href({ language: 'all' }),
+                                        data.selection.language === 'all',
+                                        m.watchlist_all()
+                                    )}
+                                    {@render menuOption(
+                                        href({ language: 'sub' }),
+                                        data.selection.language === 'sub',
+                                        m.watchlist_subtitled()
+                                    )}
+                                    {@render menuOption(
+                                        href({ language: 'dub' }),
+                                        data.selection.language === 'dub',
+                                        m.watchlist_dubbed()
+                                    )}
                                 </div>
 
                                 <div role="group" aria-label={m.watchlist_media()}>
                                     <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
                                         {m.watchlist_media()}
                                     </p>
-                                    <MenuOption
-                                        href={href({ media: 'all' })}
-                                        selected={data.selection.media === 'all'}
-                                        label={m.watchlist_all()}
-                                    ></MenuOption>
-                                    <MenuOption
-                                        href={href({ media: 'series' })}
-                                        selected={data.selection.media === 'series'}
-                                        label={m.watchlist_series()}
-                                    ></MenuOption>
-                                    <MenuOption
-                                        href={href({ media: 'movie' })}
-                                        selected={data.selection.media === 'movie'}
-                                        label={m.watchlist_movies()}
-                                    ></MenuOption>
+                                    {@render menuOption(
+                                        href({ media: 'all' }),
+                                        data.selection.media === 'all',
+                                        m.watchlist_all()
+                                    )}
+                                    {@render menuOption(
+                                        href({ media: 'series' }),
+                                        data.selection.media === 'series',
+                                        m.watchlist_series()
+                                    )}
+                                    {@render menuOption(
+                                        href({ media: 'movie' }),
+                                        data.selection.media === 'movie',
+                                        m.watchlist_movies()
+                                    )}
                                 </div>
                             {:else}
                                 <Button
@@ -301,36 +318,36 @@
                                     <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true"></CaretLeftIcon>
                                     {m.watchlist_type()}
                                 </Button>
-                                <MenuOption
-                                    href={href({ type: 'all' })}
-                                    selected={data.selection.type === 'all'}
-                                    label={m.watchlist_all()}
-                                ></MenuOption>
-                                <MenuOption
-                                    href={href({ type: 'airing' })}
-                                    selected={data.selection.type === 'airing'}
-                                    label={m.watchlist_airing()}
-                                ></MenuOption>
-                                <MenuOption
-                                    href={href({ type: 'finished' })}
-                                    selected={data.selection.type === 'finished'}
-                                    label={m.watchlist_finished()}
-                                ></MenuOption>
-                                <MenuOption
-                                    href={href({ type: 'not_yet_released' })}
-                                    selected={data.selection.type === 'not_yet_released'}
-                                    label={m.watchlist_not_released()}
-                                ></MenuOption>
-                                <MenuOption
-                                    href={href({ type: 'cancelled' })}
-                                    selected={data.selection.type === 'cancelled'}
-                                    label={m.watchlist_cancelled()}
-                                ></MenuOption>
-                                <MenuOption
-                                    href={href({ type: 'hiatus' })}
-                                    selected={data.selection.type === 'hiatus'}
-                                    label={m.watchlist_hiatus()}
-                                ></MenuOption>
+                                {@render menuOption(
+                                    href({ type: 'all' }),
+                                    data.selection.type === 'all',
+                                    m.watchlist_all()
+                                )}
+                                {@render menuOption(
+                                    href({ type: 'airing' }),
+                                    data.selection.type === 'airing',
+                                    m.watchlist_airing()
+                                )}
+                                {@render menuOption(
+                                    href({ type: 'finished' }),
+                                    data.selection.type === 'finished',
+                                    m.watchlist_finished()
+                                )}
+                                {@render menuOption(
+                                    href({ type: 'not_yet_released' }),
+                                    data.selection.type === 'not_yet_released',
+                                    m.watchlist_not_released()
+                                )}
+                                {@render menuOption(
+                                    href({ type: 'cancelled' }),
+                                    data.selection.type === 'cancelled',
+                                    m.watchlist_cancelled()
+                                )}
+                                {@render menuOption(
+                                    href({ type: 'hiatus' }),
+                                    data.selection.type === 'hiatus',
+                                    m.watchlist_hiatus()
+                                )}
                             {/if}
                         </div>
                     {/snippet}
@@ -364,37 +381,37 @@
                             class="absolute top-full right-0 z-50 mt-2 w-56 bg-panel py-2 shadow-xl"
                         >
                             <div role="group" aria-label={m.watchlist_sorting()}>
-                                <MenuOption
-                                    href={href({ sort: 'updated' })}
-                                    selected={data.selection.sort === 'updated'}
-                                    label={m.watchlist_updated()}
-                                ></MenuOption>
-                                <MenuOption
-                                    href={href({ sort: 'added' })}
-                                    selected={data.selection.sort === 'added'}
-                                    label={m.watchlist_added()}
-                                ></MenuOption>
-                                <MenuOption
-                                    href={href({ sort: 'alphabetical' })}
-                                    selected={data.selection.sort === 'alphabetical'}
-                                    label={m.watchlist_alphabetical()}
-                                ></MenuOption>
+                                {@render menuOption(
+                                    href({ sort: 'updated' }),
+                                    data.selection.sort === 'updated',
+                                    m.watchlist_updated()
+                                )}
+                                {@render menuOption(
+                                    href({ sort: 'added' }),
+                                    data.selection.sort === 'added',
+                                    m.watchlist_added()
+                                )}
+                                {@render menuOption(
+                                    href({ sort: 'alphabetical' }),
+                                    data.selection.sort === 'alphabetical',
+                                    m.watchlist_alphabetical()
+                                )}
                             </div>
 
                             <div role="group" aria-label={m.watchlist_sort_order()}>
                                 <p class="px-5 pt-5 pb-2 text-xs font-bold text-foreground uppercase">
                                     {m.watchlist_sort_order()}
                                 </p>
-                                <MenuOption
-                                    href={href({ order: 'newest' })}
-                                    selected={data.selection.order === 'newest'}
-                                    label={m.watchlist_newest()}
-                                ></MenuOption>
-                                <MenuOption
-                                    href={href({ order: 'oldest' })}
-                                    selected={data.selection.order === 'oldest'}
-                                    label={m.watchlist_oldest()}
-                                ></MenuOption>
+                                {@render menuOption(
+                                    href({ order: 'newest' }),
+                                    data.selection.order === 'newest',
+                                    m.watchlist_newest()
+                                )}
+                                {@render menuOption(
+                                    href({ order: 'oldest' }),
+                                    data.selection.order === 'oldest',
+                                    m.watchlist_oldest()
+                                )}
                             </div>
                         </div>
                     {/snippet}
