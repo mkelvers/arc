@@ -25,9 +25,7 @@
     id="player-settings"
     role="menu"
     aria-label={m.player_settings()}
-    class={cn(
-        'absolute right-0 bottom-full z-40 mb-2 w-64 origin-bottom-right overflow-hidden bg-player-panel py-2 text-left text-xs shadow-xl ring-1 ring-white/8 transition-[opacity,scale] duration-150 ease-out starting:opacity-0 starting:scale-95 motion-reduce:transition-none'
-    )}
+    class="absolute right-0 bottom-full z-40 mb-2 w-64 origin-bottom-right overflow-hidden bg-player-panel py-2 text-left text-xs shadow-xl ring-1 ring-white/8 transition-[opacity,scale] duration-150 ease-out starting:opacity-0 starting:scale-95 motion-reduce:transition-none"
 >
     {#if player.settingsView === 'main'}
         <Button
