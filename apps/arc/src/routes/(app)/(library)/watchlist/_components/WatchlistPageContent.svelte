@@ -42,10 +42,9 @@
         class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
     >
         {#if isSelected}
-            <RadioButtonIcon size="1.25rem" weight="fill" class="text-input-accent" aria-hidden="true"
-            ></RadioButtonIcon>
+            <RadioButtonIcon size="1.25rem" weight="fill" class="text-input-accent" aria-hidden="true" />
         {:else}
-            <CircleIcon size="1.25rem" weight="regular" aria-hidden="true"></CircleIcon>
+            <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
         {/if}
         {label}
     </a>
@@ -78,8 +77,7 @@
                                     {m.watchlist_dropped()}
                                 {/if}
                             </span>
-                            <CaretDownIcon class="shrink-0" size="0.8rem" weight="bold" aria-hidden="true"
-                            ></CaretDownIcon>
+                            <CaretDownIcon class="shrink-0" size="0.8rem" weight="bold" aria-hidden="true" />
                         </Button>
                     {/snippet}
                     {#snippet content(menuProps)}
@@ -211,7 +209,7 @@
                             aria-label={m.watchlist_filtering()}
                             class="appearance-none p-0 mb-2 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
                         >
-                            <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true"></FunnelIcon>
+                            <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
                             <span class="hidden sm:inline">{m.watchlist_filter()}</span>
                             {#if data.selection.language !== 'all' || data.selection.media !== 'all' || data.selection.type !== 'all'}
                                 <span class="text-accent">
@@ -258,8 +256,7 @@
                                         {:else}
                                             {m.watchlist_hiatus()}
                                         {/if}
-                                        <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true"
-                                        ></CaretRightIcon>
+                                        <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
                                     </span>
                                 </Button>
 
@@ -315,7 +312,7 @@
                                         filterView = 'main';
                                     }}
                                 >
-                                    <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true"></CaretLeftIcon>
+                                    <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
                                     {m.watchlist_type()}
                                 </Button>
                                 {@render menuOption(
@@ -360,7 +357,7 @@
                             aria-label={m.watchlist_sorting()}
                             class="appearance-none p-0 mb-2 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
                         >
-                            <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true"></ListBulletsIcon>
+                            <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
                             <span class="hidden sm:inline">
                                 {#if data.selection.sort === 'updated'}
                                     {m.watchlist_updated()}
@@ -473,9 +470,9 @@
                     >
                         {#each data.entries.filter((entry) => !watchlist.loaded || watchlist.state(entry.id)) as entry (entry.id)}
                             {#if entry.pendingMetadata}
-                                <WatchlistPendingCard anime={entry}></WatchlistPendingCard>
+                                <WatchlistPendingCard anime={entry} />
                             {:else}
-                                <AnimeCard anime={entry}></AnimeCard>
+                                <AnimeCard anime={entry} />
                             {/if}
                         {/each}
                     </div>
