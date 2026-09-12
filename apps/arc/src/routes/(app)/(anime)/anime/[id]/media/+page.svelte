@@ -4,6 +4,7 @@
 
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
+    import Input from '$lib/components/ui/input/Input.svelte';
     import { cn } from '$lib/utils';
     import type { PageProps } from './$types';
     import { m } from '$lib/i18n.svelte';
@@ -43,7 +44,7 @@
         </div>
         {#if data.artwork}
             <form method="POST" use:enhance class="shrink-0">
-                <input type="hidden" name="intent" value="refresh" />
+                <Input type="hidden" name="intent" value="refresh" />
                 <Button
                     variant="ghost"
                     type="submit"
@@ -96,9 +97,9 @@
         <div id="media-panel-logo" role="tabpanel" aria-labelledby="media-tab-logo" hidden={activeTab !== 'logo'}>
             <div class="mb-5 flex justify-end">
                 <form method="POST" use:enhance class="flex items-center gap-4">
-                    <input type="hidden" name="intent" value="logoSize" />
+                    <Input type="hidden" name="intent" value="logoSize" />
                     <label for="logo-size" class="shrink-0 text-sm text-muted">{m.media_logo_size()}</label>
-                    <input
+                    <Input
                         id="logo-size"
                         name="logoSize"
                         type="range"
@@ -114,8 +115,8 @@
             </div>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <form method="POST" use:enhance>
-                    <input type="hidden" name="type" value="logo" />
-                    <input type="hidden" name="filePath" value="" />
+                    <Input type="hidden" name="type" value="logo" />
+                    <Input type="hidden" name="filePath" value="" />
                     <Button
                         variant="unstyled"
                         type="submit"
@@ -130,8 +131,8 @@
                 </form>
                 {#each logos as image}
                     <form method="POST" use:enhance>
-                        <input type="hidden" name="type" value="logo" />
-                        <input type="hidden" name="filePath" value={image.filePath} />
+                        <Input type="hidden" name="type" value="logo" />
+                        <Input type="hidden" name="filePath" value={image.filePath} />
                         <Button
                             variant="unstyled"
                             type="submit"
@@ -161,8 +162,8 @@
             <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {#each backdrops as image}
                     <form method="POST" use:enhance>
-                        <input type="hidden" name="type" value="backdrop" />
-                        <input type="hidden" name="filePath" value={image.filePath} />
+                        <Input type="hidden" name="type" value="backdrop" />
+                        <Input type="hidden" name="filePath" value={image.filePath} />
                         <Button
                             variant="unstyled"
                             type="submit"

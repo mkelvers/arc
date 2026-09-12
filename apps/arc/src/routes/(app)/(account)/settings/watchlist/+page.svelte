@@ -4,6 +4,7 @@
 
     import StatusBanner from '$lib/components/StatusBanner.svelte';
     import Checkbox from '$lib/components/ui/checkbox/Checkbox.svelte';
+    import Input from '$lib/components/ui/input/Input.svelte';
     import { watchlist } from '$lib/watchlist.svelte';
     import { m } from '$lib/i18n.svelte';
     import type { PageProps } from './$types';
@@ -56,8 +57,8 @@
                 use:enhance={enhanceImport}
                 class="w-full"
             >
-                <input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
-                <input
+                <Input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
+                <Input
                     id="watchlist-import"
                     name="file"
                     type="file"

@@ -1,6 +1,7 @@
 <script lang="ts">
     import type { Player } from '$lib/player/controller.svelte';
     import { formatTime } from '$lib/player/media';
+    import Input from '$lib/components/ui/input/Input.svelte';
     import { m } from '$lib/i18n.svelte';
 
     interface Props {
@@ -104,7 +105,7 @@
             <span class="sr-only">{m.player_progress()}</span>
         </div>
 
-        <input
+        <Input
             type="range"
             min="0"
             max={player.media.duration || 0}

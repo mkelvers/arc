@@ -6,6 +6,7 @@
     import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
+    import Input from '$lib/components/ui/input/Input.svelte';
     import Carousel from '$lib/components/ui/Carousel.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -118,7 +119,7 @@
                                 }}
                                 class="absolute top-2 right-2 z-10 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
                             >
-                                <input type="hidden" name="animeId" value={entry.animeId} />
+                                <Input type="hidden" name="animeId" value={entry.animeId} />
                                 <Tooltip text={m.remove()} escapeOverflow>
                                     <Button
                                         variant="unstyled"

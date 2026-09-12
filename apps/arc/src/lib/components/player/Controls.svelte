@@ -13,6 +13,7 @@
     import Settings from './Settings.svelte';
     import Timeline from './Timeline.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
+    import Input from '$lib/components/ui/input/Input.svelte';
     import { m } from '$lib/i18n.svelte';
 
     interface Props {
@@ -55,7 +56,7 @@
                     class="pointer-events-none absolute inset-x-0 bottom-full mx-auto flex h-40 w-8 items-end justify-center pb-3 opacity-0 transition-opacity group-hover/volume:pointer-events-auto group-hover/volume:opacity-100 group-focus-within/volume:pointer-events-auto group-focus-within/volume:opacity-100"
                 >
                     <div class="relative h-28 w-8 py-1.5">
-                        <input
+                        <Input
                             type="range"
                             min="0"
                             max="1"

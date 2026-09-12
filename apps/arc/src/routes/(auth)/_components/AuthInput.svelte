@@ -2,6 +2,7 @@
     import type { HTMLInputAttributes } from 'svelte/elements';
     import { m } from '$lib/i18n.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
+    import Input from '$lib/components/ui/input/Input.svelte';
 
     let {
         name,
@@ -33,9 +34,9 @@
 
 <div>
     <div class="relative h-13 border-b border-border-strong transition-colors focus-within:border-accent">
-        <input
+        <Input
             id={name}
-            class="peer h-full w-full bg-transparent pt-8 pr-14 text-base outline-none placeholder:text-transparent"
+            class="peer inline-block h-full w-full rounded-none border-0 bg-transparent px-0 py-0 pt-8 pr-14 text-base outline-none transition-none placeholder:text-transparent focus-visible:border-0 focus-visible:ring-0"
             name={name}
             type={type === 'password' && visible ? 'text' : type}
             placeholder=" "
