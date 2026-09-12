@@ -6,6 +6,7 @@
     import emptyArtwork from '$lib/assets/simulcast-empty.webp';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -138,16 +139,38 @@
     <section class="mx-auto w-full max-w-264" aria-labelledby="simulcast-title">
         <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h1 id="simulcast-title" class="text-xl font-bold sm:text-2xl">{m.simulcast_title()}</h1>
-            <Dropdown
-                id="simulcast-season"
-                items={options}
-                ariaLabel={m.simulcast_choose({ label })}
-                menuClass="top-full left-0 mt-2 max-h-80 min-w-48 overflow-y-auto shadow-xl right-auto sm:right-0 sm:left-auto"
-                triggerClass="flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
-            >
-                {#snippet trigger()}
-                    <CaretDownIcon size="1rem" weight="bold" class="text-muted" aria-hidden="true" />
-                    <span>{label}</span>
+            <Dropdown id="simulcast-season">
+                {#snippet trigger(triggerProps)}
+                    <Button
+                        {...triggerProps}
+                        variant="unstyled"
+                        aria-label={m.simulcast_choose({ label })}
+                        class="appearance-none p-0 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
+                    >
+                        <CaretDownIcon size="1rem" weight="bold" class="text-muted" aria-hidden="true" />
+                        <span>{label}</span>
+                    </Button>
+                {/snippet}
+                {#snippet content(menuProps)}
+                    <div
+                        {...menuProps}
+                        role="menu"
+                        aria-label={m.simulcast_choose({ label })}
+                        class="absolute top-full left-0 z-50 mt-2 max-h-80 min-w-48 overflow-y-auto bg-panel shadow-xl sm:right-0 sm:left-auto"
+                    >
+                        {#each options as option}
+                            <a
+                                role="menuitem"
+                                href={option.href}
+                                aria-current={option.current ? 'page' : undefined}
+                                class:text-foreground={option.current}
+                                class:text-muted={!option.current}
+                                class="block whitespace-nowrap px-5 py-3 text-sm leading-tight font-normal hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            >
+                                {option.label}
+                            </a>
+                        {/each}
+                    </div>
                 {/snippet}
             </Dropdown>
         </div>

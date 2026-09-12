@@ -7,6 +7,7 @@
     import emptyArtwork from '$lib/assets/browse-empty.webp';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -199,74 +200,82 @@
                 {heading ?? (kind === 'new' ? m.catalog_newly_added() : m.catalog_most_popular())}
             </h1>
             <div class="flex items-center">
-                <Dropdown
-                    id="catalog-sort"
-                    ariaLabel={`Sort anime. ${selectedSortLabel} selected`}
-                    menuClass="mt-2 w-52 shadow-xl"
-                    triggerClass="flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
-                >
-                    {#snippet trigger()}
-                        <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
-                        <span class="hidden sm:inline">{selectedSortLabel}</span>
+                <Dropdown id="catalog-sort">
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label={`Sort anime. ${selectedSortLabel} selected`}
+                            class="appearance-none p-0 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
+                        >
+                            <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
+                            <span class="hidden sm:inline">{selectedSortLabel}</span>
+                        </Button>
                     {/snippet}
-                    {#snippet content()}
-                        <div role="menu" aria-label="Catalog sorting" class="py-2">
-                            {#each [{ label: m.catalog_popularity(), value: 'popularity', href: catalogHref( '/shows/popular', { sort: 'popularity', order: 'desc' } ) }, { label: m.catalog_newest(), value: 'newest', href: catalogHref( '/shows/new', { sort: 'popularity', order: 'desc' } ) }] as const as option}
-                                <a
-                                    role="menuitem"
-                                    aria-current={selectedSort === option.value ? 'page' : undefined}
-                                    href={option.href}
-                                    class:text-foreground={selectedSort === option.value}
-                                    class="block min-h-11 px-5 py-3 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                >
-                                    {option.label}
-                                </a>
-                            {/each}
+                    {#snippet content(menuProps)}
+                        <div {...menuProps} class="absolute top-full right-0 z-50 mt-2 w-52 bg-panel shadow-xl">
+                            <div role="menu" aria-label="Catalog sorting" class="py-2">
+                                {#each [{ label: m.catalog_popularity(), value: 'popularity', href: catalogHref( '/shows/popular', { sort: 'popularity', order: 'desc' } ) }, { label: m.catalog_newest(), value: 'newest', href: catalogHref( '/shows/new', { sort: 'popularity', order: 'desc' } ) }] as const as option}
+                                    <a
+                                        role="menuitem"
+                                        aria-current={selectedSort === option.value ? 'page' : undefined}
+                                        href={option.href}
+                                        class:text-foreground={selectedSort === option.value}
+                                        class="block min-h-11 px-5 py-3 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    >
+                                        {option.label}
+                                    </a>
+                                {/each}
+                            </div>
                         </div>
                     {/snippet}
                 </Dropdown>
 
-                <Dropdown
-                    id="catalog-filter"
-                    ariaLabel={`Filter anime${selectedFilterCount ? `, ${selectedFilterCount} selected` : ''}`}
-                    menuClass="mt-2 w-60 shadow-xl"
-                    triggerClass="ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
-                >
-                    {#snippet trigger()}
-                        <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
-                        <span class="hidden sm:inline">Filter</span>
-                        {#if selectedFilterCount}
-                            <span class="text-accent">{selectedFilterCount}</span>
-                        {/if}
+                <Dropdown id="catalog-filter">
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label={`Filter anime${selectedFilterCount ? `, ${selectedFilterCount} selected` : ''}`}
+                            class="appearance-none p-0 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
+                        >
+                            <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
+                            <span class="hidden sm:inline">Filter</span>
+                            {#if selectedFilterCount}
+                                <span class="text-accent">{selectedFilterCount}</span>
+                            {/if}
+                        </Button>
                     {/snippet}
-                    {#snippet content()}
-                        <div role="menu" aria-label="Catalog filtering" class="py-2">
-                            {#each filterGroups as group}
-                                <p class="px-5 pt-3 pb-2 text-base font-bold text-foreground">
-                                    {group.label}
-                                </p>
-                                {#each group.options as option}
-                                    <a
-                                        role="menuitemradio"
-                                        aria-checked={filters[group.key] === option.value}
-                                        href={filterHref(group.key, option.value)}
-                                        class:text-foreground={filters[group.key] === option.value}
-                                        class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                    >
-                                        {#if filters[group.key] === option.value}
-                                            <RadioButtonIcon
-                                                size="1.25rem"
-                                                weight="fill"
-                                                class="text-input-accent"
-                                                aria-hidden="true"
-                                            />
-                                        {:else}
-                                            <CircleIcon size="1.25rem" aria-hidden="true" />
-                                        {/if}
-                                        {option.label}
-                                    </a>
+                    {#snippet content(menuProps)}
+                        <div {...menuProps} class="absolute top-full right-0 z-50 mt-2 w-60 bg-panel shadow-xl">
+                            <div role="menu" aria-label="Catalog filtering" class="py-2">
+                                {#each filterGroups as group}
+                                    <p class="px-5 pt-3 pb-2 text-base font-bold text-foreground">
+                                        {group.label}
+                                    </p>
+                                    {#each group.options as option}
+                                        <a
+                                            role="menuitemradio"
+                                            aria-checked={filters[group.key] === option.value}
+                                            href={filterHref(group.key, option.value)}
+                                            class:text-foreground={filters[group.key] === option.value}
+                                            class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                        >
+                                            {#if filters[group.key] === option.value}
+                                                <RadioButtonIcon
+                                                    size="1.25rem"
+                                                    weight="fill"
+                                                    class="text-input-accent"
+                                                    aria-hidden="true"
+                                                />
+                                            {:else}
+                                                <CircleIcon size="1.25rem" aria-hidden="true" />
+                                            {/if}
+                                            {option.label}
+                                        </a>
+                                    {/each}
                                 {/each}
-                            {/each}
+                            </div>
                         </div>
                     {/snippet}
                 </Dropdown>

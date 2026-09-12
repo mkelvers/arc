@@ -84,65 +84,75 @@
                 {m.nav_simulcast()}
             </a>
 
-            <Dropdown
-                id="categories-menu"
-                ariaLabel="Categories"
-                menuAlign="start"
-                modal
-                menuClass="!top-full !right-auto !left-0 w-[min(52rem,calc(100vw-2rem))] shadow-2xl"
-                contentClass="bg-header-hover"
-                rootClass="h-full"
-                triggerClass="hidden h-full items-center gap-2 px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
-            >
-                {#snippet trigger()}
-                    <span>Categories</span>
-                    <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
-                {/snippet}
-                {#snippet content()}
-                    <div class="grid grid-cols-[minmax(12rem,1fr)_1px_minmax(0,2fr)]">
-                        <div>
-                            <a
-                                href="/shows/new"
-                                class="block px-5 py-3 text-sm text-muted hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
-                            >
-                                {m.nav_new()}
-                            </a>
-                            <a
-                                href="/shows/popular"
-                                class="block px-5 py-3 text-sm text-muted hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
-                            >
-                                {m.nav_popular()}
-                            </a>
-                            <a
-                                href="/simulcast"
-                                class="block px-5 py-3 text-sm text-muted hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
-                            >
-                                {m.nav_simulcast()}
-                            </a>
-                            <a
-                                href="/release-calendar"
-                                class="block px-5 py-3 text-sm text-muted hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
-                            >
-                                {m.nav_release_calendar()}
-                            </a>
-                        </div>
-                        <div class="bg-border" aria-hidden="true"></div>
-                        <div class="min-w-0 py-5">
-                            <p class="mb-3 px-5 text-xs font-bold tracking-wide text-muted uppercase">Genres</p>
-                            <div class="grid grid-cols-3">
-                                {#each data.genres as genre}
+            <div class="h-full">
+                <Dropdown id="categories-menu" modal>
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label="Categories"
+                            aria-haspopup="dialog"
+                            class="appearance-none p-0 hidden h-full items-center gap-2 px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
+                        >
+                            <span>Categories</span>
+                            <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
+                        </Button>
+                    {/snippet}
+                    {#snippet content(menuProps)}
+                        <div
+                            {...menuProps}
+                            role="dialog"
+                            aria-label="Categories"
+                            class="absolute top-full left-0 z-50 w-[min(52rem,calc(100vw-2rem))] bg-header-hover shadow-2xl"
+                        >
+                            <div class="grid grid-cols-[minmax(12rem,1fr)_1px_minmax(0,2fr)]">
+                                <div>
                                     <a
-                                        href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
-                                        class="flex min-h-11 items-center px-5 text-sm text-muted transition-colors hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
+                                        href="/shows/new"
+                                        class="block px-5 py-3 text-sm text-muted hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
                                     >
-                                        {genre}
+                                        {m.nav_new()}
                                     </a>
-                                {/each}
+                                    <a
+                                        href="/shows/popular"
+                                        class="block px-5 py-3 text-sm text-muted hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
+                                    >
+                                        {m.nav_popular()}
+                                    </a>
+                                    <a
+                                        href="/simulcast"
+                                        class="block px-5 py-3 text-sm text-muted hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
+                                    >
+                                        {m.nav_simulcast()}
+                                    </a>
+                                    <a
+                                        href="/release-calendar"
+                                        class="block px-5 py-3 text-sm text-muted hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
+                                    >
+                                        {m.nav_release_calendar()}
+                                    </a>
+                                </div>
+                                <div class="bg-border" aria-hidden="true"></div>
+                                <div class="min-w-0 py-5">
+                                    <p class="mb-3 px-5 text-xs font-bold tracking-wide text-muted uppercase">
+                                        Genres
+                                    </p>
+                                    <div class="grid grid-cols-3">
+                                        {#each data.genres as genre}
+                                            <a
+                                                href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
+                                                class="flex min-h-11 items-center px-5 text-sm text-muted transition-colors hover:bg-panel hover:text-foreground focus:bg-panel focus:text-foreground focus:outline-none"
+                                            >
+                                                {genre}
+                                            </a>
+                                        {/each}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                {/snippet}
-            </Dropdown>
+                    {/snippet}
+                </Dropdown>
+            </div>
         </div>
 
         <div class="hidden h-full items-center sm:flex">
@@ -165,74 +175,83 @@
             </a>
 
             {#if data.account}
-                <Dropdown
-                    id="account-menu"
-                    ariaLabel={m.nav_account_menu()}
-                    modal
-                    menuClass="w-[min(21rem,calc(100vw-1rem))]"
-                    triggerClass="relative flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:gap-2 sm:px-3"
-                >
-                    {#snippet trigger()}
-                        <AccountAvatar
-                            username={data.account.username}
-                            image={data.account.image}
-                            hasUnreadNotifications={data.account.unreadNotifications > 0}
-                            class="size-8 text-sm ring-1 ring-white/20"
-                        />
-                        <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
+                <Dropdown id="account-menu" modal>
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label={m.nav_account_menu()}
+                            aria-haspopup="dialog"
+                            class="appearance-none p-0 relative flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:gap-2 sm:px-3"
+                        >
+                            <AccountAvatar
+                                username={data.account.username}
+                                image={data.account.image}
+                                hasUnreadNotifications={data.account.unreadNotifications > 0}
+                                class="size-8 text-sm ring-1 ring-white/20"
+                            />
+                            <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
+                        </Button>
                     {/snippet}
 
-                    {#snippet content()}
-                        <div class="bg-panel-strong">
-                            <div class="flex min-h-20 items-center gap-3 px-5 py-3">
-                                <AccountAvatar
-                                    username={data.account.username}
-                                    image={data.account.image}
-                                    class="size-11 text-lg"
-                                />
-                                <span class="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-                                    {data.account.name}
-                                </span>
+                    {#snippet content(menuProps)}
+                        <div
+                            {...menuProps}
+                            role="dialog"
+                            aria-label={m.nav_account_menu()}
+                            class="absolute top-full right-0 z-50 w-[min(21rem,calc(100vw-1rem))] bg-panel"
+                        >
+                            <div class="bg-panel-strong">
+                                <div class="flex min-h-20 items-center gap-3 px-5 py-3">
+                                    <AccountAvatar
+                                        username={data.account.username}
+                                        image={data.account.image}
+                                        class="size-11 text-lg"
+                                    />
+                                    <span class="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+                                        {data.account.name}
+                                    </span>
+                                </div>
                             </div>
+
+                            <a
+                                href="/settings"
+                                class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
+                            >
+                                <GearIcon size={21} aria-hidden="true" />
+                                <span>{m.nav_settings()}</span>
+                            </a>
+
+                            <a
+                                href="/watchlist"
+                                class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
+                            >
+                                <BookmarkSimpleIcon size={21} aria-hidden="true" />
+                                <span>{m.nav_watchlist()}</span>
+                            </a>
+
+                            <a
+                                href="/notifications"
+                                class={cn(
+                                    'flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none',
+                                    data.account.unreadNotifications > 0 &&
+                                        "after:ml-auto after:size-2 after:shrink-0 after:rounded-full after:bg-status-error after:content-['']"
+                                )}
+                            >
+                                <BellIcon size={21} aria-hidden="true" />
+                                <span>Notifications</span>
+                            </a>
+
+                            <Button
+                                variant="unstyled"
+                                type="button"
+                                class="flex min-h-14 w-full items-center justify-start gap-3 px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
+                                onclick={signOut}
+                            >
+                                <SignOutIcon size={21} aria-hidden="true" />
+                                <span>{m.nav_logout()}</span>
+                            </Button>
                         </div>
-
-                        <a
-                            href="/settings"
-                            class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
-                        >
-                            <GearIcon size={21} aria-hidden="true" />
-                            <span>{m.nav_settings()}</span>
-                        </a>
-
-                        <a
-                            href="/watchlist"
-                            class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
-                        >
-                            <BookmarkSimpleIcon size={21} aria-hidden="true" />
-                            <span>{m.nav_watchlist()}</span>
-                        </a>
-
-                        <a
-                            href="/notifications"
-                            class={cn(
-                                'flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none',
-                                data.account.unreadNotifications > 0 &&
-                                    "after:ml-auto after:size-2 after:shrink-0 after:rounded-full after:bg-status-error after:content-['']"
-                            )}
-                        >
-                            <BellIcon size={21} aria-hidden="true" />
-                            <span>Notifications</span>
-                        </a>
-
-                        <Button
-                            variant="unstyled"
-                            type="button"
-                            class="flex min-h-14 w-full items-center justify-start gap-3 px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
-                            onclick={signOut}
-                        >
-                            <SignOutIcon size={21} aria-hidden="true" />
-                            <span>{m.nav_logout()}</span>
-                        </Button>
                     {/snippet}
                 </Dropdown>
             {:else}
@@ -248,103 +267,108 @@
         </div>
 
         <div class="pointer-events-none absolute inset-x-0 top-0 flex h-14 items-center justify-between sm:hidden">
-            <Dropdown
-                id="mobile-navigation"
-                ariaLabel={m.nav_open_navigation()}
-                menuAlign="start"
-                menuClass="!fixed !top-14 !right-0 !bottom-0 !left-0 !h-[calc(100dvh-3.5rem)] !w-screen bg-header-hover z-50 pointer-events-auto"
-                contentClass="h-full overflow-y-auto overscroll-contain bg-header-hover"
-                closeOnSelection={false}
-                modal
-                triggerClass="pointer-events-auto grid h-14 w-14 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-                {#snippet trigger()}
-                    <ListIcon size={24} aria-hidden="true" />
+            <Dropdown id="mobile-navigation" closeOnSelection={false} modal>
+                {#snippet trigger(triggerProps)}
+                    <Button
+                        {...triggerProps}
+                        variant="unstyled"
+                        aria-label={m.nav_open_navigation()}
+                        aria-haspopup="dialog"
+                        class="appearance-none p-0 pointer-events-auto grid h-14 w-14 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    >
+                        <ListIcon size={24} aria-hidden="true" />
+                    </Button>
                 {/snippet}
 
-                {#snippet content()}
-                    <nav class="bg-header-hover px-0" aria-label={m.nav_primary()} data-dropdown-close>
-                        <a
-                            href="/shows/new"
-                            class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                        >
-                            {m.nav_new()}
-                        </a>
-                        <a
-                            href="/shows/popular"
-                            class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                        >
-                            {m.nav_popular()}
-                        </a>
-                        <a
-                            href="/simulcast"
-                            class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                        >
-                            {m.nav_simulcast()}
-                        </a>
-                        <a
-                            href="/release-calendar"
-                            class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                        >
-                            {m.nav_release_calendar()}
-                        </a>
-                    </nav>
+                {#snippet content(menuProps)}
+                    <div
+                        {...menuProps}
+                        role="dialog"
+                        class="fixed top-14 right-0 bottom-0 left-0 z-50 h-[calc(100dvh-3.5rem)] w-screen pointer-events-auto overflow-y-auto overscroll-contain bg-header-hover"
+                    >
+                        <nav class="bg-header-hover px-0" aria-label={m.nav_primary()} data-dropdown-close>
+                            <a
+                                href="/shows/new"
+                                class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            >
+                                {m.nav_new()}
+                            </a>
+                            <a
+                                href="/shows/popular"
+                                class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            >
+                                {m.nav_popular()}
+                            </a>
+                            <a
+                                href="/simulcast"
+                                class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            >
+                                {m.nav_simulcast()}
+                            </a>
+                            <a
+                                href="/release-calendar"
+                                class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            >
+                                {m.nav_release_calendar()}
+                            </a>
+                        </nav>
 
-                    <div class="bg-header-hover">
-                        <Button
-                            variant="unstyled"
-                            type="button"
-                            class="flex min-h-12 w-full items-center justify-between px-5 text-left text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                            aria-expanded={mobileCategoriesOpen}
-                            aria-controls="mobile-navigation-categories"
-                            onclick={() => (mobileCategoriesOpen = !mobileCategoriesOpen)}
-                        >
-                            <span>Categories</span>
-                            <CaretDownIcon
-                                size={18}
-                                weight="bold"
-                                class={mobileCategoriesOpen ? 'rotate-180' : ''}
-                                aria-hidden="true"
-                            />
-                        </Button>
-                        {#if mobileCategoriesOpen}
-                            <nav
-                                id="mobile-navigation-categories"
-                                class="bg-panel-strong px-3 py-2"
-                                aria-label="Categories"
+                        <div class="bg-header-hover">
+                            <Button
+                                variant="unstyled"
+                                type="button"
+                                class="flex min-h-12 w-full items-center justify-between px-5 text-left text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                aria-expanded={mobileCategoriesOpen}
+                                aria-controls="mobile-navigation-categories"
+                                onclick={() => (mobileCategoriesOpen = !mobileCategoriesOpen)}
+                            >
+                                <span>Categories</span>
+                                <CaretDownIcon
+                                    size={18}
+                                    weight="bold"
+                                    class={mobileCategoriesOpen ? 'rotate-180' : ''}
+                                    aria-hidden="true"
+                                />
+                            </Button>
+                            {#if mobileCategoriesOpen}
+                                <nav
+                                    id="mobile-navigation-categories"
+                                    class="bg-panel-strong px-3 py-2"
+                                    aria-label="Categories"
+                                    data-dropdown-close
+                                >
+                                    {#each data.genres as genre}
+                                        <a
+                                            href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
+                                            class="block px-5 py-2.5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                        >
+                                            {genre}
+                                        </a>
+                                    {/each}
+                                </nav>
+                            {/if}
+                        </div>
+
+                        {#if data.account}
+                            <Button
+                                variant="unstyled"
+                                type="button"
+                                class="block w-full border-t border-border/60 bg-header-hover px-5 py-3 text-left text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                data-dropdown-close
+                                onclick={signOut}
+                            >
+                                {m.nav_logout()}
+                            </Button>
+                        {:else}
+                            <a
+                                href="/login"
+                                class="block bg-header-hover px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 data-dropdown-close
                             >
-                                {#each data.genres as genre}
-                                    <a
-                                        href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
-                                        class="block px-5 py-2.5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                    >
-                                        {genre}
-                                    </a>
-                                {/each}
-                            </nav>
+                                {m.nav_login()}
+                            </a>
                         {/if}
                     </div>
-
-                    {#if data.account}
-                        <Button
-                            variant="unstyled"
-                            type="button"
-                            class="block w-full border-t border-border/60 bg-header-hover px-5 py-3 text-left text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                            data-dropdown-close
-                            onclick={signOut}
-                        >
-                            {m.nav_logout()}
-                        </Button>
-                    {:else}
-                        <a
-                            href="/login"
-                            class="block bg-header-hover px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                            data-dropdown-close
-                        >
-                            {m.nav_login()}
-                        </a>
-                    {/if}
                 {/snippet}
             </Dropdown>
 

@@ -123,26 +123,31 @@
             <div
                 class="absolute right-3 bottom-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
             >
-                <Dropdown
-                    id={`notification-${entry.id}-options`}
-                    menuClass="w-48"
-                    triggerClass="flex size-10 items-center justify-center text-muted transition-colors hover:text-foreground data-[state=open]:text-foreground"
-                >
-                    {#snippet trigger()}
-                        <DotsThreeVerticalIcon size="1.25rem" weight="bold" aria-hidden="true" />
+                <Dropdown id={`notification-${entry.id}-options`}>
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label="Notification options"
+                            class="appearance-none p-0 flex size-10 items-center justify-center text-muted transition-colors hover:text-foreground data-[state=open]:text-foreground"
+                        >
+                            <DotsThreeVerticalIcon size="1.25rem" weight="bold" aria-hidden="true" />
+                        </Button>
                     {/snippet}
-                    {#snippet content()}
-                        <div role="menu" aria-label="Notification options" class="bg-panel py-2">
-                            <Button
-                                variant="unstyled"
-                                type="button"
-                                role="menuitem"
-                                data-dropdown-close
-                                class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                onclick={() => markNotificationAsRead(entry)}
-                            >
-                                Mark as read
-                            </Button>
+                    {#snippet content(menuProps)}
+                        <div {...menuProps} class="absolute top-full right-0 z-50 w-48 bg-panel py-2">
+                            <div role="menu" aria-label="Notification options">
+                                <Button
+                                    variant="unstyled"
+                                    type="button"
+                                    role="menuitem"
+                                    data-dropdown-close
+                                    class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    onclick={() => markNotificationAsRead(entry)}
+                                >
+                                    Mark as read
+                                </Button>
+                            </div>
                         </div>
                     {/snippet}
                 </Dropdown>
@@ -193,20 +198,27 @@
 
             <section class="mt-12" aria-labelledby="notification-view-label">
                 <div class="border-b border-border pb-4">
-                    <Dropdown
-                        id="notification-view"
-                        menuAlign="start"
-                        menuClass="mt-2 w-56 shadow-xl"
-                        triggerClass="flex h-10 cursor-pointer items-center gap-2 text-lg font-semibold transition-colors hover:text-muted data-[state=open]:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                    >
-                        {#snippet trigger()}
-                            <CaretDownIcon size="1rem" weight="bold" aria-hidden="true" />
-                            <span id="notification-view-label">
-                                {notificationView === 'read' ? 'Read Notifications' : 'Past Notifications'}
-                            </span>
+                    <Dropdown id="notification-view">
+                        {#snippet trigger(triggerProps)}
+                            <Button
+                                {...triggerProps}
+                                variant="unstyled"
+                                aria-labelledby="notification-view-label"
+                                class="appearance-none p-0 flex h-10 cursor-pointer items-center gap-2 text-lg font-semibold transition-colors hover:text-muted data-[state=open]:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            >
+                                <CaretDownIcon size="1rem" weight="bold" aria-hidden="true" />
+                                <span id="notification-view-label">
+                                    {notificationView === 'read' ? 'Read Notifications' : 'Past Notifications'}
+                                </span>
+                            </Button>
                         {/snippet}
-                        {#snippet content()}
-                            <div role="menu" aria-label="Notification view" class="bg-panel py-2">
+                        {#snippet content(menuProps)}
+                            <div
+                                {...menuProps}
+                                role="menu"
+                                aria-label="Notification view"
+                                class="absolute top-full left-0 z-50 mt-2 w-56 bg-panel py-2 shadow-xl"
+                            >
                                 <Button
                                     variant="unstyled"
                                     type="button"

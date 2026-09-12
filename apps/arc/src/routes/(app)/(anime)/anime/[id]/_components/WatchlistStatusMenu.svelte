@@ -91,21 +91,27 @@
     }
 </script>
 
-<Dropdown
-    id="watchlist-status"
-    ariaLabel={m.shared_manage_title({ title })}
-    menuAlign="start"
-    menuClass="w-52 pt-2 max-sm:right-0 max-sm:left-auto"
-    triggerClass="grid size-10 shrink-0 cursor-pointer place-items-center text-accent"
->
-    {#snippet trigger()}
-        <Tooltip text={m.shared_manage_watchlist()} class="size-full items-center justify-center">
-            <PencilSimpleIcon size="1.65em" weight="bold" aria-hidden="true" />
-        </Tooltip>
+<Dropdown id="watchlist-status">
+    {#snippet trigger(triggerProps)}
+        <Button
+            {...triggerProps}
+            variant="unstyled"
+            aria-label={m.shared_manage_title({ title })}
+            class="appearance-none p-0 grid size-10 shrink-0 cursor-pointer place-items-center text-accent"
+        >
+            <Tooltip text={m.shared_manage_watchlist()} class="size-full items-center justify-center">
+                <PencilSimpleIcon size="1.65em" weight="bold" aria-hidden="true" />
+            </Tooltip>
+        </Button>
     {/snippet}
 
-    {#snippet content()}
-        <div role="menu" aria-label={m.shared_set_title({ title })}>
+    {#snippet content(menuProps)}
+        <div
+            {...menuProps}
+            role="menu"
+            aria-label={m.shared_set_title({ title })}
+            class="absolute top-full left-0 z-50 w-52 bg-panel pt-2 max-sm:right-0 max-sm:left-auto"
+        >
             {#each watchlistStates as option}
                 <Button
                     variant="unstyled"

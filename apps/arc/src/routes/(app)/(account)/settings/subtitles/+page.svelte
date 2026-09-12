@@ -60,84 +60,114 @@
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.player_size()}</span>
-                <Dropdown
-                    id="subtitle-size"
-                    menuAlign="start"
-                    triggerClass="mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
-                >
-                    {#snippet trigger()}
-                        <span>{subtitleSizes[settings.size].label}</span>
-                        <CaretDownIcon size={16} aria-hidden="true" />
+                <Dropdown id="subtitle-size">
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label={m.player_size()}
+                            class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
+                        >
+                            <span>{subtitleSizes[settings.size].label}</span>
+                            <CaretDownIcon size={16} aria-hidden="true" />
+                        </Button>
                     {/snippet}
-                    {#snippet content()}
-                        {#each subtitleSizeOrder as option}
-                            <Button
-                                variant="unstyled"
-                                type="button"
-                                class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                onclick={() => {
-                                    settings.setSize(option);
-                                }}
-                            >
-                                {subtitleSizes[option].label}
-                            </Button>
-                        {/each}
+                    {#snippet content(menuProps)}
+                        <div
+                            {...menuProps}
+                            role="menu"
+                            aria-label={m.player_size()}
+                            class="absolute top-full left-0 z-50 mt-2 w-48 bg-panel"
+                        >
+                            {#each subtitleSizeOrder as option}
+                                <Button
+                                    variant="unstyled"
+                                    type="button"
+                                    class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    onclick={() => {
+                                        settings.setSize(option);
+                                    }}
+                                >
+                                    {subtitleSizes[option].label}
+                                </Button>
+                            {/each}
+                        </div>
                     {/snippet}
                 </Dropdown>
             </div>
 
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_color()}</span>
-                <Dropdown
-                    id="subtitle-text-color"
-                    menuAlign="start"
-                    triggerClass="mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
-                >
-                    {#snippet trigger()}
-                        <span>{subtitleTextColors[settings.textColor].label}</span>
-                        <CaretDownIcon size={16} aria-hidden="true" />
+                <Dropdown id="subtitle-text-color">
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label={m.settings_color()}
+                            class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
+                        >
+                            <span>{subtitleTextColors[settings.textColor].label}</span>
+                            <CaretDownIcon size={16} aria-hidden="true" />
+                        </Button>
                     {/snippet}
-                    {#snippet content()}
-                        {#each subtitleTextColorOrder as option}
-                            <Button
-                                variant="unstyled"
-                                type="button"
-                                class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                onclick={() => {
-                                    settings.setTextColor(option);
-                                }}
-                            >
-                                {subtitleTextColors[option].label}
-                            </Button>
-                        {/each}
+                    {#snippet content(menuProps)}
+                        <div
+                            {...menuProps}
+                            role="menu"
+                            aria-label={m.settings_color()}
+                            class="absolute top-full left-0 z-50 mt-2 w-48 bg-panel"
+                        >
+                            {#each subtitleTextColorOrder as option}
+                                <Button
+                                    variant="unstyled"
+                                    type="button"
+                                    class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    onclick={() => {
+                                        settings.setTextColor(option);
+                                    }}
+                                >
+                                    {subtitleTextColors[option].label}
+                                </Button>
+                            {/each}
+                        </div>
                     {/snippet}
                 </Dropdown>
             </div>
 
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_edge_style()}</span>
-                <Dropdown
-                    id="subtitle-edge-style"
-                    menuAlign="start"
-                    triggerClass="mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
-                >
-                    {#snippet trigger()}
-                        <span>{subtitleEdgeStyles[settings.edgeStyle].label}</span>
-                        <CaretDownIcon size={16} aria-hidden="true" />
+                <Dropdown id="subtitle-edge-style">
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label={m.settings_edge_style()}
+                            class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
+                        >
+                            <span>{subtitleEdgeStyles[settings.edgeStyle].label}</span>
+                            <CaretDownIcon size={16} aria-hidden="true" />
+                        </Button>
                     {/snippet}
-                    {#snippet content()}
-                        {#each subtitleEdgeStyleOrder as option}
-                            <Button
-                                variant="unstyled"
-                                type="button"
-                                class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                onclick={() => {
-                                    settings.setEdgeStyle(option);
-                                }}
-                            >
-                                {subtitleEdgeStyles[option].label}
-                            </Button>
-                        {/each}
+                    {#snippet content(menuProps)}
+                        <div
+                            {...menuProps}
+                            role="menu"
+                            aria-label={m.settings_edge_style()}
+                            class="absolute top-full left-0 z-50 mt-2 w-48 bg-panel"
+                        >
+                            {#each subtitleEdgeStyleOrder as option}
+                                <Button
+                                    variant="unstyled"
+                                    type="button"
+                                    class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    onclick={() => {
+                                        settings.setEdgeStyle(option);
+                                    }}
+                                >
+                                    {subtitleEdgeStyles[option].label}
+                                </Button>
+                            {/each}
+                        </div>
                     {/snippet}
                 </Dropdown>
             </div>
@@ -149,57 +179,76 @@
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_color()}</span>
-                <Dropdown
-                    id="subtitle-background"
-                    menuAlign="start"
-                    triggerClass="mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
-                >
-                    {#snippet trigger()}
-                        <span>{subtitleBackgrounds[settings.background].label}</span>
-                        <CaretDownIcon size={16} aria-hidden="true" />
+                <Dropdown id="subtitle-background">
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label={m.settings_background()}
+                            class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
+                        >
+                            <span>{subtitleBackgrounds[settings.background].label}</span>
+                            <CaretDownIcon size={16} aria-hidden="true" />
+                        </Button>
                     {/snippet}
-                    {#snippet content()}
-                        {#each subtitleBackgroundOrder as option}
-                            <Button
-                                variant="unstyled"
-                                type="button"
-                                class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                onclick={() => {
-                                    settings.setBackground(option);
-                                }}
-                            >
-                                {subtitleBackgrounds[option].label}
-                            </Button>
-                        {/each}
+                    {#snippet content(menuProps)}
+                        <div
+                            {...menuProps}
+                            role="menu"
+                            aria-label={m.settings_background()}
+                            class="absolute top-full left-0 z-50 mt-2 w-48 bg-panel"
+                        >
+                            {#each subtitleBackgroundOrder as option}
+                                <Button
+                                    variant="unstyled"
+                                    type="button"
+                                    class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    onclick={() => {
+                                        settings.setBackground(option);
+                                    }}
+                                >
+                                    {subtitleBackgrounds[option].label}
+                                </Button>
+                            {/each}
+                        </div>
                     {/snippet}
                 </Dropdown>
             </div>
 
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_opacity()}</span>
-                <Dropdown
-                    id="subtitle-background-opacity"
-                    disabled={settings.background === 'none'}
-                    menuAlign="start"
-                    triggerClass="mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                    {#snippet trigger()}
-                        <span>{Math.round(settings.backgroundOpacity * 100)}%</span>
-                        <CaretDownIcon size={16} aria-hidden="true" />
+                <Dropdown id="subtitle-background-opacity" disabled={settings.background === 'none'}>
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label={m.settings_opacity()}
+                            class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <span>{Math.round(settings.backgroundOpacity * 100)}%</span>
+                            <CaretDownIcon size={16} aria-hidden="true" />
+                        </Button>
                     {/snippet}
-                    {#snippet content()}
-                        {#each subtitleBackgroundOpacities as option}
-                            <Button
-                                variant="unstyled"
-                                type="button"
-                                class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                onclick={() => {
-                                    settings.setBackgroundOpacity(option);
-                                }}
-                            >
-                                {Math.round(option * 100)}%
-                            </Button>
-                        {/each}
+                    {#snippet content(menuProps)}
+                        <div
+                            {...menuProps}
+                            role="menu"
+                            aria-label={m.settings_opacity()}
+                            class="absolute top-full left-0 z-50 mt-2 w-48 bg-panel"
+                        >
+                            {#each subtitleBackgroundOpacities as option}
+                                <Button
+                                    variant="unstyled"
+                                    type="button"
+                                    class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    onclick={() => {
+                                        settings.setBackgroundOpacity(option);
+                                    }}
+                                >
+                                    {Math.round(option * 100)}%
+                                </Button>
+                            {/each}
+                        </div>
                     {/snippet}
                 </Dropdown>
             </div>

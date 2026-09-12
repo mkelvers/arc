@@ -86,20 +86,27 @@
     <div class="mb-6 flex min-h-9 items-center justify-between gap-4 px-2">
         <h2 id="franchise-order-title" class="text-lg font-semibold">{m.franchise_order()}</h2>
 
-        <Dropdown
-            id="franchise-order-filter"
-            ariaLabel={`${m.franchise_filters()}: ${selectedFilterLabel}`}
-            menuClass="mt-2 w-48 shadow-xl"
-            triggerClass="flex min-h-9 cursor-pointer items-center justify-start gap-2 px-2 text-left text-xs font-semibold text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
-        >
-            {#snippet trigger()}
-                <ListBulletsIcon size="1rem" weight="bold" aria-hidden="true" />
-                <span>{selectedFilterLabel}</span>
-                <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+        <Dropdown id="franchise-order-filter">
+            {#snippet trigger(triggerProps)}
+                <Button
+                    {...triggerProps}
+                    variant="unstyled"
+                    aria-label={`${m.franchise_filters()}: ${selectedFilterLabel}`}
+                    class="appearance-none p-0 flex min-h-9 cursor-pointer items-center justify-start gap-2 px-2 text-left text-xs font-semibold text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
+                >
+                    <ListBulletsIcon size="1rem" weight="bold" aria-hidden="true" />
+                    <span>{selectedFilterLabel}</span>
+                    <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+                </Button>
             {/snippet}
 
-            {#snippet content()}
-                <div role="menu" aria-label={m.franchise_filters()} class="py-2">
+            {#snippet content(menuProps)}
+                <div
+                    {...menuProps}
+                    role="menu"
+                    aria-label={m.franchise_filters()}
+                    class="absolute top-full right-0 z-50 mt-2 w-48 bg-panel py-2 shadow-xl"
+                >
                     {#each filters as option}
                         <Button
                             variant="unstyled"

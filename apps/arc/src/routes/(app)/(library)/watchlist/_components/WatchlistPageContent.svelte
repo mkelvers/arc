@@ -40,31 +40,37 @@
 
         <div class="mt-8 flex min-w-0 items-end border-b border-border sm:mt-10">
             <div class="min-w-0 flex-1 sm:hidden">
-                <Dropdown
-                    id="watchlist-status-mobile"
-                    ariaLabel={m.watchlist_statuses()}
-                    menuAlign="start"
-                    menuClass="mt-2 w-56 shadow-xl"
-                    triggerClass="flex h-12 min-w-0 w-full cursor-pointer items-center justify-between gap-3 px-1 text-sm font-medium text-foreground uppercase transition-colors hover:text-accent data-[state=open]:text-accent"
-                >
-                    {#snippet trigger()}
-                        <span class="truncate">
-                            {#if data.selection.state === 'all'}
-                                {m.watchlist_all()}
-                            {:else if data.selection.state === 'watching'}
-                                {m.watchlist_watching()}
-                            {:else if data.selection.state === 'plan_to_watch'}
-                                {m.watchlist_plan()}
-                            {:else if data.selection.state === 'completed'}
-                                {m.watchlist_completed()}
-                            {:else}
-                                {m.watchlist_dropped()}
-                            {/if}
-                        </span>
-                        <CaretDownIcon class="shrink-0" size="0.8rem" weight="bold" aria-hidden="true" />
+                <Dropdown id="watchlist-status-mobile">
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label={m.watchlist_statuses()}
+                            class="appearance-none p-0 flex h-12 min-w-0 w-full cursor-pointer items-center justify-between gap-3 px-1 text-sm font-medium text-foreground uppercase transition-colors hover:text-accent data-[state=open]:text-accent"
+                        >
+                            <span class="truncate">
+                                {#if data.selection.state === 'all'}
+                                    {m.watchlist_all()}
+                                {:else if data.selection.state === 'watching'}
+                                    {m.watchlist_watching()}
+                                {:else if data.selection.state === 'plan_to_watch'}
+                                    {m.watchlist_plan()}
+                                {:else if data.selection.state === 'completed'}
+                                    {m.watchlist_completed()}
+                                {:else}
+                                    {m.watchlist_dropped()}
+                                {/if}
+                            </span>
+                            <CaretDownIcon class="shrink-0" size="0.8rem" weight="bold" aria-hidden="true" />
+                        </Button>
                     {/snippet}
-                    {#snippet content()}
-                        <div role="menu" aria-label={m.watchlist_statuses()} class="py-2">
+                    {#snippet content(menuProps)}
+                        <div
+                            {...menuProps}
+                            role="menu"
+                            aria-label={m.watchlist_statuses()}
+                            class="absolute top-full left-0 z-50 mt-2 w-56 bg-panel py-2 shadow-xl"
+                        >
                             <a
                                 role="menuitem"
                                 href={href({ state: 'all' })}
@@ -179,26 +185,33 @@
             </nav>
 
             {#if data.totalEntries}
-                <Dropdown
-                    id="watchlist-filter"
-                    ariaLabel={m.watchlist_filtering()}
-                    menuClass="mt-2 w-64 shadow-xl"
-                    triggerClass="mb-2 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
-                >
-                    {#snippet trigger()}
-                        <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
-                        <span class="hidden sm:inline">{m.watchlist_filter()}</span>
-                        {#if data.selection.language !== 'all' || data.selection.media !== 'all' || data.selection.type !== 'all'}
-                            <span class="text-accent">
-                                {Number(data.selection.language !== 'all') +
-                                    Number(data.selection.media !== 'all') +
-                                    Number(data.selection.type !== 'all')}
-                            </span>
-                        {/if}
+                <Dropdown id="watchlist-filter">
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label={m.watchlist_filtering()}
+                            class="appearance-none p-0 mb-2 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
+                        >
+                            <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
+                            <span class="hidden sm:inline">{m.watchlist_filter()}</span>
+                            {#if data.selection.language !== 'all' || data.selection.media !== 'all' || data.selection.type !== 'all'}
+                                <span class="text-accent">
+                                    {Number(data.selection.language !== 'all') +
+                                        Number(data.selection.media !== 'all') +
+                                        Number(data.selection.type !== 'all')}
+                                </span>
+                            {/if}
+                        </Button>
                     {/snippet}
 
-                    {#snippet content()}
-                        <div role="menu" aria-label={m.watchlist_filtering()} class="py-2">
+                    {#snippet content(menuProps)}
+                        <div
+                            {...menuProps}
+                            role="menu"
+                            aria-label={m.watchlist_filtering()}
+                            class="absolute top-full right-0 z-50 mt-2 w-64 bg-panel py-2 shadow-xl"
+                        >
                             {#if filterView === 'main'}
                                 <Button
                                     variant="unstyled"
@@ -320,27 +333,34 @@
                         </div>
                     {/snippet}
                 </Dropdown>
-                <Dropdown
-                    id="watchlist-sort"
-                    ariaLabel={m.watchlist_sorting()}
-                    menuClass="mt-2 w-56 shadow-xl"
-                    triggerClass="mb-2 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
-                >
-                    {#snippet trigger()}
-                        <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
-                        <span class="hidden sm:inline">
-                            {#if data.selection.sort === 'updated'}
-                                {m.watchlist_updated()}
-                            {:else if data.selection.sort === 'added'}
-                                {m.watchlist_added()}
-                            {:else}
-                                {m.watchlist_alphabetical()}
-                            {/if}
-                        </span>
+                <Dropdown id="watchlist-sort">
+                    {#snippet trigger(triggerProps)}
+                        <Button
+                            {...triggerProps}
+                            variant="unstyled"
+                            aria-label={m.watchlist_sorting()}
+                            class="appearance-none p-0 mb-2 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
+                        >
+                            <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
+                            <span class="hidden sm:inline">
+                                {#if data.selection.sort === 'updated'}
+                                    {m.watchlist_updated()}
+                                {:else if data.selection.sort === 'added'}
+                                    {m.watchlist_added()}
+                                {:else}
+                                    {m.watchlist_alphabetical()}
+                                {/if}
+                            </span>
+                        </Button>
                     {/snippet}
 
-                    {#snippet content()}
-                        <div role="menu" aria-label={m.watchlist_sorting()} class="py-2">
+                    {#snippet content(menuProps)}
+                        <div
+                            {...menuProps}
+                            role="menu"
+                            aria-label={m.watchlist_sorting()}
+                            class="absolute top-full right-0 z-50 mt-2 w-56 bg-panel py-2 shadow-xl"
+                        >
                             <div role="group" aria-label={m.watchlist_sorting()}>
                                 <MenuOption
                                     href={href({ sort: 'updated' })}
