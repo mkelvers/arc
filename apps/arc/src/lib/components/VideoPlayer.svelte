@@ -428,7 +428,7 @@
         player={player}
         hasMultipleEpisodes={episodes.length > 1}
         episodesOpen={episodeDialogOpen}
-        onopenepisodes={() => (episodeDialogOpen = !episodeDialogOpen)}
+        onOpenEpisodes={() => (episodeDialogOpen = !episodeDialogOpen)}
     />
 </div>
 
