@@ -20,10 +20,10 @@
         player: Player;
         multipleEpisodes?: boolean;
         episodesOpen?: boolean;
-        onopenepisodes?: () => void;
+        onOpenEpisodes?: () => void;
     }
 
-    let { player, multipleEpisodes = false, episodesOpen = false, onopenepisodes }: Props = $props();
+    let { player, multipleEpisodes = false, episodesOpen = false, onOpenEpisodes }: Props = $props();
 </script>
 
 <div
@@ -91,7 +91,7 @@
         </div>
 
         <div class="flex items-center gap-4">
-            {#if multipleEpisodes && onopenepisodes}
+            {#if multipleEpisodes && onOpenEpisodes}
                 <Button
                     variant="unstyled"
                     type="button"
@@ -100,7 +100,7 @@
                     aria-expanded={episodesOpen}
                     aria-controls="episode-dialog"
                     class="grid size-11 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 sm:size-8"
-                    onclick={onopenepisodes}
+                    onclick={onOpenEpisodes}
                 >
                     <ArchiveIcon size="1.5rem" weight="bold" aria-hidden="true" />
                 </Button>
