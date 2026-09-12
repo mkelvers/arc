@@ -46,6 +46,7 @@
             templates: SegmentTemplates;
         };
         error: boolean;
+        transitioning: boolean;
         unavailable: boolean;
         retrying: boolean;
     }
@@ -66,6 +67,7 @@
         progressEventAt,
         segments,
         error,
+        transitioning,
         unavailable,
         retrying,
     }: Props = $props();
@@ -142,6 +144,7 @@
 
     const isPaused = $derived(
         !player.media.playing &&
+            !transitioning &&
             !player.changingEpisode &&
             !player.media.loading &&
             !unavailable &&
@@ -162,7 +165,7 @@
     });
 
     $effect(() => {
-        const input = {
+        player.sync({
             animeId: anime.id,
             episodeId: currentEpisode.id,
             episodeNumber: currentEpisode.number,
@@ -171,9 +174,7 @@
             sources,
             startAt,
             segments,
-        };
-
-        untrack(() => player.sync(input));
+        });
     });
 
     onMount(() => {
@@ -276,7 +277,7 @@
     ></div>
 
     <!-- Show / Episode Info Overlay: vertically centered on Y-axis, only shown when paused -->
-    {#if !unavailable && !player.changingEpisode && !player.media.error}
+    {#if !unavailable && !transitioning && !player.changingEpisode && !player.media.error}
         <div
             class="mobile-player-info pointer-events-none absolute inset-y-0 left-8 z-20 hidden max-w-xl flex-col items-start justify-center text-white transition-opacity duration-300 sm:flex sm:left-14 sm:max-w-2xl lg:left-20 lg:max-w-3xl"
             class:opacity-100={isPaused}
@@ -352,7 +353,7 @@
         </div>
     {/if}
 
-    {#if player.changingEpisode}
+    {#if transitioning || player.changingEpisode}
         <div
             role="status"
             aria-label={m.player_loading_next()}
@@ -388,16 +389,11 @@
         </div>
     {/if}
 
-    {#if player.media.error && !unavailable && !player.changingEpisode}
-        {@const decodeFailed = player.media.failure === 'decode'}
+    {#if player.media.error && !unavailable && !transitioning && !player.changingEpisode}
         <div role="alert" class="absolute inset-0 z-20 grid place-items-center bg-black px-6 text-center">
             <div>
-                <p class="text-base font-bold">
-                    {decodeFailed ? m.player_decode_failed() : m.player_load_failed()}
-                </p>
-                <p class="mt-2 text-sm text-white/65">
-                    {decodeFailed ? m.player_decode_detail() : m.player_tried_provider()}
-                </p>
+                <p class="text-base font-bold">{m.player_load_failed()}</p>
+                <p class="mt-2 text-sm text-white/65">{m.player_tried_provider()}</p>
                 <Button
                     variant="unstyled"
                     type="button"
@@ -410,7 +406,7 @@
         </div>
     {/if}
 
-    {#if !unavailable && !player.changingEpisode && !player.media.error}
+    {#if !unavailable && !transitioning && !player.changingEpisode && !player.media.error}
         {@const skip = player.visibleSkip}
         {#if skip}
             <Button
@@ -430,9 +426,9 @@
 
     <Controls
         player={player}
-        multipleEpisodes={episodes.length > 1}
+        hasMultipleEpisodes={episodes.length > 1}
         episodesOpen={episodeDialogOpen}
-        onOpenEpisodes={() => (episodeDialogOpen = !episodeDialogOpen)}
+        onopenepisodes={() => (episodeDialogOpen = !episodeDialogOpen)}
     />
 </div>
 

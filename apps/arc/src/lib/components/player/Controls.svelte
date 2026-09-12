@@ -13,17 +13,16 @@
     import Settings from './Settings.svelte';
     import Timeline from './Timeline.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
-    import Input from '$lib/components/ui/input/Input.svelte';
     import { m } from '$lib/i18n.svelte';
 
     interface Props {
         player: Player;
-        multipleEpisodes?: boolean;
+        hasMultipleEpisodes?: boolean;
         episodesOpen?: boolean;
-        onOpenEpisodes?: () => void;
+        onopenepisodes?: () => void;
     }
 
-    let { player, multipleEpisodes = false, episodesOpen = false, onOpenEpisodes }: Props = $props();
+    let { player, hasMultipleEpisodes = false, episodesOpen = false, onopenepisodes }: Props = $props();
 </script>
 
 <div
@@ -56,15 +55,15 @@
                     class="pointer-events-none absolute inset-x-0 bottom-full mx-auto flex h-40 w-8 items-end justify-center pb-3 opacity-0 transition-opacity group-hover/volume:pointer-events-auto group-hover/volume:opacity-100 group-focus-within/volume:pointer-events-auto group-focus-within/volume:opacity-100"
                 >
                     <div class="relative h-28 w-8 py-1.5">
-                        <Input
+                        <input
                             type="range"
                             min="0"
                             max="1"
                             step="0.05"
-                            value={String(player.media.muted ? 0 : player.media.volume)}
+                            value={player.media.muted ? 0 : player.media.volume}
                             aria-label={m.player_volume()}
                             disabled={player.media.loading}
-                            class="absolute inset-0 block size-full cursor-pointer rounded-none border-0 p-0 accent-accent [direction:rtl] [writing-mode:vertical-lr] focus-visible:border-0"
+                            class="absolute inset-0 size-full cursor-pointer accent-accent [direction:rtl] [writing-mode:vertical-lr]"
                             oninput={(event) => player.media.setVolume(Number(event.currentTarget.value))}
                         />
                     </div>
@@ -91,7 +90,7 @@
         </div>
 
         <div class="flex items-center gap-4">
-            {#if multipleEpisodes && onOpenEpisodes}
+            {#if hasMultipleEpisodes && onopenepisodes}
                 <Button
                     variant="unstyled"
                     type="button"
@@ -100,7 +99,7 @@
                     aria-expanded={episodesOpen}
                     aria-controls="episode-dialog"
                     class="grid size-11 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 sm:size-8"
-                    onclick={onOpenEpisodes}
+                    onclick={onopenepisodes}
                 >
                     <ArchiveIcon size="1.5rem" weight="bold" aria-hidden="true" />
                 </Button>

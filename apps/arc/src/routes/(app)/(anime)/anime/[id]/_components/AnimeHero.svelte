@@ -5,6 +5,7 @@
     import AiringStatus from './AiringStatus.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import Button from '$lib/components/ui/button/button.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
     import WatchlistStatusMenu from './WatchlistStatusMenu.svelte';
     import { cn } from '$lib/utils';
@@ -41,15 +42,22 @@
         <div
             class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end font-bold sm:mt-5 sm:mr-8 lg:mr-12"
         >
-            <Dropdown id="more-options" menuClass="w-56">
-                {#snippet trigger()}
-                    <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
-                        <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true" />
-                        <span>{m.anime_more()}</span>
-                    </span>
+            <Dropdown id="more-options">
+                {#snippet trigger(triggerProps)}
+                    <Button
+                        {...triggerProps}
+                        variant="unstyled"
+                        aria-label={m.anime_more()}
+                        class="appearance-none p-0"
+                    >
+                        <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
+                            <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true" />
+                            <span>{m.anime_more()}</span>
+                        </span>
+                    </Button>
                 {/snippet}
-                {#snippet content()}
-                    <div role="menu" aria-label={m.anime_more()} class="w-56 bg-panel py-2">
+                {#snippet content(menuProps)}
+                    <div {...menuProps} role="menu" aria-label={m.anime_more()} class="w-56 bg-panel py-2">
                         <a
                             role="menuitem"
                             href={`/anime/${anime.id}/media`}
