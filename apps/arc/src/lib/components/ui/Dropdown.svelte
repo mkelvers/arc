@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { Snippet } from 'svelte';
+    import { tick } from 'svelte';
     import { m } from '$lib/i18n.svelte';
     import Button from './button/button.svelte';
 
@@ -50,13 +51,18 @@
         );
     }
 
+    async function focusFirstMenuItem() {
+        await tick();
+        focusableMenuElements()[0]?.focus();
+    }
+
     function close() {
         if (!open) {
             return;
         }
 
         open = false;
-        requestAnimationFrame(() => {
+        void tick().then(() => {
             root?.querySelector<HTMLElement>('[data-dropdown-trigger]')?.focus();
         });
     }
@@ -73,9 +79,7 @@
 
         open = true;
         if (event.detail === 0) {
-            requestAnimationFrame(() => {
-                focusableMenuElements()[0]?.focus();
-            });
+            void focusFirstMenuItem();
         }
     }
 
@@ -92,7 +96,7 @@
 
     function handleMenuKeydown(event: KeyboardEvent) {
         const elements = focusableMenuElements();
-        const currentIndex = elements.indexOf(document.activeElement as HTMLElement);
+        const currentIndex = event.target instanceof HTMLElement ? elements.indexOf(event.target) : -1;
 
         if (event.key === 'Escape') {
             event.preventDefault();
@@ -142,52 +146,28 @@
             return;
         }
 
-        requestAnimationFrame(() => {
+        void tick().then(() => {
             menuElement()?.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView({
                 block: 'nearest',
             });
         });
     });
 
-    $effect(() => {
-        if (!open || !modal) {
-            return;
+    function handleOutsidePointer(event: PointerEvent) {
+        if (open && event.target instanceof Node && root && !root.contains(event.target)) {
+            close();
         }
+    }
 
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = 'hidden';
-
-        return () => {
-            document.body.style.overflow = previousOverflow;
-        };
-    });
-
-    $effect(() => {
-        const element = root;
-        if (!element) {
-            return;
+    function closeOnWindowEscape(event: KeyboardEvent) {
+        if (open && event.key === 'Escape') {
+            close();
         }
-
-        const handleOutsidePointer = (event: PointerEvent) => {
-            if (event.target instanceof Node && !element.contains(event.target)) {
-                close();
-            }
-        };
-        const closeOnEscape = (event: KeyboardEvent) => {
-            if (open && event.key === 'Escape') {
-                close();
-            }
-        };
-
-        document.addEventListener('pointerdown', handleOutsidePointer);
-        document.addEventListener('keydown', closeOnEscape);
-
-        return () => {
-            document.removeEventListener('pointerdown', handleOutsidePointer);
-            document.removeEventListener('keydown', closeOnEscape);
-        };
-    });
+    }
 </script>
+
+<svelte:window onpointerdown={handleOutsidePointer} onkeydown={closeOnWindowEscape} />
+<svelte:body class:overflow-hidden={open && modal} />
 
 <div bind:this={root} class="dropdown relative" role="group">
     {@render trigger({
