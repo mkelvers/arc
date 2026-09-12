@@ -41,11 +41,9 @@
 
     function focusableMenuElements() {
         return Array.from(
-            root
-                ?.querySelector<HTMLElement>('[data-dropdown-menu]')
-                ?.querySelectorAll<HTMLElement>(
-                    'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
-                ) ?? []
+            root?.querySelectorAll<HTMLElement>(
+                '[data-dropdown-menu] a[href], [data-dropdown-menu] button:not(:disabled), [data-dropdown-menu] input:not(:disabled), [data-dropdown-menu] select:not(:disabled), [data-dropdown-menu] textarea:not(:disabled), [data-dropdown-menu] [tabindex]:not([tabindex="-1"])'
+            ) ?? []
         );
     }
 
