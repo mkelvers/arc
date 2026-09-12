@@ -30,66 +30,65 @@
     }
 
     let { highlights }: Props = $props();
-    let active = $state(0);
     let ready = $state({ backdrops: new Set<number>(), logos: new Set<number>() });
-    const activeIndex = $derived(
-        highlights.length ? ((active % highlights.length) + highlights.length) % highlights.length : 0
-    );
-    const activeAnime = $derived(highlights[activeIndex]);
 </script>
 
 {#if highlights.length}
     <Carousel
-        count={highlights.length}
-        ariaLabel={m.home_trending()}
-        bind:active={active}
+        autoplay={15_000}
         class="relative h-[min(100svh,32rem)] min-h-0 max-h-none touch-pan-y overflow-hidden bg-black select-none sm:h-[min(100svh,42rem)] sm:min-h-180 sm:max-h-192 xl:h-[calc(100svh-3.5rem)] xl:max-h-none"
     >
-        {#snippet children(index, isActive, isPrevious)}
-            {@const anime = highlights[index]}
-            <article
-                class={cn(
-                    'home-hero-slide absolute inset-0 grid grid-cols-1 grid-rows-1 overflow-hidden transition-opacity duration-500 ease-out motion-reduce:transition-none',
-                    isActive
-                        ? 'opacity-100'
-                        : isPrevious
-                          ? 'pointer-events-none opacity-0'
-                          : 'pointer-events-none hidden opacity-0'
-                )}
-                role="group"
-                aria-roledescription="slide"
-                aria-label={m.home_carousel_slide({
-                    title: anime.title,
-                    current: index + 1,
-                    total: highlights.length,
-                })}
-                aria-hidden={!isActive}
-            >
-                <a
-                    href={anime.href}
-                    class="col-start-1 row-start-1 grid focus-visible:outline-2 focus-visible:outline-white"
-                    aria-label={m.shared_view({ title: anime.title })}
-                    tabindex={isActive ? undefined : -1}
-                >
-                    {#if isActive || isPrevious}
-                        <ProgressiveImage
-                            src={anime.image}
-                            alt={isActive ? anime.title : ''}
-                            class="col-start-1 row-start-1"
-                            imageClass="object-top"
-                            loading="lazy"
-                            previewLoading={isActive ? 'eager' : 'lazy'}
-                            fetchpriority={isActive ? 'high' : 'low'}
-                            onready={() => {
-                                ready.backdrops = new Set(ready.backdrops).add(anime.id);
-                            }}
-                        />
-                    {/if}
-                </a>
-            </article>
-        {/snippet}
+        {#snippet children({ active: current, previous, paused, select })}
+            {@const activeAnime = highlights[current]}
+            <div class="flex h-full">
+                {#each highlights as anime, index (anime.id)}
+                    {@const isActive = index === current}
+                    {@const isPrevious = index === previous}
+                    <div class="relative h-full min-w-0 flex-[0_0_100%]">
+                        <article
+                            class={cn(
+                                'home-hero-slide absolute inset-0 grid grid-cols-1 grid-rows-1 overflow-hidden transition-opacity duration-500 ease-out motion-reduce:transition-none',
+                                isActive
+                                    ? 'opacity-100'
+                                    : isPrevious
+                                      ? 'pointer-events-none opacity-0'
+                                      : 'pointer-events-none hidden opacity-0'
+                            )}
+                            role="group"
+                            aria-roledescription="slide"
+                            aria-label={m.home_carousel_slide({
+                                title: anime.title,
+                                current: index + 1,
+                                total: highlights.length,
+                            })}
+                            aria-hidden={!isActive}
+                        >
+                            <a
+                                href={anime.href}
+                                class="col-start-1 row-start-1 grid focus-visible:outline-2 focus-visible:outline-white"
+                                aria-label={m.shared_view({ title: anime.title })}
+                                tabindex={isActive ? undefined : -1}
+                            >
+                                {#if isActive || isPrevious}
+                                    <ProgressiveImage
+                                        src={anime.image}
+                                        alt={isActive ? anime.title : ''}
+                                        class="col-start-1 row-start-1"
+                                        imageClass="object-top"
+                                        loading="lazy"
+                                        previewLoading={isActive ? 'eager' : 'lazy'}
+                                        fetchpriority={isActive ? 'high' : 'low'}
+                                        onready={() => {
+                                            ready.backdrops = new Set(ready.backdrops).add(anime.id);
+                                        }}
+                                    />
+                                {/if}
+                            </a>
+                        </article>
+                    </div>
+                {/each}
+            </div>
 
-        {#snippet overlay(select, current, previous, paused)}
             <article class="home-hero-slide absolute inset-0 grid grid-cols-1 grid-rows-1 overflow-hidden">
                 <div
                     class="pointer-events-none z-30 col-start-1 row-start-1 min-w-0 self-end pb-8 sm:pb-80 xl:h-128 xl:self-center xl:pb-0"
@@ -136,7 +135,7 @@
                                     type="button"
                                     class="pointer-events-auto absolute top-1/2 left-0 z-30 hidden size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform duration-150 hover:scale-110 focus-visible:outline-2 focus-visible:outline-white active:scale-90 sm:grid lg:size-11 xl:inset-y-0 xl:top-auto xl:right-full xl:left-auto xl:my-auto xl:mr-2 xl:translate-y-0"
                                     aria-label={m.shared_previous()}
-                                    onclick={() => select(current - 1)}
+                                    onclick={() => select(current - 1, true)}
                                 >
                                     <CaretLeftIcon
                                         size="1.45rem"
@@ -154,7 +153,7 @@
                                 type="button"
                                 class="pointer-events-auto absolute top-1/2 right-0 z-30 hidden size-9 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform duration-150 hover:scale-110 focus-visible:outline-2 focus-visible:outline-white active:scale-90 sm:grid lg:size-11 xl:inset-y-0 xl:top-auto xl:my-auto xl:translate-y-0"
                                 aria-label={m.shared_next()}
-                                onclick={() => select(current + 1)}
+                                onclick={() => select(current + 1, true)}
                             >
                                 <CaretRightIcon
                                     size="1.45rem"
@@ -218,7 +217,7 @@
                                     )}
                                     aria-label={m.shared_view({ title: item.title })}
                                     aria-pressed={itemIndex === current}
-                                    onclick={() => select(itemIndex)}
+                                    onclick={() => select(itemIndex, true)}
                                 >
                                     <span
                                         class={cn(

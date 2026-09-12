@@ -23,6 +23,9 @@
         "better-auth": "1.6.22",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "embla-carousel": "^8.6.0",
+        "embla-carousel-autoplay": "^8.6.0",
+        "embla-carousel-svelte": "^8.6.0",
         "hls.js": "^1.7.1",
         "tailwind-merge": "^3.6.0",
         "zod": "^4.4.3"

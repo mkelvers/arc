@@ -1,184 +1,128 @@
 <script lang="ts">
+    import Autoplay from 'embla-carousel-autoplay';
+    import type { EmblaCarouselType } from 'embla-carousel';
+    import useEmblaCarousel from 'embla-carousel-svelte';
     import type { Snippet } from 'svelte';
     import { prefersReducedMotion } from 'svelte/motion';
+    import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
+    import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
     import { cn } from '$lib/utils';
+    import Button from '$lib/components/ui/button/button.svelte';
+    import { m } from '$lib/i18n.svelte';
+
+    interface CarouselState {
+        active: number;
+        previous: number | null;
+        paused: boolean;
+        select: (index: number, instant?: boolean) => void;
+    }
 
     interface Props {
-        count: number;
-        ariaLabel: string;
-        children: Snippet<[index: number, active: boolean, previous: boolean]>;
-        overlay?: Snippet<
-            [select: (index: number) => void, active: number, previous: number | null, paused: boolean]
-        >;
+        children: Snippet<[state: CarouselState]>;
         class?: string;
-        interval?: number;
-        active?: number;
+        autoplay?: number;
+        controls?: boolean;
     }
 
-    let {
-        count,
-        ariaLabel,
-        children,
-        overlay,
-        class: className,
-        interval = 15_000,
-        active = $bindable(0),
-    }: Props = $props();
+    let { children, class: className, autoplay, controls = false }: Props = $props();
 
+    let emblaApi = $state<EmblaCarouselType>();
+    let active = $state(0);
     let previous = $state<number | null>(null);
-    let lastActive = $state(active);
-    let hoverPaused = $state(false);
-    let focusPaused = $state(false);
-    let pointerPaused = $state(false);
-    let pointerId = $state<number | null>(null);
-    let startX = 0;
-    let startY = 0;
-    let dragging = false;
-    let suppressClick = $state(false);
-    let carousel = $state<HTMLElement>();
+    let paused = $state(false);
 
-    $effect(() => {
-        if (!count) {
-            return;
+    const plugins = $derived(
+        autoplay === undefined
+            ? []
+            : [
+                  Autoplay({
+                      delay: autoplay,
+                      jump: true,
+                      stopOnMouseEnter: true,
+                      stopOnFocusIn: true,
+                      stopOnInteraction: false,
+                  }),
+              ]
+    );
+
+    function init({ detail: api }: CustomEvent<EmblaCarouselType>) {
+        emblaApi = api;
+
+        const autoplayApi = api.plugins().autoplay;
+        if (prefersReducedMotion.current || api.scrollSnapList().length < 2) {
+            autoplayApi?.stop();
         }
 
-        const next = ((active % count) + count) % count;
-        if (next !== active) {
-            active = next;
-            return;
-        }
+        api.on('select', () => {
+            const next = api.selectedScrollSnap();
+            if (next !== active) {
+                previous = prefersReducedMotion.current ? null : active;
+                active = next;
+            }
+        });
+        api.on('reInit', () => (emblaApi = api));
+        api.on('resize', () => (emblaApi = api));
+        api.on('slidesChanged', () => (emblaApi = api));
+        api.on('autoplay:play', () => (paused = false));
+        api.on('autoplay:stop', () => (paused = true));
 
-        if (next !== lastActive) {
-            previous = prefersReducedMotion.current ? null : lastActive;
-            lastActive = next;
-        }
-    });
-
-    $effect(() => {
-        if (hoverPaused || focusPaused || pointerPaused || prefersReducedMotion.current || count < 2) {
-            return;
-        }
-
-        const timeout = window.setTimeout(() => select(active + 1), interval);
-        return () => window.clearTimeout(timeout);
-    });
-
-    function select(index: number) {
-        if (!count) {
-            return false;
-        }
-
-        const next = ((index % count) + count) % count;
-        if (next === active) {
-            return false;
-        }
-
-        active = next;
-        return true;
+        paused = !autoplayApi?.isPlaying();
+        active = api.selectedScrollSnap();
     }
 
-    function handlePointerDown(event: PointerEvent) {
-        if (
-            event.pointerType === 'mouse' ||
-            (event.target instanceof Element &&
-                event.target.closest('button, [data-carousel-control], [data-carousel-action]'))
-        ) {
+    function select(index: number, instant = false) {
+        if (!emblaApi) {
             return;
         }
 
-        pointerId = event.pointerId;
-        pointerPaused = true;
-        startX = event.clientX;
-        startY = event.clientY;
-        dragging = false;
-        if (event.currentTarget instanceof HTMLElement) {
-            event.currentTarget.setPointerCapture(event.pointerId);
+        const total = emblaApi.scrollSnapList().length;
+        if (total) {
+            emblaApi.scrollTo(((index % total) + total) % total, instant);
         }
-    }
-
-    function handlePointerMove(event: PointerEvent) {
-        if (event.pointerId !== pointerId) {
-            return;
-        }
-
-        const deltaX = event.clientX - startX;
-        const deltaY = event.clientY - startY;
-        if (!dragging && Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) {
-            dragging = true;
-        }
-
-        if (dragging) {
-            event.preventDefault();
-        }
-    }
-
-    function handlePointerUp(event: PointerEvent) {
-        if (event.pointerId !== pointerId) {
-            return;
-        }
-
-        const deltaX = event.clientX - startX;
-        const deltaY = event.clientY - startY;
-        if (dragging && Math.abs(deltaX) >= 48 && Math.abs(deltaX) > Math.abs(deltaY)) {
-            event.preventDefault();
-            suppressClick = select(active + (deltaX < 0 ? 1 : -1));
-        }
-
-        pointerId = null;
-        pointerPaused = false;
-        dragging = false;
-    }
-
-    function handleClick(event: MouseEvent) {
-        if (!suppressClick || !(carousel && event.target instanceof Node && carousel.contains(event.target))) {
-            return;
-        }
-
-        suppressClick = false;
-        event.preventDefault();
-    }
-
-    function handleFocusOut(event: FocusEvent) {
-        if (
-            event.currentTarget instanceof HTMLElement &&
-            event.relatedTarget instanceof Node &&
-            event.currentTarget.contains(event.relatedTarget)
-        ) {
-            return;
-        }
-
-        focusPaused = false;
     }
 </script>
 
-<section
-    bind:this={carousel}
-    class={cn('relative', className)}
-    aria-roledescription="carousel"
-    aria-label={ariaLabel}
-    onmouseenter={() => (hoverPaused = true)}
-    onmouseleave={() => (hoverPaused = false)}
-    onfocusin={() => (focusPaused = true)}
-    onfocusout={handleFocusOut}
-    onpointerdown={handlePointerDown}
-    onpointermove={handlePointerMove}
-    onpointerup={handlePointerUp}
-    onpointercancel={() => {
-        pointerId = null;
-        pointerPaused = false;
-        dragging = false;
-    }}
->
-    {#each Array(count) as _, index}
-        {@render children(index, index === active, index === previous)}
-    {/each}
+<section class={cn('relative', className)}>
+    <div
+        class="relative h-full overflow-hidden"
+        onemblaInit={init}
+        use:useEmblaCarousel={{
+            options: {
+                loop: autoplay !== undefined,
+                slidesToScroll: autoplay === undefined ? 'auto' : 1,
+            },
+            plugins,
+        }}
+    >
+        {@render children({
+            active,
+            previous,
+            paused: paused || prefersReducedMotion.current,
+            select,
+        })}
+    </div>
 
-    {@render overlay?.(
-        select,
-        active,
-        previous,
-        hoverPaused || focusPaused || pointerPaused || prefersReducedMotion.current
-    )}
+    {#if controls && emblaApi?.canScrollPrev()}
+        <Button
+            variant="unstyled"
+            type="button"
+            class="absolute top-1/2 left-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
+            aria-label={m.shared_previous()}
+            onclick={() => emblaApi?.scrollPrev()}
+        >
+            <CaretLeftIcon size="1.65rem" weight="bold" aria-hidden="true" />
+        </Button>
+    {/if}
+
+    {#if controls && emblaApi?.canScrollNext()}
+        <Button
+            variant="unstyled"
+            type="button"
+            class="absolute top-1/2 right-0 z-30 grid size-12 -translate-y-1/2 place-items-center text-white drop-shadow-lg transition-transform hover:scale-110 focus-visible:outline-2 focus-visible:outline-white"
+            aria-label={m.shared_next()}
+            onclick={() => emblaApi?.scrollNext()}
+        >
+            <CaretRightIcon size="1.65rem" weight="bold" aria-hidden="true" />
+        </Button>
+    {/if}
 </section>
-
-<svelte:window onclick={handleClick} />
