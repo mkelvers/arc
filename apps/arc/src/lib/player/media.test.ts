@@ -148,12 +148,12 @@ Cheers!
             { mode: 'off', label: 'Off' },
         ]);
         expect(subtitleOptionsFor(['translated'])).toEqual([
-            { mode: 'translated', label: 'English (SUB)' },
+            { mode: 'translated', label: 'English (Sub)' },
             { mode: 'off', label: 'Off' },
         ]);
         expect(subtitleOptionsFor(['full', 'translated'])).toEqual([
             { mode: 'full', label: 'English' },
-            { mode: 'translated', label: 'English (SUB)' },
+            { mode: 'translated', label: 'English (Sub)' },
             { mode: 'off', label: 'Off' },
         ]);
     });
