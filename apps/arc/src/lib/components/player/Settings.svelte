@@ -5,6 +5,7 @@
     import type { SkipKind } from '@arc/core/client';
     import { cn } from '$lib/utils';
     import Button from '$lib/components/ui/button/button.svelte';
+    import Radio from '$lib/components/ui/snippets/Radio.svelte';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
     import { m } from '$lib/i18n.svelte';
 
@@ -19,20 +20,6 @@
 
     let { player }: Props = $props();
 </script>
-
-{#snippet radio(selected: boolean)}
-    <span
-        aria-hidden="true"
-        class={cn(
-            'grid size-4 place-items-center rounded-full border',
-            selected ? 'border-input-accent' : 'border-white/55'
-        )}
-    >
-        {#if selected}
-            <span class="size-1.5 rounded-full bg-input-accent"></span>
-        {/if}
-    </span>
-{/snippet}
 
 <div
     id="player-settings"
@@ -166,7 +153,7 @@
                 class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                 onclick={() => player.media.switchQuality('best')}
             >
-                {@render radio(player.media.quality === 'best')}
+                <Radio selected={player.media.quality === 'best'} />
                 {m.player_auto()}
             </Button>
 
@@ -179,7 +166,7 @@
                     class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                     onclick={() => player.media.switchQuality(option)}
                 >
-                    {@render radio(player.media.quality === option)}
+                    <Radio selected={player.media.quality === option} />
                     <span>
                         {option}
                         {#if isHd(option)}
@@ -202,7 +189,7 @@
                         class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                         onclick={() => player.media.switchSource(mode, source)}
                     >
-                        {@render radio(player.media.mode === mode && player.media.activeSource === source)}
+                        <Radio selected={player.media.mode === mode && player.media.activeSource === source} />
                         {source.server}
                     </Button>
                 {/each}
@@ -231,7 +218,7 @@
                     class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                     onclick={() => player.media.switchSubtitleMode(option.mode)}
                 >
-                    {@render radio(player.media.captions.mode === option.mode)}
+                    <Radio selected={player.media.captions.mode === option.mode} />
                     {option.label}
                 </Button>
             {/each}
@@ -245,7 +232,7 @@
                     class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                     onclick={() => player.media.captions.switchSize(option)}
                 >
-                    {@render radio(player.media.captions.size === option)}
+                    <Radio selected={player.media.captions.size === option} />
                     {subtitleSizes[option].label}
                 </Button>
             {/each}
