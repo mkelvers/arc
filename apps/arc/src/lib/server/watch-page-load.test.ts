@@ -131,4 +131,13 @@ test('watch load resolves playback data before returning', async () => {
         skipTimes: null,
         error: true,
     });
+    expect(await loaded.segments.times).toEqual({
+        opening: null,
+        ending: null,
+        sources: { opening: null, ending: null },
+    });
+    expect(await loaded.segments.templates).toEqual({
+        opening: null,
+        ending: null,
+    });
 });
