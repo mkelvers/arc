@@ -28,47 +28,47 @@ export const load: PageServerLoad = async ({ params, request, fetch }) => {
         redirect(308, page.canonicalHref);
     }
 
-    // Keep optional player work streamed so provider latency cannot delay the
-    // page response. WatchPlayer uses these promises to coordinate transitions.
-    const segments = fetch(`${endpoint}/segments`, { headers })
-        .then(async (result) => {
-            if (!result.ok) {
-                throw new Error(`Segment request failed with ${result.status}`);
-            }
-            return WatchSegmentsSchema.parse(await result.json());
-        })
-        .catch(() => ({
-            times: {
-                opening: null,
-                ending: null,
-                sources: { opening: null, ending: null },
-            },
-            templates: {
-                opening: null,
-                ending: null,
-            },
-        }));
-    const playback = fetch(`${endpoint}/playback`, { headers })
-        .then(async (result) => {
-            if (!result.ok) {
-                throw new Error(`Playback request failed with ${result.status}`);
-            }
-            return WatchPlaybackSchema.parse(await result.json());
-        })
-        .catch(() => ({
-            streams: {},
-            skipTimes: null,
-            error: true,
-        }));
+    const [segments, playback] = await Promise.all([
+        fetch(`${endpoint}/segments`, { headers })
+            .then(async (result) => {
+                if (!result.ok) {
+                    throw new Error(`Segment request failed with ${result.status}`);
+                }
+                return WatchSegmentsSchema.parse(await result.json());
+            })
+            .catch(() => ({
+                times: {
+                    opening: null,
+                    ending: null,
+                    sources: { opening: null, ending: null },
+                },
+                templates: {
+                    opening: null,
+                    ending: null,
+                },
+            })),
+        fetch(`${endpoint}/playback`, { headers })
+            .then(async (result) => {
+                if (!result.ok) {
+                    throw new Error(`Playback request failed with ${result.status}`);
+                }
+                return WatchPlaybackSchema.parse(await result.json());
+            })
+            .catch(() => ({
+                streams: {},
+                skipTimes: null,
+                error: true,
+            })),
+    ]);
 
     return {
         ...page,
         playbackEndpoint: `/v1/anime/${id}/episodes/${encodeURIComponent(params.episode)}/playback`,
-        playback,
+        playback: Promise.resolve(playback),
         segments: {
             canEdit: true,
-            times: segments.then(({ times }) => times),
-            templates: segments.then(({ templates }) => templates),
+            times: Promise.resolve(segments.times),
+            templates: Promise.resolve(segments.templates),
         },
     };
 };

@@ -60,10 +60,14 @@ const page = {
     progressEventAt: 0,
 };
 
-test('watch load returns before slow playback discovery settles', async () => {
+test('watch load resolves playback data before returning', async () => {
     let resolvePlayback!: (response: Response) => void;
     const playback = new Promise<Response>((resolve) => {
         resolvePlayback = resolve;
+    });
+    let resolveSegments!: (response: Response) => void;
+    const segments = new Promise<Response>((resolve) => {
+        resolveSegments = resolve;
     });
     const calls: string[] = [];
     const fetch = async (input: RequestInfo | URL) => {
@@ -73,17 +77,7 @@ test('watch load returns before slow playback discovery settles', async () => {
             return playback;
         }
         if (url.endsWith('/segments')) {
-            return new Response(
-                JSON.stringify({
-                    times: {
-                        opening: null,
-                        ending: null,
-                        sources: { opening: null, ending: null },
-                    },
-                    templates: { opening: null, ending: null },
-                }),
-                { status: 200 }
-            );
+            return segments;
         }
         return new Response(JSON.stringify(page), { status: 200 });
     };
@@ -97,34 +91,41 @@ test('watch load returns before slow playback discovery settles', async () => {
             fetch,
         } as never)
     );
-    const result = await Promise.race([
+    const loadState = await Promise.race([
         loadPromise.then(() => 'resolved'),
         new Promise<'timed-out'>((resolve) => setTimeout(() => resolve('timed-out'), 25)),
     ]);
 
-    expect(result).toBe('resolved');
+    expect(loadState).toBe('timed-out');
     expect(calls).toEqual([
         'https://api.example.test/v1/anime/1/episodes/1',
         'https://api.example.test/v1/anime/1/episodes/1/segments',
         'https://api.example.test/v1/anime/1/episodes/1/playback',
     ]);
 
-    const loaded = await loadPromise;
-    if (!loaded || !('playback' in loaded)) {
-        throw new Error('Watch load did not return page data');
-    }
-
-    const playbackState = await Promise.race([
-        loaded.playback.then(() => 'resolved'),
-        new Promise<'pending'>((resolve) => setTimeout(() => resolve('pending'), 25)),
-    ]);
-    expect(playbackState).toBe('pending');
-
+    resolveSegments(
+        new Response(
+            JSON.stringify({
+                times: {
+                    opening: null,
+                    ending: null,
+                    sources: { opening: null, ending: null },
+                },
+                templates: { opening: null, ending: null },
+            })
+        )
+    );
     resolvePlayback(
         new Response(
             JSON.stringify({ streams: { sub: [], dub: [], raw: [] }, skipTimes: null, error: true })
         )
     );
+
+    const loaded = await loadPromise;
+    if (!loaded || !('playback' in loaded)) {
+        throw new Error('Watch load did not return page data');
+    }
+
     expect(await loaded.playback).toEqual({
         streams: { sub: [], dub: [], raw: [] },
         skipTimes: null,
