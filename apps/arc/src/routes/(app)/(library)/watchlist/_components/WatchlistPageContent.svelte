@@ -1,5 +1,13 @@
 <script lang="ts">
-    import { CaretDownIcon, FunnelIcon, ListBulletsIcon } from 'phosphor-svelte';
+    import {
+        CaretDownIcon,
+        CaretLeftIcon,
+        CaretRightIcon,
+        CircleIcon,
+        FunnelIcon,
+        ListBulletsIcon,
+        RadioButtonIcon,
+    } from 'phosphor-svelte';
 
     import emptyArtwork from '$lib/assets/watchlist-empty.webp';
     import filteredEmptyArtwork from '$lib/assets/watchlist-filter-empty.webp';
@@ -8,8 +16,8 @@
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import { m } from '$lib/i18n.svelte';
-    import { watchlist } from '$lib/watchlist.svelte';
     import { filterWatchlist, setWatchlistFilter, watchlistFilters } from '$lib/watchlist-filters';
+    import { watchlist } from '$lib/watchlist.svelte';
     import type { PageData } from '../$types';
     import WatchlistPendingCard from './WatchlistPendingCard.svelte';
 
@@ -19,8 +27,27 @@
 
     let { data }: Props = $props();
 
+    let filterView = $state<'main' | 'type'>('main');
     let filteredEntries = $derived(filterWatchlist(data.entries, $watchlistFilters));
 </script>
+
+{#snippet menuOption(isSelected: boolean, label: string, onclick: () => void)}
+    <button
+        type="button"
+        role="menuitemradio"
+        aria-checked={isSelected}
+        class:text-foreground={isSelected}
+        class="flex min-h-11 w-full appearance-none items-center gap-2.5 border-0 bg-transparent px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+        onclick={onclick}
+    >
+        {#if isSelected}
+            <RadioButtonIcon size="1.25rem" weight="fill" class="text-input-accent" aria-hidden="true" />
+        {:else}
+            <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
+        {/if}
+        {label}
+    </button>
+{/snippet}
 
 <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
     <div class="mx-auto w-full max-w-384 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
@@ -72,7 +99,7 @@
                                 type="button"
                                 role="menuitem"
                                 aria-current={$watchlistFilters.state === 'watching' ? 'page' : undefined}
-                                class="block w-full appearance-none border-0 bg-transparent whitespace-nowrap px-5 py-3 text-left text-sm leading-tight text-muted hover:bg-panel-hover focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                class="block w-full appearance-none border-0 bg-transparent whitespace-nowrap px-5 py-3 text-left text-sm leading-tight text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                 onclick={() => setWatchlistFilter('state', 'watching')}
                             >
                                 {m.watchlist_watching()}
@@ -133,7 +160,7 @@
                             class:border-accent={$watchlistFilters.state === 'watching'}
                             class:border-transparent={$watchlistFilters.state !== 'watching'}
                             class:text-foreground={$watchlistFilters.state === 'watching'}
-                            class="inline-flex h-12 appearance-none items-center border-0 border-b-2 bg-transparent text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            class="inline-flex h-12 appearance-none items-center border-0 border-b-2 bg-transparent text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
                             aria-current={$watchlistFilters.state === 'watching' ? 'page' : undefined}
                             onclick={() => setWatchlistFilter('state', 'watching')}
                         >
@@ -146,7 +173,7 @@
                             class:border-accent={$watchlistFilters.state === 'plan_to_watch'}
                             class:border-transparent={$watchlistFilters.state !== 'plan_to_watch'}
                             class:text-foreground={$watchlistFilters.state === 'plan_to_watch'}
-                            class="inline-flex h-12 appearance-none items-center border-0 border-b-2 bg-transparent text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            class="inline-flex h-12 appearance-none items-center border-0 border-b-2 bg-transparent text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
                             aria-current={$watchlistFilters.state === 'plan_to_watch' ? 'page' : undefined}
                             onclick={() => setWatchlistFilter('state', 'plan_to_watch')}
                         >
@@ -159,7 +186,7 @@
                             class:border-accent={$watchlistFilters.state === 'completed'}
                             class:border-transparent={$watchlistFilters.state !== 'completed'}
                             class:text-foreground={$watchlistFilters.state === 'completed'}
-                            class="inline-flex h-12 appearance-none items-center border-0 border-b-2 bg-transparent text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            class="inline-flex h-12 appearance-none items-center border-0 border-b-2 bg-transparent text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
                             aria-current={$watchlistFilters.state === 'completed' ? 'page' : undefined}
                             onclick={() => setWatchlistFilter('state', 'completed')}
                         >
@@ -172,7 +199,7 @@
                             class:border-accent={$watchlistFilters.state === 'dropped'}
                             class:border-transparent={$watchlistFilters.state !== 'dropped'}
                             class:text-foreground={$watchlistFilters.state === 'dropped'}
-                            class="inline-flex h-12 appearance-none items-center border-0 border-b-2 bg-transparent text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                            class="inline-flex h-12 appearance-none items-center border-0 border-b-2 bg-transparent text-sm font-medium text-muted transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
                             aria-current={$watchlistFilters.state === 'dropped' ? 'page' : undefined}
                             onclick={() => setWatchlistFilter('state', 'dropped')}
                         >
@@ -183,7 +210,7 @@
             </nav>
 
             {#if data.totalEntries}
-                <Dropdown id="watchlist-filter" closeOnSelection={false}>
+                <Dropdown id="watchlist-filter">
                     {#snippet trigger(triggerProps)}
                         <Button
                             {...triggerProps}
@@ -206,228 +233,128 @@
                     {#snippet content(menuProps)}
                         <div
                             {...menuProps}
-                            role="group"
+                            role="menu"
                             aria-label={m.watchlist_filtering()}
-                            class="absolute top-full right-0 z-50 w-64 space-y-1 bg-panel py-2 shadow-xl"
+                            class="absolute top-full right-0 z-50 mt-2 w-64 bg-panel py-2 shadow-xl"
                         >
-                            <Dropdown id="watchlist-language">
-                                {#snippet trigger(triggerProps)}
-                                    <Button
-                                        {...triggerProps}
-                                        variant="unstyled"
-                                        class="flex min-h-11 w-full items-center justify-between px-5 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                    >
-                                        <span>{m.watchlist_language()}</span>
-                                        <span class="text-foreground">
-                                            {#if $watchlistFilters.language === 'sub'}
-                                                {m.watchlist_subtitled()}
-                                            {:else if $watchlistFilters.language === 'dub'}
-                                                {m.watchlist_dubbed()}
-                                            {:else}
-                                                {m.watchlist_all()}
-                                            {/if}
-                                        </span>
-                                    </Button>
-                                {/snippet}
-                                {#snippet content(menuProps)}
-                                    <div
-                                        {...menuProps}
-                                        role="menu"
-                                        aria-label={m.watchlist_language()}
-                                        class="absolute top-full left-0 z-50 mt-1 w-56 bg-panel py-2 shadow-xl"
-                                    >
-                                        <button
-                                            type="button"
-                                            role="menuitemradio"
-                                            aria-checked={$watchlistFilters.language === 'all'}
-                                            class:text-foreground={$watchlistFilters.language === 'all'}
-                                            class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                            onclick={() => setWatchlistFilter('language', 'all')}
-                                        >
+                            {#if filterView === 'main'}
+                                <Button
+                                    variant="unstyled"
+                                    type="button"
+                                    role="menuitem"
+                                    aria-haspopup="menu"
+                                    aria-expanded="false"
+                                    class="flex min-h-11 w-full items-center justify-between px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    onclick={(event) => {
+                                        event.stopPropagation();
+                                        filterView = 'type';
+                                    }}
+                                >
+                                    <span>{m.watchlist_type()}</span>
+                                    <span class="flex items-center gap-1 text-foreground">
+                                        {#if $watchlistFilters.type === 'all'}
                                             {m.watchlist_all()}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitemradio"
-                                            aria-checked={$watchlistFilters.language === 'sub'}
-                                            class:text-foreground={$watchlistFilters.language === 'sub'}
-                                            class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                            onclick={() => setWatchlistFilter('language', 'sub')}
-                                        >
-                                            {m.watchlist_subtitled()}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitemradio"
-                                            aria-checked={$watchlistFilters.language === 'dub'}
-                                            class:text-foreground={$watchlistFilters.language === 'dub'}
-                                            class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                            onclick={() => setWatchlistFilter('language', 'dub')}
-                                        >
-                                            {m.watchlist_dubbed()}
-                                        </button>
-                                    </div>
-                                {/snippet}
-                            </Dropdown>
-
-                            <Dropdown id="watchlist-media">
-                                {#snippet trigger(triggerProps)}
-                                    <Button
-                                        {...triggerProps}
-                                        variant="unstyled"
-                                        class="flex min-h-11 w-full items-center justify-between px-5 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                    >
-                                        <span>{m.watchlist_media()}</span>
-                                        <span class="text-foreground">
-                                            {#if $watchlistFilters.media === 'series'}
-                                                {m.watchlist_series()}
-                                            {:else if $watchlistFilters.media === 'movie'}
-                                                {m.watchlist_movies()}
-                                            {:else}
-                                                {m.watchlist_all()}
-                                            {/if}
-                                        </span>
-                                    </Button>
-                                {/snippet}
-                                {#snippet content(menuProps)}
-                                    <div
-                                        {...menuProps}
-                                        role="menu"
-                                        aria-label={m.watchlist_media()}
-                                        class="absolute top-full left-0 z-50 mt-1 w-56 bg-panel py-2 shadow-xl"
-                                    >
-                                        <button
-                                            type="button"
-                                            role="menuitemradio"
-                                            aria-checked={$watchlistFilters.media === 'all'}
-                                            class:text-foreground={$watchlistFilters.media === 'all'}
-                                            class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                            onclick={() => setWatchlistFilter('media', 'all')}
-                                        >
-                                            {m.watchlist_all()}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitemradio"
-                                            aria-checked={$watchlistFilters.media === 'series'}
-                                            class:text-foreground={$watchlistFilters.media === 'series'}
-                                            class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                            onclick={() => setWatchlistFilter('media', 'series')}
-                                        >
-                                            {m.watchlist_series()}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitemradio"
-                                            aria-checked={$watchlistFilters.media === 'movie'}
-                                            class:text-foreground={$watchlistFilters.media === 'movie'}
-                                            class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                            onclick={() => setWatchlistFilter('media', 'movie')}
-                                        >
-                                            {m.watchlist_movies()}
-                                        </button>
-                                    </div>
-                                {/snippet}
-                            </Dropdown>
-
-                            <Dropdown id="watchlist-type">
-                                {#snippet trigger(triggerProps)}
-                                    <Button
-                                        {...triggerProps}
-                                        variant="unstyled"
-                                        class="flex min-h-11 w-full items-center justify-between px-5 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                    >
-                                        <span>{m.watchlist_type()}</span>
-                                        <span class="text-foreground">
-                                            {#if $watchlistFilters.type === 'airing'}
-                                                {m.watchlist_airing()}
-                                            {:else if $watchlistFilters.type === 'finished'}
-                                                {m.watchlist_finished()}
-                                            {:else if $watchlistFilters.type === 'not_yet_released'}
-                                                {m.watchlist_not_released()}
-                                            {:else if $watchlistFilters.type === 'cancelled'}
-                                                {m.watchlist_cancelled()}
-                                            {:else if $watchlistFilters.type === 'hiatus'}
-                                                {m.watchlist_hiatus()}
-                                            {:else}
-                                                {m.watchlist_all()}
-                                            {/if}
-                                        </span>
-                                    </Button>
-                                {/snippet}
-                                {#snippet content(menuProps)}
-                                    <div
-                                        {...menuProps}
-                                        role="menu"
-                                        aria-label={m.watchlist_type()}
-                                        class="absolute top-full left-0 z-50 mt-1 w-56 bg-panel py-2 shadow-xl"
-                                    >
-                                        <button
-                                            type="button"
-                                            role="menuitemradio"
-                                            aria-checked={$watchlistFilters.type === 'all'}
-                                            class:text-foreground={$watchlistFilters.type === 'all'}
-                                            class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                            onclick={() => setWatchlistFilter('type', 'all')}
-                                        >
-                                            {m.watchlist_all()}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitemradio"
-                                            aria-checked={$watchlistFilters.type === 'airing'}
-                                            class:text-foreground={$watchlistFilters.type === 'airing'}
-                                            class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                            onclick={() => setWatchlistFilter('type', 'airing')}
-                                        >
+                                        {:else if $watchlistFilters.type === 'airing'}
                                             {m.watchlist_airing()}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitemradio"
-                                            aria-checked={$watchlistFilters.type === 'finished'}
-                                            class:text-foreground={$watchlistFilters.type === 'finished'}
-                                            class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                            onclick={() => setWatchlistFilter('type', 'finished')}
-                                        >
+                                        {:else if $watchlistFilters.type === 'finished'}
                                             {m.watchlist_finished()}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitemradio"
-                                            aria-checked={$watchlistFilters.type === 'not_yet_released'}
-                                            class:text-foreground={$watchlistFilters.type === 'not_yet_released'}
-                                            class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                            onclick={() => setWatchlistFilter('type', 'not_yet_released')}
-                                        >
+                                        {:else if $watchlistFilters.type === 'not_yet_released'}
                                             {m.watchlist_not_released()}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitemradio"
-                                            aria-checked={$watchlistFilters.type === 'cancelled'}
-                                            class:text-foreground={$watchlistFilters.type === 'cancelled'}
-                                            class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                            onclick={() => setWatchlistFilter('type', 'cancelled')}
-                                        >
+                                        {:else if $watchlistFilters.type === 'cancelled'}
                                             {m.watchlist_cancelled()}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            role="menuitemradio"
-                                            aria-checked={$watchlistFilters.type === 'hiatus'}
-                                            class:text-foreground={$watchlistFilters.type === 'hiatus'}
-                                            class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                            onclick={() => setWatchlistFilter('type', 'hiatus')}
-                                        >
+                                        {:else}
                                             {m.watchlist_hiatus()}
-                                        </button>
-                                    </div>
-                                {/snippet}
-                            </Dropdown>
+                                        {/if}
+                                        <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                                    </span>
+                                </Button>
+
+                                <div role="group" aria-label={m.watchlist_language()}>
+                                    <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
+                                        {m.watchlist_language()}
+                                    </p>
+                                    {@render menuOption(
+                                        $watchlistFilters.language === 'all',
+                                        m.watchlist_all(),
+                                        () => setWatchlistFilter('language', 'all')
+                                    )}
+                                    {@render menuOption(
+                                        $watchlistFilters.language === 'sub',
+                                        m.watchlist_subtitled(),
+                                        () => setWatchlistFilter('language', 'sub')
+                                    )}
+                                    {@render menuOption(
+                                        $watchlistFilters.language === 'dub',
+                                        m.watchlist_dubbed(),
+                                        () => setWatchlistFilter('language', 'dub')
+                                    )}
+                                </div>
+
+                                <div role="group" aria-label={m.watchlist_media()}>
+                                    <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
+                                        {m.watchlist_media()}
+                                    </p>
+                                    {@render menuOption($watchlistFilters.media === 'all', m.watchlist_all(), () =>
+                                        setWatchlistFilter('media', 'all')
+                                    )}
+                                    {@render menuOption(
+                                        $watchlistFilters.media === 'series',
+                                        m.watchlist_series(),
+                                        () => setWatchlistFilter('media', 'series')
+                                    )}
+                                    {@render menuOption(
+                                        $watchlistFilters.media === 'movie',
+                                        m.watchlist_movies(),
+                                        () => setWatchlistFilter('media', 'movie')
+                                    )}
+                                </div>
+                            {:else}
+                                <Button
+                                    variant="unstyled"
+                                    type="button"
+                                    role="menuitem"
+                                    class="flex min-h-11 w-full items-center gap-2 px-5 text-left text-xs font-bold text-foreground uppercase hover:bg-panel-hover focus:bg-panel-hover focus:outline-none"
+                                    onclick={(event) => {
+                                        event.stopPropagation();
+                                        filterView = 'main';
+                                    }}
+                                >
+                                    <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
+                                    {m.watchlist_type()}
+                                </Button>
+                                {@render menuOption($watchlistFilters.type === 'all', m.watchlist_all(), () =>
+                                    setWatchlistFilter('type', 'all')
+                                )}
+                                {@render menuOption(
+                                    $watchlistFilters.type === 'airing',
+                                    m.watchlist_airing(),
+                                    () => setWatchlistFilter('type', 'airing')
+                                )}
+                                {@render menuOption(
+                                    $watchlistFilters.type === 'finished',
+                                    m.watchlist_finished(),
+                                    () => setWatchlistFilter('type', 'finished')
+                                )}
+                                {@render menuOption(
+                                    $watchlistFilters.type === 'not_yet_released',
+                                    m.watchlist_not_released(),
+                                    () => setWatchlistFilter('type', 'not_yet_released')
+                                )}
+                                {@render menuOption(
+                                    $watchlistFilters.type === 'cancelled',
+                                    m.watchlist_cancelled(),
+                                    () => setWatchlistFilter('type', 'cancelled')
+                                )}
+                                {@render menuOption(
+                                    $watchlistFilters.type === 'hiatus',
+                                    m.watchlist_hiatus(),
+                                    () => setWatchlistFilter('type', 'hiatus')
+                                )}
+                            {/if}
                         </div>
                     {/snippet}
                 </Dropdown>
+
                 <Dropdown id="watchlist-sort">
                     {#snippet trigger(triggerProps)}
                         <Button
@@ -457,62 +384,35 @@
                             class="absolute top-full right-0 z-50 mt-2 w-56 bg-panel py-2 shadow-xl"
                         >
                             <div role="group" aria-label={m.watchlist_sorting()}>
-                                <button
-                                    type="button"
-                                    role="menuitemradio"
-                                    aria-checked={$watchlistFilters.sort === 'updated'}
-                                    class:text-foreground={$watchlistFilters.sort === 'updated'}
-                                    class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                    onclick={() => setWatchlistFilter('sort', 'updated')}
-                                >
-                                    {m.watchlist_updated()}
-                                </button>
-                                <button
-                                    type="button"
-                                    role="menuitemradio"
-                                    aria-checked={$watchlistFilters.sort === 'added'}
-                                    class:text-foreground={$watchlistFilters.sort === 'added'}
-                                    class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                    onclick={() => setWatchlistFilter('sort', 'added')}
-                                >
-                                    {m.watchlist_added()}
-                                </button>
-                                <button
-                                    type="button"
-                                    role="menuitemradio"
-                                    aria-checked={$watchlistFilters.sort === 'alphabetical'}
-                                    class:text-foreground={$watchlistFilters.sort === 'alphabetical'}
-                                    class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                    onclick={() => setWatchlistFilter('sort', 'alphabetical')}
-                                >
-                                    {m.watchlist_alphabetical()}
-                                </button>
+                                {@render menuOption(
+                                    $watchlistFilters.sort === 'updated',
+                                    m.watchlist_updated(),
+                                    () => setWatchlistFilter('sort', 'updated')
+                                )}
+                                {@render menuOption($watchlistFilters.sort === 'added', m.watchlist_added(), () =>
+                                    setWatchlistFilter('sort', 'added')
+                                )}
+                                {@render menuOption(
+                                    $watchlistFilters.sort === 'alphabetical',
+                                    m.watchlist_alphabetical(),
+                                    () => setWatchlistFilter('sort', 'alphabetical')
+                                )}
                             </div>
 
                             <div role="group" aria-label={m.watchlist_sort_order()}>
                                 <p class="px-5 pt-5 pb-2 text-xs font-bold text-foreground uppercase">
                                     {m.watchlist_sort_order()}
                                 </p>
-                                <button
-                                    type="button"
-                                    role="menuitemradio"
-                                    aria-checked={$watchlistFilters.order === 'newest'}
-                                    class:text-foreground={$watchlistFilters.order === 'newest'}
-                                    class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                    onclick={() => setWatchlistFilter('order', 'newest')}
-                                >
-                                    {m.watchlist_newest()}
-                                </button>
-                                <button
-                                    type="button"
-                                    role="menuitemradio"
-                                    aria-checked={$watchlistFilters.order === 'oldest'}
-                                    class:text-foreground={$watchlistFilters.order === 'oldest'}
-                                    class="flex min-h-11 w-full appearance-none items-center border-0 bg-transparent px-5 text-left text-sm text-muted hover:bg-panel-hover focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                    onclick={() => setWatchlistFilter('order', 'oldest')}
-                                >
-                                    {m.watchlist_oldest()}
-                                </button>
+                                {@render menuOption(
+                                    $watchlistFilters.order === 'newest',
+                                    m.watchlist_newest(),
+                                    () => setWatchlistFilter('order', 'newest')
+                                )}
+                                {@render menuOption(
+                                    $watchlistFilters.order === 'oldest',
+                                    m.watchlist_oldest(),
+                                    () => setWatchlistFilter('order', 'oldest')
+                                )}
                             </div>
                         </div>
                     {/snippet}
