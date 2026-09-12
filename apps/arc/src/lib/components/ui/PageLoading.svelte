@@ -1,5 +1,5 @@
 <script lang="ts">
-    import LoadingSpinner from './LoadingSpinner.svelte';
+    import Spinner from './Spinner.svelte';
 
     interface Props {
         label: string;
@@ -14,5 +14,5 @@
     aria-live="polite"
 >
     <span class="sr-only">{label}</span>
-    <LoadingSpinner size="2.25rem" />
+    <Spinner size="2.25rem" />
 </main>

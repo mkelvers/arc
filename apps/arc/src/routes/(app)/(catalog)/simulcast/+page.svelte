@@ -8,7 +8,7 @@
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
-    import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
+    import Spinner from '$lib/components/ui/Spinner.svelte';
     import { m } from '$lib/i18n.svelte';
     import type { PageProps } from './$types';
 
@@ -199,7 +199,7 @@
         {#if nextPage !== null}
             <div bind:this={sentinel} class="flex min-h-24 items-center justify-center" aria-live="polite">
                 {#if loading}
-                    <LoadingSpinner label={m.simulcast_loading()} />
+                    <Spinner label={m.simulcast_loading()} />
                 {:else}
                     <span class="sr-only">{m.simulcast_auto_loading()}</span>
                 {/if}

@@ -3,7 +3,7 @@
     import type { AnimeEpisode } from '@arc/core/client';
     import type { Sources } from '$lib/player/media';
     import { preferManualSkipTimes, type EpisodeSkipTimes, type SegmentTemplates } from '@arc/core/client';
-    import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
+    import Spinner from '$lib/components/ui/Spinner.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
     import VideoPlayer from '$lib/components/VideoPlayer.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -236,6 +236,6 @@
                 imageClass="scale-105 blur-xl"
             />
         {/if}
-        <LoadingSpinner size="2.5rem" class="relative animate-spin text-accent" label={m.player_loading_video()} />
+        <Spinner size="2.5rem" class="relative animate-spin text-accent" label={m.player_loading_video()} />
     </section>
 {/if}

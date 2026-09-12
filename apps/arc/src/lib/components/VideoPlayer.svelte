@@ -8,7 +8,7 @@
     import { beforeNavigate } from '$app/navigation';
     import { onMount, untrack } from 'svelte';
     import { CaretLeftIcon } from 'phosphor-svelte';
-    import LoadingSpinner from '$lib/components/ui/LoadingSpinner.svelte';
+    import Spinner from '$lib/components/ui/Spinner.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
     import Controls from './player/Controls.svelte';
     import Modal from './ui/Modal.svelte';
@@ -358,7 +358,7 @@
             aria-label={m.player_loading_next()}
             class="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-black/80"
         >
-            <LoadingSpinner size="2.5rem" />
+            <Spinner size="2.5rem" />
         </div>
     {:else if unavailable}
         <div role="alert" class="absolute inset-0 z-20 grid place-items-center bg-black px-6 text-center">
@@ -384,7 +384,7 @@
             aria-label={m.player_loading_video()}
             class="pointer-events-none absolute inset-0 grid place-items-center bg-black/40"
         >
-            <LoadingSpinner size="2.5rem" />
+            <Spinner size="2.5rem" />
         </div>
     {/if}
 
