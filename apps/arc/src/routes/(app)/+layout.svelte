@@ -22,18 +22,6 @@
     import type { LayoutProps } from './$types';
 
     let { data, children }: LayoutProps = $props();
-    let navigationLoading = $state(false);
-    let mobileCategoriesOpen = $state(false);
-
-    $effect(() => {
-        if (!navigating.to) {
-            navigationLoading = false;
-            return;
-        }
-
-        const timeout = setTimeout(() => (navigationLoading = true), 120);
-        return () => clearTimeout(timeout);
-    });
 
     async function signOut() {
         await authClient.signOut({
@@ -313,41 +301,34 @@
                             </a>
                         </nav>
 
-                        <div class="bg-header-hover">
-                            <Button
-                                variant="unstyled"
-                                type="button"
-                                class="flex min-h-12 w-full items-center justify-between px-5 text-left text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                aria-expanded={mobileCategoriesOpen}
-                                aria-controls="mobile-navigation-categories"
-                                onclick={() => (mobileCategoriesOpen = !mobileCategoriesOpen)}
+                        <details class="group bg-header-hover">
+                            <summary
+                                class="flex min-h-12 w-full cursor-pointer list-none items-center justify-between px-5 text-left text-base text-muted transition-colors hover:bg-panel-hover focus:bg-panel-hover focus:text-foreground focus:outline-none [&::-webkit-details-marker]:hidden"
                             >
                                 <span>Categories</span>
                                 <CaretDownIcon
                                     size={18}
                                     weight="bold"
-                                    class={mobileCategoriesOpen ? 'rotate-180' : ''}
+                                    class="transition-transform group-open:rotate-180"
                                     aria-hidden="true"
                                 />
-                            </Button>
-                            {#if mobileCategoriesOpen}
-                                <nav
-                                    id="mobile-navigation-categories"
-                                    class="bg-panel-strong px-3 py-2"
-                                    aria-label="Categories"
-                                    data-dropdown-close
-                                >
-                                    {#each data.genres as genre}
-                                        <a
-                                            href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
-                                            class="block px-5 py-2.5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                        >
-                                            {genre}
-                                        </a>
-                                    {/each}
-                                </nav>
-                            {/if}
-                        </div>
+                            </summary>
+                            <nav
+                                id="mobile-navigation-categories"
+                                class="bg-panel-strong px-3 py-2"
+                                aria-label="Categories"
+                                data-dropdown-close
+                            >
+                                {#each data.genres as genre}
+                                    <a
+                                        href={`/category/${genre.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`}
+                                        class="block px-5 py-2.5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                                    >
+                                        {genre}
+                                    </a>
+                                {/each}
+                            </nav>
+                        </details>
 
                         {#if data.account}
                             <Button
@@ -415,7 +396,7 @@
 </header>
 
 <div id="main-content" class="pt-14" tabindex="-1">
-    {#if navigationLoading}
+    {#if navigating.to}
         <PageLoading label={m.navigation_loading()} />
     {:else}
         {@render children()}
