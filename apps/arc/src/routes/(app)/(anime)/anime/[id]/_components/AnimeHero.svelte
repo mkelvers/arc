@@ -40,7 +40,7 @@
         {/if}
 
         <div
-            class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end font-bold sm:mt-5 sm:mr-8 lg:mr-12"
+            class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end leading-none font-bold sm:mt-5 sm:mr-8 lg:mr-12"
         >
             <Dropdown id="more-options">
                 {#snippet trigger(triggerProps)}
@@ -48,7 +48,7 @@
                         {...triggerProps}
                         variant="unstyled"
                         aria-label={m.anime_more()}
-                        class="appearance-none p-0"
+                        class="appearance-none px-3 py-0 transition-colors hover:bg-panel data-[state=open]:bg-panel"
                     >
                         <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
                             <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true" />
@@ -57,7 +57,12 @@
                     </Button>
                 {/snippet}
                 {#snippet content(menuProps)}
-                    <div {...menuProps} role="menu" aria-label={m.anime_more()} class="w-56 bg-panel py-2">
+                    <div
+                        {...menuProps}
+                        role="menu"
+                        aria-label={m.anime_more()}
+                        class="absolute top-full right-0 z-50 w-56 bg-panel py-2"
+                    >
                         <a
                             role="menuitem"
                             href={`/anime/${anime.id}/media`}
