@@ -79,6 +79,8 @@
                             imageClass="object-top"
                             loading={isActive ? 'eager' : 'lazy'}
                             fetchpriority={isActive ? 'high' : 'low'}
+                            displaySize="w1280"
+                            sizes="100vw"
                             onready={() => {
                                 ready.backdrops = new Set(ready.backdrops).add(anime.id);
                             }}
