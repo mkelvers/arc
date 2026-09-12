@@ -39,21 +39,14 @@
     let open = $state(false);
     let root = $state<HTMLDivElement>();
 
-    function menuElement() {
-        return root?.querySelector<HTMLElement>('[data-dropdown-menu]');
-    }
-
     function focusableMenuElements() {
         return Array.from(
-            menuElement()?.querySelectorAll<HTMLElement>(
-                'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
-            ) ?? []
+            root
+                ?.querySelector<HTMLElement>('[data-dropdown-menu]')
+                ?.querySelectorAll<HTMLElement>(
+                    'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'
+                ) ?? []
         );
-    }
-
-    async function focusFirstMenuItem() {
-        await tick();
-        focusableMenuElements()[0]?.focus();
     }
 
     function close() {
@@ -79,7 +72,7 @@
 
         open = true;
         if (event.detail === 0) {
-            void focusFirstMenuItem();
+            void tick().then(() => focusableMenuElements()[0]?.focus());
         }
     }
 
@@ -107,7 +100,7 @@
         if (modal && event.key === 'Tab') {
             if (!elements.length) {
                 event.preventDefault();
-                menuElement()?.focus();
+                root?.querySelector<HTMLElement>('[data-dropdown-menu]')?.focus();
                 return;
             }
 
@@ -122,23 +115,6 @@
             elements[nextIndex]?.focus();
             return;
         }
-
-        if (!elements.length) {
-            return;
-        }
-
-        if (event.key === 'ArrowDown' || event.key === 'ArrowUp' || event.key === 'Home' || event.key === 'End') {
-            event.preventDefault();
-            const nextIndex =
-                event.key === 'Home'
-                    ? 0
-                    : event.key === 'End'
-                      ? elements.length - 1
-                      : event.key === 'ArrowDown'
-                        ? (currentIndex + 1) % elements.length
-                        : (currentIndex - 1 + elements.length) % elements.length;
-            elements[nextIndex]?.focus();
-        }
     }
 
     $effect(() => {
@@ -147,26 +123,29 @@
         }
 
         void tick().then(() => {
-            menuElement()?.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView({
+            root?.querySelector<HTMLElement>('[data-dropdown-menu] [aria-current="page"]')?.scrollIntoView({
                 block: 'nearest',
             });
         });
     });
 
-    function handleOutsidePointer(event: PointerEvent) {
-        if (open && event.target instanceof Node && root && !root.contains(event.target)) {
-            close();
+    function closeOnWindowEvent(event: PointerEvent | KeyboardEvent) {
+        if (!open) {
+            return;
         }
-    }
 
-    function closeOnWindowEscape(event: KeyboardEvent) {
-        if (open && event.key === 'Escape') {
+        const shouldClose =
+            event instanceof KeyboardEvent
+                ? event.key === 'Escape'
+                : event.target instanceof Node && root !== undefined && !root.contains(event.target);
+
+        if (shouldClose) {
             close();
         }
     }
 </script>
 
-<svelte:window onpointerdown={handleOutsidePointer} onkeydown={closeOnWindowEscape} />
+<svelte:window onpointerdown={closeOnWindowEvent} onkeydown={closeOnWindowEvent} />
 <svelte:body class:overflow-hidden={open && modal} />
 
 <div bind:this={root} class="dropdown relative" role="group">
