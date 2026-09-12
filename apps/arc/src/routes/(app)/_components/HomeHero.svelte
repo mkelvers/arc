@@ -77,10 +77,9 @@
                             alt={isActive ? anime.title : ''}
                             class="col-start-1 row-start-1"
                             imageClass="object-top"
-                            loading={isActive ? 'eager' : 'lazy'}
+                            loading="lazy"
+                            previewLoading={isActive ? 'eager' : 'lazy'}
                             fetchpriority={isActive ? 'high' : 'low'}
-                            displaySize="w1280"
-                            sizes="100vw"
                             onready={() => {
                                 ready.backdrops = new Set(ready.backdrops).add(anime.id);
                             }}

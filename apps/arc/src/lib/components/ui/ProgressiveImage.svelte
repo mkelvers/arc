@@ -7,6 +7,7 @@
         class?: string;
         imageClass?: string;
         loading?: 'eager' | 'lazy';
+        previewLoading?: 'eager' | 'lazy';
         fetchpriority?: 'high' | 'low' | 'auto';
         displaySize?: 'w342' | 'w500' | 'w780' | 'w1280';
         sizes?: string;
@@ -20,6 +21,7 @@
         class: className,
         imageClass,
         loading = 'lazy',
+        previewLoading = loading,
         fetchpriority = 'auto',
         displaySize,
         sizes,
@@ -85,7 +87,7 @@
                 src={previewSrc}
                 alt=""
                 class={cn('size-full scale-110 object-cover blur-xl', imageClass)}
-                loading={loading}
+                loading={previewLoading}
                 decoding="async"
                 aria-hidden="true"
                 onload={(event) => {
