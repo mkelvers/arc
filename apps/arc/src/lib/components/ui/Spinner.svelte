@@ -18,4 +18,4 @@
     role={label ? 'status' : undefined}
     aria-label={label}
     aria-hidden={label ? undefined : 'true'}
-/>
+></CircleNotchIcon>

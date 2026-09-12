@@ -16,12 +16,19 @@
 
 <svelte:head>
     <link rel="icon" href={favicon} type="image/svg+xml" />
+
     <meta name="robots" content="noindex, nofollow" />
+
     <meta property="og:site_name" content="Arc" />
+
     <meta property="og:type" content="website" />
+
     <meta property="og:url" content={data.canonical} />
+
     <meta property="og:title" content="Arc — Watch anime" />
+
     <meta property="og:description" content="Watch anime on Arc." />
+
     <meta name="twitter:card" content="summary" />
 </svelte:head>
 

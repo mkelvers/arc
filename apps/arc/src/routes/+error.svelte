@@ -13,6 +13,7 @@
 <svelte:head>
     <title>Arc — {heading}</title>
     <meta name="description" content={description} />
+
     <meta name="robots" content="noindex" />
 </svelte:head>
 
@@ -26,7 +27,7 @@
             aria-label={m.nav_home()}
             class="focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-accent"
         >
-            <Logo alt="Arc" class="h-9" />
+            <Logo alt="Arc" class="h-9"></Logo>
         </a>
     </header>
 
@@ -38,6 +39,7 @@
             height="1254"
             class="mb-4 h-auto w-56 object-contain sm:w-72"
         />
+
         <h1 id="error-title" class="text-4xl leading-tight font-normal tracking-tight sm:text-6xl">
             {heading}
         </h1>

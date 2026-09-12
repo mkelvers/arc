@@ -55,7 +55,7 @@
         <div class="flex min-h-28 gap-3 p-2">
             <CardMedia aspect="poster" class="h-24 shrink-0">
                 {#if anime.image}
-                    <ProgressiveImage src={anime.image} alt="" displaySize="w342" sizes="6rem" />
+                    <ProgressiveImage src={anime.image} alt="" displaySize="w342" sizes="6rem"></ProgressiveImage>
                 {/if}
             </CardMedia>
             <div class="pointer-events-none relative z-10 flex min-w-0 flex-1 flex-col py-1">
@@ -79,7 +79,7 @@
                         {#if anime.score}
                             <p class="flex items-center gap-1 text-sm text-muted">
                                 <span>{anime.score}%</span>
-                                <StarIcon size="1em" weight="fill" aria-hidden="true" />
+                                <StarIcon size="1em" weight="fill" aria-hidden="true"></StarIcon>
                                 <span class="sr-only">{m.shared_anilist_score()}</span>
                             </p>
                         {/if}
@@ -91,10 +91,11 @@
                                     aria-label={m.shared_start_watching({ title: anime.title })}
                                     onclick={onselect}
                                 >
-                                    <PlayIcon size="1.45rem" weight="bold" aria-hidden="true" />
+                                    <PlayIcon size="1.45rem" weight="bold" aria-hidden="true"></PlayIcon>
                                 </a>
                             </Tooltip>
-                            <WatchlistBookmark animeId={anime.id} title={anime.title} iconSize="1.45rem" />
+                            <WatchlistBookmark animeId={anime.id} title={anime.title} iconSize="1.45rem"
+                            ></WatchlistBookmark>
                         </div>
                     </div>
                 {/if}
@@ -117,7 +118,7 @@
                             alt=""
                             displaySize="w780"
                             sizes="(min-width: 1024px) 18rem, 75vw"
-                        />
+                        ></ProgressiveImage>
                     {/if}
                 </CardMedia>
                 <h3 class="mt-3 line-clamp-2 min-h-10 text-sm leading-snug font-semibold">{anime.title}</h3>
@@ -134,7 +135,7 @@
                 {#if anime.score}
                     <p class="mt-2.5 flex items-center gap-1 text-sm text-muted">
                         <span>{anime.score}%</span>
-                        <StarIcon size="1em" weight="fill" aria-hidden="true" />
+                        <StarIcon size="1em" weight="fill" aria-hidden="true"></StarIcon>
                         <span class="sr-only">{m.shared_anilist_score()}</span>
                     </p>
                 {/if}
@@ -158,9 +159,9 @@
                             aria-label={m.shared_start_watching({ title: anime.title })}
                             onclick={onselect}
                         >
-                            <PlayIcon size="1.55rem" weight="bold" aria-hidden="true" />
+                            <PlayIcon size="1.55rem" weight="bold" aria-hidden="true"></PlayIcon>
                         </a>
-                    </Tooltip><WatchlistBookmark animeId={anime.id} title={anime.title} />
+                    </Tooltip><WatchlistBookmark animeId={anime.id} title={anime.title}></WatchlistBookmark>
                 </div>
             {/if}
         </div>
@@ -180,7 +181,7 @@
                         alt=""
                         displaySize="w500"
                         sizes="(min-width: 1024px) 10rem, 45vw"
-                    />
+                    ></ProgressiveImage>
                 </CardMedia>
                 <h3
                     class:min-h-10={!compact && reserveTitleSpace}
@@ -204,7 +205,7 @@
                 displaySize="w500"
                 sizes="(min-width: 1024px) 10rem, 45vw"
                 class="pointer-events-none absolute -inset-2 size-auto opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
-            />
+            ></ProgressiveImage>
         {/if}
         <div
             class="pointer-events-none absolute -inset-2 flex flex-col bg-header-hover/95 p-4 pt-6 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
@@ -216,7 +217,7 @@
                 {#if anime.score}
                     <p class="mt-3 flex items-center gap-1 text-sm text-muted">
                         <span>{anime.score}%</span>
-                        <StarIcon size="1em" weight="fill" aria-hidden="true" />
+                        <StarIcon size="1em" weight="fill" aria-hidden="true"></StarIcon>
                         <span class="sr-only">{m.shared_anilist_score()}</span>
                     </p>
                 {/if}
@@ -240,9 +241,9 @@
                             aria-label={m.shared_start_watching({ title: anime.title })}
                             onclick={onselect}
                         >
-                            <PlayIcon size="1.55rem" weight="bold" aria-hidden="true" />
+                            <PlayIcon size="1.55rem" weight="bold" aria-hidden="true"></PlayIcon>
                         </a>
-                    </Tooltip><WatchlistBookmark animeId={anime.id} title={anime.title} />
+                    </Tooltip><WatchlistBookmark animeId={anime.id} title={anime.title}></WatchlistBookmark>
                 </div>
             {/if}
         </div>

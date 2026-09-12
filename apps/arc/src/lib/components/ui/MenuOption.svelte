@@ -18,9 +18,10 @@
     class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
 >
     {#if selected}
-        <RadioButtonIcon size="1.25rem" weight="fill" class="text-input-accent" aria-hidden="true" />
+        <RadioButtonIcon size="1.25rem" weight="fill" class="text-input-accent" aria-hidden="true"
+        ></RadioButtonIcon>
     {:else}
-        <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
+        <CircleIcon size="1.25rem" weight="regular" aria-hidden="true"></CircleIcon>
     {/if}
     {label}
 </a>

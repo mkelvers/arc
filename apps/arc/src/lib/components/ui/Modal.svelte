@@ -75,7 +75,7 @@
             aria-label={m.shared_close_menu()}
             onclick={close}
         >
-            <XIcon size="1.75rem" weight="bold" aria-hidden="true" />
+            <XIcon size="1.75rem" weight="bold" aria-hidden="true"></XIcon>
         </Button>
     </header>
 

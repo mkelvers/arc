@@ -19,4 +19,4 @@
     loadedAt={data.loadedAt}
     filters={data.filters}
     paginationStrategy="gated"
-/>
+></CatalogListing>

@@ -29,5 +29,5 @@
         startAt={data.startAt}
         progressEventAt={data.progressEventAt}
         segments={data.segments}
-    />
+    ></WatchPlayer>
 </main>

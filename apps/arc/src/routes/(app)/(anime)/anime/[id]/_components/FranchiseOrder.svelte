@@ -94,9 +94,9 @@
                     aria-label={`${m.franchise_filters()}: ${selectedFilterLabel}`}
                     class="appearance-none p-0 flex min-h-9 cursor-pointer items-center justify-start gap-2 px-2 text-left text-xs font-semibold text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
                 >
-                    <ListBulletsIcon size="1rem" weight="bold" aria-hidden="true" />
+                    <ListBulletsIcon size="1rem" weight="bold" aria-hidden="true"></ListBulletsIcon>
                     <span>{selectedFilterLabel}</span>
-                    <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
+                    <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true"></CaretDownIcon>
                 </Button>
             {/snippet}
 
@@ -137,7 +137,7 @@
             >
                 {#each visibleEntries as entry}
                     <div class="min-w-0 snap-start">
-                        <AnimeCard anime={entry} current={entry.anilistId === currentAnimeId} />
+                        <AnimeCard anime={entry} current={entry.anilistId === currentAnimeId}></AnimeCard>
                     </div>
                 {/each}
             </div>
@@ -150,7 +150,7 @@
                     aria-label={m.shared_franchise_previous()}
                     onclick={() => scrollByPage(-1)}
                 >
-                    <CaretLeftIcon size="1.75rem" weight="bold" aria-hidden="true" />
+                    <CaretLeftIcon size="1.75rem" weight="bold" aria-hidden="true"></CaretLeftIcon>
                 </Button>
             {/if}
 
@@ -162,7 +162,7 @@
                     aria-label={m.shared_franchise_next()}
                     onclick={() => scrollByPage(1)}
                 >
-                    <CaretRightIcon size="1.75rem" weight="bold" aria-hidden="true" />
+                    <CaretRightIcon size="1.75rem" weight="bold" aria-hidden="true"></CaretRightIcon>
                 </Button>
             {/if}
         </div>

@@ -78,7 +78,7 @@
                 maxlength: 254,
             }}
             bind:value={email}
-        />
+        ></AuthInput>
         <AuthInput
             name="username"
             label={m.auth_username()}
@@ -92,7 +92,7 @@
                 pattern: '[A-Za-z0-9_]+',
             }}
             bind:value={username}
-        />
+        ></AuthInput>
         <AuthInput
             name="password"
             label={m.auth_password()}
@@ -104,7 +104,7 @@
                 maxlength: 128,
             }}
             bind:value={password}
-        />
+        ></AuthInput>
         <AuthInput
             name="confirmPassword"
             label={m.auth_confirm_password()}
@@ -115,7 +115,7 @@
                 maxlength: 128,
             }}
             bind:value={confirmPassword}
-        />
+        ></AuthInput>
         <AuthInput
             name="invitationCode"
             label={m.auth_invitation_code()}
@@ -127,7 +127,7 @@
                 maxlength: 256,
             }}
             bind:value={invitationCode}
-        />
+        ></AuthInput>
     </div>
 
     <Button

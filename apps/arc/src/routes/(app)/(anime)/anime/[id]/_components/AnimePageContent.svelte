@@ -9,5 +9,5 @@
 </script>
 
 {#key data.anime.id}
-    <AnimePageView data={data} />
+    <AnimePageView data={data}></AnimePageView>
 {/key}

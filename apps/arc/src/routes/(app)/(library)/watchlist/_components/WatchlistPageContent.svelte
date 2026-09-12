@@ -61,7 +61,8 @@
                                     {m.watchlist_dropped()}
                                 {/if}
                             </span>
-                            <CaretDownIcon class="shrink-0" size="0.8rem" weight="bold" aria-hidden="true" />
+                            <CaretDownIcon class="shrink-0" size="0.8rem" weight="bold" aria-hidden="true"
+                            ></CaretDownIcon>
                         </Button>
                     {/snippet}
                     {#snippet content(menuProps)}
@@ -193,7 +194,7 @@
                             aria-label={m.watchlist_filtering()}
                             class="appearance-none p-0 mb-2 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
                         >
-                            <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
+                            <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true"></FunnelIcon>
                             <span class="hidden sm:inline">{m.watchlist_filter()}</span>
                             {#if data.selection.language !== 'all' || data.selection.media !== 'all' || data.selection.type !== 'all'}
                                 <span class="text-accent">
@@ -240,7 +241,8 @@
                                         {:else}
                                             {m.watchlist_hiatus()}
                                         {/if}
-                                        <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                                        <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true"
+                                        ></CaretRightIcon>
                                     </span>
                                 </Button>
 
@@ -252,17 +254,17 @@
                                         href={href({ language: 'all' })}
                                         selected={data.selection.language === 'all'}
                                         label={m.watchlist_all()}
-                                    />
+                                    ></MenuOption>
                                     <MenuOption
                                         href={href({ language: 'sub' })}
                                         selected={data.selection.language === 'sub'}
                                         label={m.watchlist_subtitled()}
-                                    />
+                                    ></MenuOption>
                                     <MenuOption
                                         href={href({ language: 'dub' })}
                                         selected={data.selection.language === 'dub'}
                                         label={m.watchlist_dubbed()}
-                                    />
+                                    ></MenuOption>
                                 </div>
 
                                 <div role="group" aria-label={m.watchlist_media()}>
@@ -273,17 +275,17 @@
                                         href={href({ media: 'all' })}
                                         selected={data.selection.media === 'all'}
                                         label={m.watchlist_all()}
-                                    />
+                                    ></MenuOption>
                                     <MenuOption
                                         href={href({ media: 'series' })}
                                         selected={data.selection.media === 'series'}
                                         label={m.watchlist_series()}
-                                    />
+                                    ></MenuOption>
                                     <MenuOption
                                         href={href({ media: 'movie' })}
                                         selected={data.selection.media === 'movie'}
                                         label={m.watchlist_movies()}
-                                    />
+                                    ></MenuOption>
                                 </div>
                             {:else}
                                 <Button
@@ -296,39 +298,39 @@
                                         filterView = 'main';
                                     }}
                                 >
-                                    <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
+                                    <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true"></CaretLeftIcon>
                                     {m.watchlist_type()}
                                 </Button>
                                 <MenuOption
                                     href={href({ type: 'all' })}
                                     selected={data.selection.type === 'all'}
                                     label={m.watchlist_all()}
-                                />
+                                ></MenuOption>
                                 <MenuOption
                                     href={href({ type: 'airing' })}
                                     selected={data.selection.type === 'airing'}
                                     label={m.watchlist_airing()}
-                                />
+                                ></MenuOption>
                                 <MenuOption
                                     href={href({ type: 'finished' })}
                                     selected={data.selection.type === 'finished'}
                                     label={m.watchlist_finished()}
-                                />
+                                ></MenuOption>
                                 <MenuOption
                                     href={href({ type: 'not_yet_released' })}
                                     selected={data.selection.type === 'not_yet_released'}
                                     label={m.watchlist_not_released()}
-                                />
+                                ></MenuOption>
                                 <MenuOption
                                     href={href({ type: 'cancelled' })}
                                     selected={data.selection.type === 'cancelled'}
                                     label={m.watchlist_cancelled()}
-                                />
+                                ></MenuOption>
                                 <MenuOption
                                     href={href({ type: 'hiatus' })}
                                     selected={data.selection.type === 'hiatus'}
                                     label={m.watchlist_hiatus()}
-                                />
+                                ></MenuOption>
                             {/if}
                         </div>
                     {/snippet}
@@ -341,7 +343,7 @@
                             aria-label={m.watchlist_sorting()}
                             class="appearance-none p-0 mb-2 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
                         >
-                            <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
+                            <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true"></ListBulletsIcon>
                             <span class="hidden sm:inline">
                                 {#if data.selection.sort === 'updated'}
                                     {m.watchlist_updated()}
@@ -366,17 +368,17 @@
                                     href={href({ sort: 'updated' })}
                                     selected={data.selection.sort === 'updated'}
                                     label={m.watchlist_updated()}
-                                />
+                                ></MenuOption>
                                 <MenuOption
                                     href={href({ sort: 'added' })}
                                     selected={data.selection.sort === 'added'}
                                     label={m.watchlist_added()}
-                                />
+                                ></MenuOption>
                                 <MenuOption
                                     href={href({ sort: 'alphabetical' })}
                                     selected={data.selection.sort === 'alphabetical'}
                                     label={m.watchlist_alphabetical()}
-                                />
+                                ></MenuOption>
                             </div>
 
                             <div role="group" aria-label={m.watchlist_sort_order()}>
@@ -387,12 +389,12 @@
                                     href={href({ order: 'newest' })}
                                     selected={data.selection.order === 'newest'}
                                     label={m.watchlist_newest()}
-                                />
+                                ></MenuOption>
                                 <MenuOption
                                     href={href({ order: 'oldest' })}
                                     selected={data.selection.order === 'oldest'}
                                     label={m.watchlist_oldest()}
-                                />
+                                ></MenuOption>
                             </div>
                         </div>
                     {/snippet}
@@ -454,9 +456,9 @@
                     >
                         {#each data.entries.filter((entry) => !watchlist.loaded || watchlist.state(entry.id)) as entry (entry.id)}
                             {#if entry.pendingMetadata}
-                                <WatchlistPendingCard anime={entry} />
+                                <WatchlistPendingCard anime={entry}></WatchlistPendingCard>
                             {:else}
-                                <AnimeCard anime={entry} />
+                                <AnimeCard anime={entry}></AnimeCard>
                             {/if}
                         {/each}
                     </div>

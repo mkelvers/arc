@@ -156,7 +156,7 @@
                 bind:ref={searchInput}
                 bind:value={query}
                 class="h-14 w-full min-w-0 max-w-full appearance-none rounded-none border-0 border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none ring-0 placeholder:text-subtle focus-visible:border-accent focus-visible:ring-0 sm:text-3xl"
-            />
+            ></Input>
         </form>
     </section>
 
@@ -167,14 +167,14 @@
                 <div aria-hidden="true">
                     <div class="space-y-3 sm:hidden">
                         {#each Array.from({ length: 7 }) as _, index (index)}
-                            <AnimeCardSkeleton variant="compact" />
+                            <AnimeCardSkeleton variant="compact"></AnimeCardSkeleton>
                         {/each}
                     </div>
                     <div class="hidden sm:block">
                         <h2 class="mb-4 text-xl font-bold">{m.search_top_results()}</h2>
                         <div class="grid gap-x-7 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                             {#each Array.from({ length: 3 }) as _, index (index)}
-                                <AnimeCardSkeleton variant="top" />
+                                <AnimeCardSkeleton variant="top"></AnimeCardSkeleton>
                             {/each}
                         </div>
 
@@ -183,7 +183,7 @@
                                 <h2 class="mb-3 text-xl font-bold">{title}</h2>
                                 <div class="grid grid-cols-1 gap-x-5 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
                                     {#each Array.from({ length: 6 }) as _, index (index)}
-                                        <AnimeCardSkeleton variant="compact" />
+                                        <AnimeCardSkeleton variant="compact"></AnimeCardSkeleton>
                                     {/each}
                                 </div>
                             </section>
@@ -197,7 +197,8 @@
                     <h2 id="top-results-title" class="mb-4 text-xl font-bold">{m.search_top_results()}</h2>
                     <div class="grid gap-x-7 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                         {#each topResults as result (result.id)}
-                            <AnimeCard anime={result} variant="top" onselect={() => recent.remember(result)} />
+                            <AnimeCard anime={result} variant="top" onselect={() => recent.remember(result)}
+                            ></AnimeCard>
                         {/each}
                     </div>
                 </section>
@@ -209,7 +210,7 @@
                             title={section.title}
                             results={section.results}
                             onselect={(anime) => recent.remember(anime)}
-                        />
+                        ></SearchResultsGroup>
                     {/each}
                 {/key}
             {:else if searchState.failed}
@@ -220,7 +221,7 @@
                     id="search-error-message"
                     title={m.search_error_title()}
                     body={m.search_error_body()}
-                />
+                ></EmptyState>
             {:else}
                 <EmptyState
                     artwork={emptyArtwork}
@@ -228,7 +229,7 @@
                     artworkHeight={1254}
                     id="empty-search-message"
                     body={m.search_empty()}
-                />
+                ></EmptyState>
             {/if}
         {:else if !query.trim() && recent.results.length}
             <section aria-labelledby="recent-results-title">
@@ -262,7 +263,7 @@
                                 aria-label={m.search_remove_recent({ title: result.title })}
                                 onclick={() => recent.remove(result.id)}
                             >
-                                <XIcon size="1.15rem" weight="bold" aria-hidden="true" />
+                                <XIcon size="1.15rem" weight="bold" aria-hidden="true"></XIcon>
                             </Button>
                         </li>
                     {/each}

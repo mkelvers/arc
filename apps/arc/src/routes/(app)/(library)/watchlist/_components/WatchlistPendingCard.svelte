@@ -22,7 +22,7 @@
         class="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
     >
         <CardMedia aspect="poster">
-            <Skeleton class="size-full rounded-none" />
+            <Skeleton class="size-full rounded-none"></Skeleton>
             <span class="sr-only">{m.watchlist_artwork_loading()}</span>
         </CardMedia>
         <h3 class="mt-3 min-h-10 line-clamp-2 text-sm leading-snug font-semibold">
@@ -31,6 +31,6 @@
     </a>
     <div class="mt-1.5 flex items-center justify-between gap-2 text-sm text-muted">
         <span>{m.watchlist_metadata_pending()}</span>
-        <WatchlistBookmark animeId={anime.id} title={anime.title} />
+        <WatchlistBookmark animeId={anime.id} title={anime.title}></WatchlistBookmark>
     </div>
 </Card>

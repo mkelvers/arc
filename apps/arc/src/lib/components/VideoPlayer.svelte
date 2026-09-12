@@ -252,7 +252,7 @@
             aria-label={m.player_back({ title: anime.title })}
             class="pointer-events-auto grid size-10 place-items-center text-white/90 drop-shadow transition-[color,opacity,transform] duration-150 hover:text-white hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90"
         >
-            <CaretLeftIcon size="2rem" weight="bold" aria-hidden="true" />
+            <CaretLeftIcon size="2rem" weight="bold" aria-hidden="true"></CaretLeftIcon>
         </a>
 
         <div class="pointer-events-none absolute inset-x-0 mx-auto max-w-[60vw] text-center">
@@ -359,7 +359,7 @@
             aria-label={m.player_loading_next()}
             class="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-black/80"
         >
-            <Spinner size="2.5rem" />
+            <Spinner size="2.5rem"></Spinner>
         </div>
     {:else if unavailable}
         <div role="alert" class="absolute inset-0 z-20 grid place-items-center bg-black px-6 text-center">
@@ -385,7 +385,7 @@
             aria-label={m.player_loading_video()}
             class="pointer-events-none absolute inset-0 grid place-items-center bg-black/40"
         >
-            <Spinner size="2.5rem" />
+            <Spinner size="2.5rem"></Spinner>
         </div>
     {/if}
 
@@ -429,7 +429,7 @@
         hasMultipleEpisodes={episodes.length > 1}
         episodesOpen={episodeDialogOpen}
         onOpenEpisodes={() => (episodeDialogOpen = !episodeDialogOpen)}
-    />
+    ></Controls>
 </div>
 
 {#if episodeDialogOpen}
@@ -444,7 +444,7 @@
                             image={fallbackImage}
                             current={episode.id === currentEpisode.id}
                             context="dialog"
-                        />
+                        ></EpisodeGridCard>
                     {/each}
                 </div>
             </div>

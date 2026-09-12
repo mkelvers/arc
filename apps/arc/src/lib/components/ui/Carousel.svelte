@@ -110,7 +110,7 @@
             aria-label={m.shared_previous()}
             onclick={() => emblaApi?.scrollPrev()}
         >
-            <CaretLeftIcon size="1.65rem" weight="bold" aria-hidden="true" />
+            <CaretLeftIcon size="1.65rem" weight="bold" aria-hidden="true"></CaretLeftIcon>
         </Button>
     {/if}
 
@@ -122,7 +122,7 @@
             aria-label={m.shared_next()}
             onclick={() => emblaApi?.scrollNext()}
         >
-            <CaretRightIcon size="1.65rem" weight="bold" aria-hidden="true" />
+            <CaretRightIcon size="1.65rem" weight="bold" aria-hidden="true"></CaretRightIcon>
         </Button>
     {/if}
 </section>

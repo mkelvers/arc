@@ -65,7 +65,7 @@
             <span>{m.player_source()}</span>
             <span class="flex items-center gap-1 text-white/85">
                 {player.media.sourceText}
-                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true"></CaretRightIcon>
             </span>
         </Button>
 
@@ -82,7 +82,7 @@
                     ?.label ??
                     player.media.captions.options[0]?.label ??
                     'Off'}
-                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true"></CaretRightIcon>
             </span>
         </Button>
 
@@ -100,7 +100,7 @@
                     {#if isHd(player.media.quality === 'best' ? player.media.bestQuality : player.media.quality)}
                         <span class="font-bold text-accent">HD</span>
                     {/if}
-                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true"></CaretRightIcon>
                 </span>
             </Button>
         {/if}
@@ -114,7 +114,7 @@
                 onclick={() => (player.settingsView = 'segments')}
             >
                 <span>{m.player_segments()}</span>
-                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true"></CaretRightIcon>
             </Button>
         {/if}
     {:else}
@@ -138,7 +138,7 @@
                 (player.settingsView =
                     player.settingsView === 'subtitle-size' ? 'subtitles' : editingKind ? 'segments' : 'main')}
         >
-            <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
+            <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true"></CaretLeftIcon>
             {m.player_back_label()}
         </Button>
 
@@ -151,7 +151,7 @@
                 class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                 onclick={() => player.media.switchQuality('best')}
             >
-                <Radio selected={player.media.quality === 'best'} />
+                <Radio selected={player.media.quality === 'best'}></Radio>
                 {m.player_auto()}
             </Button>
 
@@ -164,7 +164,7 @@
                     class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                     onclick={() => player.media.switchQuality(option)}
                 >
-                    <Radio selected={player.media.quality === option} />
+                    <Radio selected={player.media.quality === option}></Radio>
                     <span>
                         {option}
                         {#if isHd(option)}
@@ -187,7 +187,8 @@
                         class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                         onclick={() => player.media.switchSource(mode, source)}
                     >
-                        <Radio selected={player.media.mode === mode && player.media.activeSource === source} />
+                        <Radio selected={player.media.mode === mode && player.media.activeSource === source}
+                        ></Radio>
                         {source.server}
                     </Button>
                 {/each}
@@ -203,7 +204,7 @@
                 <span>{m.player_size()}</span>
                 <span class="flex items-center gap-1 text-white/85">
                     {subtitleSizes[player.media.captions.size].label}
-                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true"></CaretRightIcon>
                 </span>
             </Button>
 
@@ -216,7 +217,7 @@
                     class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                     onclick={() => player.media.switchSubtitleMode(option.mode)}
                 >
-                    <Radio selected={player.media.captions.mode === option.mode} />
+                    <Radio selected={player.media.captions.mode === option.mode}></Radio>
                     {option.label}
                 </Button>
             {/each}
@@ -230,7 +231,7 @@
                     class="flex min-h-8 w-full items-center justify-start gap-2 px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
                     onclick={() => player.media.captions.switchSize(option)}
                 >
-                    <Radio selected={player.media.captions.size === option} />
+                    <Radio selected={player.media.captions.size === option}></Radio>
                     {subtitleSizes[option].label}
                 </Button>
             {/each}
@@ -251,7 +252,7 @@
                             ? m.player_not_set()
                             : `${formatTime(interval.start)} – ${formatTime(interval.end)}`}
                     </span>
-                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                    <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true"></CaretRightIcon>
                 </Button>
             {/each}
         {:else if editingKind}

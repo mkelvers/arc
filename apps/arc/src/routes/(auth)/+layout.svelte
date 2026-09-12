@@ -8,7 +8,7 @@
 <div class="flex min-h-dvh flex-col bg-canvas text-foreground">
     <header class="h-14 shrink-0 bg-header">
         <div class="grid h-full place-items-center">
-            <Logo alt="Arc" />
+            <Logo alt="Arc"></Logo>
         </div>
     </header>
 

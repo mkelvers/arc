@@ -43,10 +43,10 @@
 </svelte:head>
 
 {#await data.page}
-    <PageLoading label={m.anime_loading()} />
+    <PageLoading label={m.anime_loading()}></PageLoading>
 {:then result}
     {#if result.status === 'success'}
-        <AnimePageContent data={result.data} />
+        <AnimePageContent data={result.data}></AnimePageContent>
     {:else}
         <main class="grid min-h-[calc(100dvh-3.5rem)] place-items-center bg-canvas px-5 text-foreground">
             <div class="max-w-md text-center" role="alert">

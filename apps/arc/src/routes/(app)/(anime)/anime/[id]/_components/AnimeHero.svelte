@@ -35,7 +35,7 @@
                     alt={anime.title}
                     class="absolute inset-x-0 top-0 z-0 h-dvh w-full"
                     imageClass="object-[45%_0%]"
-                />
+                ></ProgressiveImage>
             </div>
         {/if}
 
@@ -51,7 +51,8 @@
                         class="appearance-none px-3 py-0 transition-colors hover:bg-panel data-[state=open]:bg-panel"
                     >
                         <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
-                            <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true" />
+                            <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true"
+                            ></DotsThreeVerticalIcon>
                             <span>{m.anime_more()}</span>
                         </span>
                     </Button>
@@ -97,7 +98,7 @@
             </div>
 
             {#if anime.status === 'RELEASING' && anime.nextAiringEpisode}
-                <AiringStatus airingAt={anime.nextAiringEpisode.airingAt} />
+                <AiringStatus airingAt={anime.nextAiringEpisode.airingAt}></AiringStatus>
             {/if}
 
             <p
@@ -144,7 +145,7 @@
                             >
                                 <path
                                     d="m12 2 2.85 6.59L22 9.27 16.55 14l1.63 7L12 17.27 5.82 21l1.63-7L2 9.27l7.15-.68z"
-                                />
+                                ></path>
                             </svg>
                         {/each}
                     </span>
@@ -168,7 +169,7 @@
                     href={watchAction.href}
                     class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] sm:px-6"
                 >
-                    <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
+                    <PlayIcon size="1.55em" weight="bold" aria-hidden="true"></PlayIcon>
                     {watchAction.kind === 'continue'
                         ? m.anime_continue_watching({ episode: watchAction.episode ?? '' })
                         : watchAction.kind === 'rewatch'
@@ -177,12 +178,13 @@
                             ? m.anime_start_watching({ episode: watchAction.episode ?? '' })
                             : m.anime_view_episodes()}
                 </a>
-                <WatchlistBookmark animeId={anime.id} title={anime.title} iconSize="1.65em" outlined />
+                <WatchlistBookmark animeId={anime.id} title={anime.title} iconSize="1.65em" outlined
+                ></WatchlistBookmark>
                 <WatchlistStatusMenu
                     animeId={anime.id}
                     title={anime.title}
                     initialState={watchlistState ?? undefined}
-                />
+                ></WatchlistStatusMenu>
             </div>
         </div>
     </figure>

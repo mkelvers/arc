@@ -100,7 +100,7 @@
             class="appearance-none p-0 grid size-10 shrink-0 cursor-pointer place-items-center text-accent"
         >
             <Tooltip text={m.shared_manage_watchlist()} class="size-full items-center justify-center">
-                <PencilSimpleIcon size="1.65em" weight="bold" aria-hidden="true" />
+                <PencilSimpleIcon size="1.65em" weight="bold" aria-hidden="true"></PencilSimpleIcon>
             </Tooltip>
         </Button>
     {/snippet}

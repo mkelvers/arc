@@ -58,12 +58,12 @@
                                             src={entry.backdrop}
                                             alt=""
                                             class="absolute inset-0 transition-opacity duration-200 group-hover:opacity-0 group-focus-within:opacity-0"
-                                        />
+                                        ></ProgressiveImage>
                                         <ProgressiveImage
                                             src={entry.episodeImage}
                                             alt=""
                                             class="absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                                        />
+                                        ></ProgressiveImage>
                                         {#if entry.duration}
                                             <span
                                                 class="absolute right-2 bottom-2 bg-black/85 px-1.5 py-0.5 text-xs font-semibold text-white transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
@@ -119,7 +119,7 @@
                                 }}
                                 class="absolute top-2 right-2 z-10 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100"
                             >
-                                <Input type="hidden" name="animeId" value={entry.animeId} />
+                                <Input type="hidden" name="animeId" value={entry.animeId}></Input>
                                 <Tooltip text={m.remove()} escapeOverflow>
                                     <Button
                                         variant="unstyled"
@@ -127,7 +127,7 @@
                                         class="grid size-8 place-items-center text-white/75 drop-shadow-sm transition-[color,transform] duration-150 hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-90"
                                         aria-label={m.remove_continue_watching({ title: entry.title })}
                                     >
-                                        <XIcon size="1rem" weight="bold" aria-hidden="true" />
+                                        <XIcon size="1rem" weight="bold" aria-hidden="true"></XIcon>
                                     </Button>
                                 </Tooltip>
                             </form>

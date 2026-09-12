@@ -53,7 +53,7 @@
                 <img src={entry.imageUrl} alt="" class="size-full object-cover" />
             {:else}
                 <div class="grid size-full place-items-center text-muted">
-                    <PlayIcon size={24} aria-hidden="true" />
+                    <PlayIcon size={24} aria-hidden="true"></PlayIcon>
                 </div>
             {/if}
         </div>
@@ -76,7 +76,7 @@
                 class="mt-4 inline-flex items-center gap-2 text-xs font-semibold tracking-wide text-foreground uppercase"
             >
                 Watch now
-                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
+                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true"></CaretRightIcon>
             </span>
         </div>
     </Button>
@@ -92,7 +92,8 @@
                         aria-label="Notification options"
                         class="appearance-none p-0 flex size-10 items-center justify-center text-muted transition-colors hover:text-foreground data-[state=open]:text-foreground"
                     >
-                        <DotsThreeVerticalIcon size="1.25rem" weight="bold" aria-hidden="true" />
+                        <DotsThreeVerticalIcon size="1.25rem" weight="bold" aria-hidden="true"
+                        ></DotsThreeVerticalIcon>
                     </Button>
                 {/snippet}
                 {#snippet content(menuProps)}

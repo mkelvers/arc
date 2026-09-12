@@ -19,9 +19,9 @@
     <div
         class="home-layout grid grid-cols-1 grid-rows-[auto] wide:has-[>_.continue-watching-section]:grid-rows-[auto_15rem] wide:has-[>_.continue-watching-section]:pb-8 hero:has-[>_.continue-watching-section]:grid-rows-[auto_16rem] hero:has-[>_.continue-watching-section]:pb-12 hero:has-[>section:first-child]:not-has-[>_.continue-watching-section]:grid-rows-[calc(100svh-16rem)] [&>section:first-child]:col-start-1 [&>section:first-child]:row-start-1"
     >
-        <HomeHero highlights={data.highlights} />
+        <HomeHero highlights={data.highlights}></HomeHero>
         {#await data.continueWatching then anime}
-            <ContinueWatchingGrid anime={anime} />
+            <ContinueWatchingGrid anime={anime}></ContinueWatchingGrid>
         {/await}
     </div>
     <section
@@ -42,7 +42,7 @@
                             <div
                                 class="min-w-0 shrink-0 grow-0 basis-[calc((100vw-2.75rem)/2)] min-[30em]:basis-[calc((100vw-4rem)/3)] min-[35.5em]:basis-[calc((100vw-4.75rem)/4)] sm:basis-[calc((100vw-7.75rem)/4)] lg:basis-[calc((100vw-17.375rem)/5)] 2xl:basis-[calc((100vw-19.25rem)/6)] hero:basis-[calc((100vw-16.875rem)/7)]"
                             >
-                                <AnimeCard anime={entry} compact />
+                                <AnimeCard anime={entry} compact></AnimeCard>
                             </div>
                         {/each}
                     </div>
@@ -69,7 +69,7 @@
                             <div
                                 class="min-w-0 shrink-0 grow-0 basis-[calc((100vw-2.75rem)/2)] min-[30em]:basis-[calc((100vw-4rem)/3)] min-[35.5em]:basis-[calc((100vw-4.75rem)/4)] sm:basis-[calc((100vw-7.75rem)/4)] lg:basis-[calc((100vw-17.375rem)/5)] 2xl:basis-[calc((100vw-19.25rem)/6)] hero:basis-[calc((100vw-16.875rem)/7)]"
                             >
-                                <AnimeCard anime={entry} compact />
+                                <AnimeCard anime={entry} compact></AnimeCard>
                             </div>
                         {/each}
                     </div>

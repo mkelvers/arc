@@ -31,7 +31,7 @@
                     src={episode.image ?? image ?? ''}
                     alt=""
                     imageClass="transition-transform duration-200 group-hover:scale-105"
-                />
+                ></ProgressiveImage>
             {/if}
             {#if episode.duration}
                 <span class="absolute right-1.5 bottom-1.5 bg-black/75 px-1.5 py-0.5 text-sm font-bold text-white">
@@ -68,7 +68,7 @@
                         src={episode.image ?? image ?? ''}
                         alt=""
                         imageClass={cn(!dialog && 'brightness-75')}
-                    />
+                    ></ProgressiveImage>
                 {/if}
                 {#if current}
                     <span
@@ -146,7 +146,7 @@
                         dialog ? 'text-watch-muted' : 'text-muted'
                     )}
                 >
-                    <CalendarBlankIcon size="0.875rem" aria-hidden="true" />
+                    <CalendarBlankIcon size="0.875rem" aria-hidden="true"></CalendarBlankIcon>
                     <span>{episode.releaseDate}</span>
                 </div>
             {/if}
@@ -163,7 +163,7 @@
                 </p>
             {/if}
             <span class="mt-auto inline-flex items-center gap-2 pt-3 text-xs font-bold text-accent uppercase">
-                <PlayIcon size="1.25rem" weight="bold" aria-hidden="true" />
+                <PlayIcon size="1.25rem" weight="bold" aria-hidden="true"></PlayIcon>
                 {m.player_play_episode({ episode: episode.label })}
             </span>
         </div>

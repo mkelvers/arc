@@ -147,7 +147,8 @@
                         aria-label={m.simulcast_choose({ label })}
                         class="appearance-none p-0 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
                     >
-                        <CaretDownIcon size="1rem" weight="bold" class="text-muted" aria-hidden="true" />
+                        <CaretDownIcon size="1rem" weight="bold" class="text-muted" aria-hidden="true"
+                        ></CaretDownIcon>
                         <span>{label}</span>
                     </Button>
                 {/snippet}
@@ -182,7 +183,7 @@
                     class="grid grid-cols-2 items-start gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-7.5 lg:gap-y-12 xl:grid-cols-6"
                 >
                     {#each anime as entry (entry.id)}
-                        <AnimeCard anime={entry} reserveTitleSpace={false} truncateTitle={false} />
+                        <AnimeCard anime={entry} reserveTitleSpace={false} truncateTitle={false}></AnimeCard>
                     {/each}
                 </div>
             </section>
@@ -193,13 +194,13 @@
                 artworkHeight={1254}
                 id="empty-simulcast-message"
                 body={m.simulcast_empty({ label })}
-            />
+            ></EmptyState>
         {/if}
 
         {#if nextPage !== null}
             <div bind:this={sentinel} class="flex min-h-24 items-center justify-center" aria-live="polite">
                 {#if loading}
-                    <Spinner label={m.simulcast_loading()} />
+                    <Spinner label={m.simulcast_loading()}></Spinner>
                 {:else}
                     <span class="sr-only">{m.simulcast_auto_loading()}</span>
                 {/if}

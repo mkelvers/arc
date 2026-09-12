@@ -208,7 +208,7 @@
                             aria-label={`Sort anime. ${selectedSortLabel} selected`}
                             class="appearance-none p-0 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
                         >
-                            <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
+                            <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true"></ListBulletsIcon>
                             <span class="hidden sm:inline">{selectedSortLabel}</span>
                         </Button>
                     {/snippet}
@@ -239,7 +239,7 @@
                             aria-label={`Filter anime${selectedFilterCount ? `, ${selectedFilterCount} selected` : ''}`}
                             class="appearance-none p-0 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
                         >
-                            <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
+                            <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true"></FunnelIcon>
                             <span class="hidden sm:inline">Filter</span>
                             {#if selectedFilterCount}
                                 <span class="text-accent">{selectedFilterCount}</span>
@@ -267,9 +267,9 @@
                                                     weight="fill"
                                                     class="text-input-accent"
                                                     aria-hidden="true"
-                                                />
+                                                ></RadioButtonIcon>
                                             {:else}
-                                                <CircleIcon size="1.25rem" aria-hidden="true" />
+                                                <CircleIcon size="1.25rem" aria-hidden="true"></CircleIcon>
                                             {/if}
                                             {option.label}
                                         </a>
@@ -301,7 +301,7 @@
                                 : undefined}
                             reserveTitleSpace={false}
                             truncateTitle={false}
-                        />
+                        ></AnimeCard>
                     {/each}
                 </div>
             </section>
@@ -314,13 +314,13 @@
                 artworkHeight={1254}
                 id="empty-catalog-message"
                 body={m.catalog_empty()}
-            />
+            ></EmptyState>
         {/if}
 
         {#if nextPage !== null}
             <div bind:this={sentinel} class="flex min-h-24 w-full items-center justify-center" aria-live="polite">
                 {#if loading}
-                    <Spinner label={m.catalog_loading()} />
+                    <Spinner label={m.catalog_loading()}></Spinner>
                 {:else}
                     <span class="sr-only">{m.catalog_auto_loading()}</span>
                 {/if}

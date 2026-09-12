@@ -80,7 +80,7 @@
     episodeInventoryStatus={episodeInventory.status}
     episodeRevision={episodeRevision}
     onupdate={applyUpdate}
-/>
+></EpisodeInventoryPoller>
 
 <section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" aria-labelledby="anime-episodes-title">
     <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
@@ -91,7 +91,7 @@
                     episode={episode}
                     title={anime.title}
                     image={artwork?.selectedBackdrop?.url ?? null}
-                />
+                ></EpisodeGridCard>
             {/each}
         </div>
         {#if visibleEpisodeCount < episodes.length}
@@ -105,6 +105,6 @@
             </Button>
         {/if}
     {:else if episodeInventory.status === 'failed'}
-        <EpisodeInventoryStatus retrying={retrying} onretry={retry} />
+        <EpisodeInventoryStatus retrying={retrying} onretry={retry}></EpisodeInventoryStatus>
     {/if}
 </section>

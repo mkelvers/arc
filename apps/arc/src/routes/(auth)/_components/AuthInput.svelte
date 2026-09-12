@@ -47,7 +47,7 @@
             bind:value={value}
             aria-describedby={error ? `${name}-error` : undefined}
             aria-invalid={error ? 'true' : undefined}
-        />
+        ></Input>
         <label
             for={name}
             class="pointer-events-none absolute top-1 left-0 text-xs transition-[top,font-size,color] peer-placeholder-shown:top-4 peer-placeholder-shown:text-base peer-focus:top-1 peer-focus:text-xs peer-focus:text-accent"

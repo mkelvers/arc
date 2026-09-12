@@ -280,7 +280,7 @@
         retrying={retrying}
         onretry={retry}
         onSourceFailure={() => void retry()}
-    />
+    ></VideoPlayer>
 {:else}
     <section
         aria-label={m.player_back({ title: anime.title })}
@@ -293,8 +293,9 @@
                 alt=""
                 class="absolute inset-0 opacity-35"
                 imageClass="scale-105 blur-xl"
-            />
+            ></ProgressiveImage>
         {/if}
-        <Spinner size="2.5rem" class="relative animate-spin text-accent" label={m.player_loading_video()} />
+        <Spinner size="2.5rem" class="relative animate-spin text-accent" label={m.player_loading_video()}
+        ></Spinner>
     </section>
 {/if}

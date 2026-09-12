@@ -127,7 +127,7 @@
             }}
             onpointerup={end}
             onpointercancel={cancel}
-        />
+        ></Input>
     </div>
 
     <span class="w-18 shrink-0 pr-1 text-right whitespace-nowrap tabular-nums">

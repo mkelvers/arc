@@ -69,7 +69,7 @@
                             class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
                         >
                             <span>{subtitleSizes[settings.size].label}</span>
-                            <CaretDownIcon size={16} aria-hidden="true" />
+                            <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
                         </Button>
                     {/snippet}
                     {#snippet content(menuProps)}
@@ -107,7 +107,7 @@
                             class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
                         >
                             <span>{subtitleTextColors[settings.textColor].label}</span>
-                            <CaretDownIcon size={16} aria-hidden="true" />
+                            <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
                         </Button>
                     {/snippet}
                     {#snippet content(menuProps)}
@@ -145,7 +145,7 @@
                             class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
                         >
                             <span>{subtitleEdgeStyles[settings.edgeStyle].label}</span>
-                            <CaretDownIcon size={16} aria-hidden="true" />
+                            <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
                         </Button>
                     {/snippet}
                     {#snippet content(menuProps)}
@@ -188,7 +188,7 @@
                             class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
                         >
                             <span>{subtitleBackgrounds[settings.background].label}</span>
-                            <CaretDownIcon size={16} aria-hidden="true" />
+                            <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
                         </Button>
                     {/snippet}
                     {#snippet content(menuProps)}
@@ -226,7 +226,7 @@
                             class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <span>{Math.round(settings.backgroundOpacity * 100)}%</span>
-                            <CaretDownIcon size={16} aria-hidden="true" />
+                            <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
                         </Button>
                     {/snippet}
                     {#snippet content(menuProps)}

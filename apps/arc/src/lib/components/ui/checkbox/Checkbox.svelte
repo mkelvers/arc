@@ -25,6 +25,6 @@
             className
         )}
     >
-        <CheckIcon class="size-3 opacity-0 transition-opacity" weight="bold" />
+        <CheckIcon class="size-3 opacity-0 transition-opacity" weight="bold"></CheckIcon>
     </span>
 </span>

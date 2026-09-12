@@ -40,7 +40,7 @@
         <div class="mt-6 grid gap-6 sm:grid-cols-[minmax(0,1fr)_9rem] sm:items-end sm:gap-x-8">
             <label class="flex cursor-pointer items-start gap-3 text-sm text-muted">
                 <span class="mt-0.5">
-                    <Checkbox bind:checked={replaceWatchlist} aria-label={m.import_replace()} />
+                    <Checkbox bind:checked={replaceWatchlist} aria-label={m.import_replace()}></Checkbox>
                 </span>
                 <span>
                     <span class="font-medium text-foreground">{m.import_replace()}</span>
@@ -57,7 +57,7 @@
                 use:enhance={enhanceImport}
                 class="w-full"
             >
-                <Input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'} />
+                <Input type="hidden" name="mode" value={replaceWatchlist ? 'replace' : 'add'}></Input>
                 <Input
                     id="watchlist-import"
                     name="file"
@@ -65,7 +65,7 @@
                     accept=".json,.csv,application/json,text/csv"
                     class="sr-only"
                     onchange={(event) => event.currentTarget.form?.requestSubmit()}
-                />
+                ></Input>
                 <label
                     for="watchlist-import"
                     class="inline-flex min-h-10 w-full cursor-pointer items-center justify-center border border-border-strong px-4 text-sm text-muted transition-colors hover:border-accent hover:text-foreground focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent"
@@ -80,7 +80,7 @@
         message={form && form !== dismissedForm ? (form.message ?? '') : ''}
         tone={form?.success ? 'success' : 'error'}
         ondismiss={() => (dismissedForm = form)}
-    />
+    ></StatusBanner>
 
     <section aria-labelledby="export-library">
         <div class="flex flex-col items-start gap-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">

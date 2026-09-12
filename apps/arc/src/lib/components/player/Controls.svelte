@@ -45,9 +45,9 @@
                 }}
             >
                 {#if player.media.playing}
-                    <PauseIcon size="1.5rem" aria-hidden="true" />
+                    <PauseIcon size="1.5rem" aria-hidden="true"></PauseIcon>
                 {:else}
-                    <PlayIcon size="1.5rem" weight="fill" aria-hidden="true" />
+                    <PlayIcon size="1.5rem" weight="fill" aria-hidden="true"></PlayIcon>
                 {/if}
             </Button>
 
@@ -66,7 +66,7 @@
                             disabled={player.media.loading}
                             class="absolute inset-0 size-full cursor-pointer accent-accent [direction:rtl] [writing-mode:vertical-lr]"
                             oninput={(event) => player.media.setVolume(Number(event.currentTarget.value))}
-                        />
+                        ></Input>
                     </div>
                 </div>
 
@@ -82,9 +82,9 @@
                     }}
                 >
                     {#if player.media.muted}
-                        <SpeakerSlashIcon size="1.5rem" aria-hidden="true" />
+                        <SpeakerSlashIcon size="1.5rem" aria-hidden="true"></SpeakerSlashIcon>
                     {:else}
-                        <SpeakerHighIcon size="1.5rem" aria-hidden="true" />
+                        <SpeakerHighIcon size="1.5rem" aria-hidden="true"></SpeakerHighIcon>
                     {/if}
                 </Button>
             </div>
@@ -102,7 +102,7 @@
                     class="grid size-11 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 sm:size-8"
                     onclick={onOpenEpisodes}
                 >
-                    <ArchiveIcon size="1.5rem" weight="bold" aria-hidden="true" />
+                    <ArchiveIcon size="1.5rem" weight="bold" aria-hidden="true"></ArchiveIcon>
                 </Button>
             {/if}
 
@@ -117,11 +117,11 @@
                     class="grid size-11 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 sm:size-8"
                     onclick={() => player.openSettings()}
                 >
-                    <GearIcon size="1.5rem" aria-hidden="true" />
+                    <GearIcon size="1.5rem" aria-hidden="true"></GearIcon>
                 </Button>
 
                 {#if player.settingsOpen}
-                    <Settings player={player} />
+                    <Settings player={player}></Settings>
                 {/if}
             </div>
 
@@ -137,13 +137,13 @@
                 }}
             >
                 {#if player.fullscreen}
-                    <CornersInIcon size="1.5rem" weight="bold" aria-hidden="true" />
+                    <CornersInIcon size="1.5rem" weight="bold" aria-hidden="true"></CornersInIcon>
                 {:else}
-                    <CornersOutIcon size="1.5rem" weight="bold" aria-hidden="true" />
+                    <CornersOutIcon size="1.5rem" weight="bold" aria-hidden="true"></CornersOutIcon>
                 {/if}
             </Button>
         </div>
     </div>
 
-    <Timeline player={player} />
+    <Timeline player={player}></Timeline>
 </div>

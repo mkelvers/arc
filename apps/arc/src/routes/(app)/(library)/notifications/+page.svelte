@@ -102,7 +102,7 @@
                                 aria-labelledby="notification-view-label"
                                 class="appearance-none p-0 flex h-10 cursor-pointer items-center gap-2 text-lg font-semibold transition-colors hover:text-muted data-[state=open]:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                             >
-                                <CaretDownIcon size="1rem" weight="bold" aria-hidden="true" />
+                                <CaretDownIcon size="1rem" weight="bold" aria-hidden="true"></CaretDownIcon>
                                 <span id="notification-view-label">
                                     {notificationView === 'read' ? 'Read Notifications' : 'Past Notifications'}
                                 </span>
@@ -150,7 +150,7 @@
                         body={notificationView === 'read'
                             ? 'Notifications you have read will appear here.'
                             : 'New episodes and dub releases from your watchlist will appear here.'}
-                    />
+                    ></EmptyState>
                 {:else}
                     <div class="mt-6 space-y-6">
                         {#each selectedNotifications as entry (entry.id)}
@@ -158,7 +158,7 @@
                                 entry={entry}
                                 onOpen={openNotification}
                                 onMarkAsRead={markNotificationAsRead}
-                            />
+                            ></NotificationCard>
                         {/each}
                     </div>
                 {/if}
