@@ -1,13 +1,5 @@
 <script lang="ts">
-    import {
-        CaretDownIcon,
-        CaretLeftIcon,
-        CaretRightIcon,
-        CircleIcon,
-        FunnelIcon,
-        ListBulletsIcon,
-        RadioButtonIcon,
-    } from 'phosphor-svelte';
+    import { CaretDownIcon, CaretLeftIcon, CaretRightIcon, FunnelIcon, ListBulletsIcon } from 'phosphor-svelte';
 
     import emptyArtwork from '$lib/assets/watchlist-empty.webp';
     import filteredEmptyArtwork from '$lib/assets/watchlist-filter-empty.webp';
@@ -15,6 +7,7 @@
     import Button from '$lib/components/ui/button/button.svelte';
     import Dropdown from '$lib/components/ui/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
+    import MenuRadio from '$lib/components/ui/snippets/MenuRadio.svelte';
     import { m } from '$lib/i18n.svelte';
     import { filterWatchlist, setWatchlistFilter, watchlistFilters } from '$lib/watchlist-filters';
     import { watchlist } from '$lib/watchlist.svelte';
@@ -30,24 +23,6 @@
     let filterView = $state<'main' | 'type'>('main');
     let filteredEntries = $derived(filterWatchlist(data.entries, $watchlistFilters));
 </script>
-
-{#snippet menuOption(isSelected: boolean, label: string, onclick: () => void)}
-    <button
-        type="button"
-        role="menuitemradio"
-        aria-checked={isSelected}
-        class:text-foreground={isSelected}
-        class="flex min-h-11 w-full appearance-none items-center gap-2.5 border-0 bg-transparent px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-        onclick={onclick}
-    >
-        {#if isSelected}
-            <RadioButtonIcon size="1.25rem" weight="fill" class="text-input-accent" aria-hidden="true" />
-        {:else}
-            <CircleIcon size="1.25rem" weight="regular" aria-hidden="true" />
-        {/if}
-        {label}
-    </button>
-{/snippet}
 
 <main class="min-h-[calc(100dvh-3.5rem)] bg-canvas text-foreground">
     <div class="mx-auto w-full max-w-384 px-5 py-9 sm:px-10 sm:py-11 lg:px-16 lg:py-14">
@@ -273,40 +248,42 @@
                                     <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
                                         {m.watchlist_language()}
                                     </p>
-                                    {@render menuOption(
-                                        $watchlistFilters.language === 'all',
-                                        m.watchlist_all(),
-                                        () => setWatchlistFilter('language', 'all')
-                                    )}
-                                    {@render menuOption(
-                                        $watchlistFilters.language === 'sub',
-                                        m.watchlist_subtitled(),
-                                        () => setWatchlistFilter('language', 'sub')
-                                    )}
-                                    {@render menuOption(
-                                        $watchlistFilters.language === 'dub',
-                                        m.watchlist_dubbed(),
-                                        () => setWatchlistFilter('language', 'dub')
-                                    )}
+                                    <MenuRadio
+                                        selected={$watchlistFilters.language === 'all'}
+                                        label={m.watchlist_all()}
+                                        onclick={() => setWatchlistFilter('language', 'all')}
+                                    />
+                                    <MenuRadio
+                                        selected={$watchlistFilters.language === 'sub'}
+                                        label={m.watchlist_subtitled()}
+                                        onclick={() => setWatchlistFilter('language', 'sub')}
+                                    />
+                                    <MenuRadio
+                                        selected={$watchlistFilters.language === 'dub'}
+                                        label={m.watchlist_dubbed()}
+                                        onclick={() => setWatchlistFilter('language', 'dub')}
+                                    />
                                 </div>
 
                                 <div role="group" aria-label={m.watchlist_media()}>
                                     <p class="px-5 pt-3 pb-2 text-xs font-bold text-foreground uppercase">
                                         {m.watchlist_media()}
                                     </p>
-                                    {@render menuOption($watchlistFilters.media === 'all', m.watchlist_all(), () =>
-                                        setWatchlistFilter('media', 'all')
-                                    )}
-                                    {@render menuOption(
-                                        $watchlistFilters.media === 'series',
-                                        m.watchlist_series(),
-                                        () => setWatchlistFilter('media', 'series')
-                                    )}
-                                    {@render menuOption(
-                                        $watchlistFilters.media === 'movie',
-                                        m.watchlist_movies(),
-                                        () => setWatchlistFilter('media', 'movie')
-                                    )}
+                                    <MenuRadio
+                                        selected={$watchlistFilters.media === 'all'}
+                                        label={m.watchlist_all()}
+                                        onclick={() => setWatchlistFilter('media', 'all')}
+                                    />
+                                    <MenuRadio
+                                        selected={$watchlistFilters.media === 'series'}
+                                        label={m.watchlist_series()}
+                                        onclick={() => setWatchlistFilter('media', 'series')}
+                                    />
+                                    <MenuRadio
+                                        selected={$watchlistFilters.media === 'movie'}
+                                        label={m.watchlist_movies()}
+                                        onclick={() => setWatchlistFilter('media', 'movie')}
+                                    />
                                 </div>
                             {:else}
                                 <Button
@@ -322,34 +299,36 @@
                                     <CaretLeftIcon size="0.95rem" weight="bold" aria-hidden="true" />
                                     {m.watchlist_type()}
                                 </Button>
-                                {@render menuOption($watchlistFilters.type === 'all', m.watchlist_all(), () =>
-                                    setWatchlistFilter('type', 'all')
-                                )}
-                                {@render menuOption(
-                                    $watchlistFilters.type === 'airing',
-                                    m.watchlist_airing(),
-                                    () => setWatchlistFilter('type', 'airing')
-                                )}
-                                {@render menuOption(
-                                    $watchlistFilters.type === 'finished',
-                                    m.watchlist_finished(),
-                                    () => setWatchlistFilter('type', 'finished')
-                                )}
-                                {@render menuOption(
-                                    $watchlistFilters.type === 'not_yet_released',
-                                    m.watchlist_not_released(),
-                                    () => setWatchlistFilter('type', 'not_yet_released')
-                                )}
-                                {@render menuOption(
-                                    $watchlistFilters.type === 'cancelled',
-                                    m.watchlist_cancelled(),
-                                    () => setWatchlistFilter('type', 'cancelled')
-                                )}
-                                {@render menuOption(
-                                    $watchlistFilters.type === 'hiatus',
-                                    m.watchlist_hiatus(),
-                                    () => setWatchlistFilter('type', 'hiatus')
-                                )}
+                                <MenuRadio
+                                    selected={$watchlistFilters.type === 'all'}
+                                    label={m.watchlist_all()}
+                                    onclick={() => setWatchlistFilter('type', 'all')}
+                                />
+                                <MenuRadio
+                                    selected={$watchlistFilters.type === 'airing'}
+                                    label={m.watchlist_airing()}
+                                    onclick={() => setWatchlistFilter('type', 'airing')}
+                                />
+                                <MenuRadio
+                                    selected={$watchlistFilters.type === 'finished'}
+                                    label={m.watchlist_finished()}
+                                    onclick={() => setWatchlistFilter('type', 'finished')}
+                                />
+                                <MenuRadio
+                                    selected={$watchlistFilters.type === 'not_yet_released'}
+                                    label={m.watchlist_not_released()}
+                                    onclick={() => setWatchlistFilter('type', 'not_yet_released')}
+                                />
+                                <MenuRadio
+                                    selected={$watchlistFilters.type === 'cancelled'}
+                                    label={m.watchlist_cancelled()}
+                                    onclick={() => setWatchlistFilter('type', 'cancelled')}
+                                />
+                                <MenuRadio
+                                    selected={$watchlistFilters.type === 'hiatus'}
+                                    label={m.watchlist_hiatus()}
+                                    onclick={() => setWatchlistFilter('type', 'hiatus')}
+                                />
                             {/if}
                         </div>
                     {/snippet}
@@ -384,35 +363,37 @@
                             class="absolute top-full right-0 z-50 mt-2 w-56 bg-panel py-2 shadow-xl"
                         >
                             <div role="group" aria-label={m.watchlist_sorting()}>
-                                {@render menuOption(
-                                    $watchlistFilters.sort === 'updated',
-                                    m.watchlist_updated(),
-                                    () => setWatchlistFilter('sort', 'updated')
-                                )}
-                                {@render menuOption($watchlistFilters.sort === 'added', m.watchlist_added(), () =>
-                                    setWatchlistFilter('sort', 'added')
-                                )}
-                                {@render menuOption(
-                                    $watchlistFilters.sort === 'alphabetical',
-                                    m.watchlist_alphabetical(),
-                                    () => setWatchlistFilter('sort', 'alphabetical')
-                                )}
+                                <MenuRadio
+                                    selected={$watchlistFilters.sort === 'updated'}
+                                    label={m.watchlist_updated()}
+                                    onclick={() => setWatchlistFilter('sort', 'updated')}
+                                />
+                                <MenuRadio
+                                    selected={$watchlistFilters.sort === 'added'}
+                                    label={m.watchlist_added()}
+                                    onclick={() => setWatchlistFilter('sort', 'added')}
+                                />
+                                <MenuRadio
+                                    selected={$watchlistFilters.sort === 'alphabetical'}
+                                    label={m.watchlist_alphabetical()}
+                                    onclick={() => setWatchlistFilter('sort', 'alphabetical')}
+                                />
                             </div>
 
                             <div role="group" aria-label={m.watchlist_sort_order()}>
                                 <p class="px-5 pt-5 pb-2 text-xs font-bold text-foreground uppercase">
                                     {m.watchlist_sort_order()}
                                 </p>
-                                {@render menuOption(
-                                    $watchlistFilters.order === 'newest',
-                                    m.watchlist_newest(),
-                                    () => setWatchlistFilter('order', 'newest')
-                                )}
-                                {@render menuOption(
-                                    $watchlistFilters.order === 'oldest',
-                                    m.watchlist_oldest(),
-                                    () => setWatchlistFilter('order', 'oldest')
-                                )}
+                                <MenuRadio
+                                    selected={$watchlistFilters.order === 'newest'}
+                                    label={m.watchlist_newest()}
+                                    onclick={() => setWatchlistFilter('order', 'newest')}
+                                />
+                                <MenuRadio
+                                    selected={$watchlistFilters.order === 'oldest'}
+                                    label={m.watchlist_oldest()}
+                                    onclick={() => setWatchlistFilter('order', 'oldest')}
+                                />
                             </div>
                         </div>
                     {/snippet}
