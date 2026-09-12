@@ -4,6 +4,7 @@ import {
     completeEpisodeDetails,
     episodeDetailsNeeded,
     hasRequestedEpisodeLocalization,
+    isLanguageNeutralStill,
 } from '@arc/core/tmdb/pure';
 import type { EpisodeCandidate } from '@arc/core/tmdb/pure';
 
@@ -19,6 +20,12 @@ const candidate: EpisodeCandidate = {
 };
 
 describe('TMDB episode detail completion', () => {
+    test('accepts only explicitly language-neutral stills', () => {
+        expect(isLanguageNeutralStill(null)).toBeTrue();
+        expect(isLanguageNeutralStill('zh')).toBeFalse();
+        expect(isLanguageNeutralStill(undefined)).toBeFalse();
+    });
+
     test('does not label non-English episode text as English TMDB metadata', () => {
         expect(
             completeEpisodeDetails(

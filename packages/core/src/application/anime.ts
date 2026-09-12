@@ -145,6 +145,11 @@ export async function animePage(userId: string, id: number) {
         return storedAnimePage(userId, id, await getAnimeRelease(id));
     }
 
+    const storedMapping = await findMapping(id);
+    if (storedMapping && (await needsEpisodeMetadataRefresh(id, storedMapping.externalIdId))) {
+        await ensureEpisodeInventoryBackfill(id);
+    }
+
     return storedAnimePage(userId, id, stored);
 }
 

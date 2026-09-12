@@ -160,6 +160,13 @@ describe('episode refresh policy', () => {
                 42
             )
         ).toBeFalse();
+        expect(
+            episodeMetadataRefreshRequired(
+                [{ image: null, title: 'Emotion and Reason', overview: '' }],
+                { metadataExternalIdId: 385, metadataRevision: null },
+                385
+            )
+        ).toBeTrue();
     });
 
     test('does not use AniList segment totals as provider episode counts', () => {

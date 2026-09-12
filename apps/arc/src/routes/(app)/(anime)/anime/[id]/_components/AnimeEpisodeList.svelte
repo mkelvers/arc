@@ -8,7 +8,6 @@
         type AnimePageOverview,
         type AnimePageEpisodeUpdates,
     } from '@arc/core/client';
-    import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
     import Button from '$lib/components/ui/button/button.svelte';
     import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
     import EpisodeInventoryPoller from './EpisodeInventoryPoller.svelte';
@@ -83,12 +82,7 @@
     onupdate={applyUpdate}
 />
 
-<section
-    id="anime-episode-list"
-    class="px-2 py-7 sm:pb-12 lg:pb-16"
-    aria-labelledby="anime-episodes-title"
-    aria-busy={episodeInventory.status === 'pending'}
->
+<section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" aria-labelledby="anime-episodes-title">
     <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
     {#if episodes.length}
         <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 hero:grid-cols-7">
@@ -110,15 +104,7 @@
                 {m.anime_show_more_episodes()}
             </Button>
         {/if}
-        <EpisodeInventoryStatus status={episodeInventory.status} retrying={retrying} onretry={retry} />
-    {:else if episodeInventory.status === 'pending'}
-        <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 hero:grid-cols-7">
-            {#each Array(5) as _}
-                <AnimeCardSkeleton variant="top" />
-            {/each}
-        </div>
-        <EpisodeInventoryStatus status={episodeInventory.status} retrying={retrying} onretry={retry} />
-    {:else}
-        <EpisodeInventoryStatus status={episodeInventory.status} retrying={retrying} onretry={retry} />
+    {:else if episodeInventory.status === 'failed'}
+        <EpisodeInventoryStatus retrying={retrying} onretry={retry} />
     {/if}
 </section>
