@@ -72,7 +72,7 @@
                 {m.nav_simulcast()}
             </a>
 
-            <div class="h-full">
+            <div class="flex h-full">
                 <Dropdown id="categories-menu" modal>
                     {#snippet trigger(triggerProps)}
                         <Button
