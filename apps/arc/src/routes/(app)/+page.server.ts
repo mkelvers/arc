@@ -21,7 +21,7 @@ export const load: PageServerLoad = async ({ request, fetch }) => {
 };
 
 export const actions: Actions = {
-    removeContinueWatching: async ({ locals, request, url, fetch }) => {
+    removeContinueWatching: async ({ locals, request, fetch }) => {
         if (!locals.user) {
             redirect(303, '/login');
         }
@@ -34,7 +34,7 @@ export const actions: Actions = {
             headers: {
                 Cookie: request.headers.get('cookie') ?? '',
                 Authorization: request.headers.get('authorization') ?? '',
-                Origin: url.origin,
+                Origin: env.BETTER_AUTH_URL!,
             },
         }).catch(() => null);
         if (!response) {
