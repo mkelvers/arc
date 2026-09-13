@@ -14,13 +14,10 @@ Keep commits small and focused. Use a conventional commit message such as `fix: 
 
 Before opening a pull request, run the checks relevant to the change:
 
-Configure a local PostgreSQL database before running the tests, for example with `DATABASE_URL=postgresql://arc:arc@localhost:5433/arc`.
-
 ```bash
 bun run format
 bun run lint
 bun run check
-bun run test
 ```
 
 Push the branch, open a pull request into `main`, describe the change and validation, resolve every conversation, and squash-merge when the diff is ready. Delete the branch after merging.

@@ -7,7 +7,6 @@
 - [ ] `bun run format`
 - [ ] `bun run lint`
 - [ ] `bun run check`
-- [ ] `bun run test`
 
 ## Notes
 

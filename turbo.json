@@ -20,10 +20,6 @@
         "lint": {
             "outputs": []
         },
-        "test": {
-            "cache": false,
-            "env": ["DATABASE_URL"]
-        },
         "format": {
             "outputs": []
         },

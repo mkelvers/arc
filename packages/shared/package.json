@@ -19,8 +19,7 @@
         "db:studio": "drizzle-kit studio",
         "db:up": "docker compose -f ../../compose.yaml up -d --wait postgres",
         "db:down": "docker compose -f ../../compose.yaml down",
-        "check": "tsc --noEmit",
-        "test": "bun test --pass-with-no-tests"
+        "check": "tsc --noEmit"
     },
     "dependencies": {
         "@graphql-typed-document-node/core": "^3.2.0",

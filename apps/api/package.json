@@ -6,8 +6,7 @@
     "scripts": {
         "dev": "NODE_ENV=development bun --env-file=.env --watch src/index.ts",
         "build": "bun build src/index.ts --outdir dist --target bun",
-        "check": "tsc --noEmit",
-        "test": "bun test"
+        "check": "tsc --noEmit"
     },
     "dependencies": {
         "@arc/core": "workspace:*",

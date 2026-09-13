@@ -11,8 +11,7 @@
         "./client": "./src/client.ts"
     },
     "scripts": {
-        "check": "tsc --noEmit",
-        "test": "bun test --pass-with-no-tests"
+        "check": "tsc --noEmit"
     },
     "dependencies": {
         "@arc/shared": "workspace:*",

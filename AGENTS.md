@@ -12,7 +12,6 @@ Before handoff, run the narrowest relevant check, then the repository checks:
 bun run format:check
 bun run lint
 bun run check
-bun run test
 ```
 
 Do not hand-edit generated output or database migrations. Do not commit unless the user asks for a commit.

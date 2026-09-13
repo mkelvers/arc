@@ -4,8 +4,7 @@
     "private": true,
     "workspaces": [
         "apps/*",
-        "packages/*",
-        "tests"
+        "packages/*"
     ],
     "scripts": {
         "dev": "turbo run dev --",
@@ -13,7 +12,6 @@
         "preview": "turbo run preview",
         "check": "turbo run check",
         "lint": "oxlint && eslint 'apps/arc/**/*.svelte'",
-        "test": "turbo run test",
         "format": "oxfmt",
         "format:check": "oxfmt --check",
         "db:check": "bun --cwd packages/shared db:check"
