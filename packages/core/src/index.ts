@@ -30,6 +30,7 @@ export * from './catalog/franchise/playback';
 export * from './catalog/franchise/record';
 export * from './catalog/franchise/selection';
 export * from './catalog/home-selection';
+export { homePage } from './catalog/home';
 export * from './catalog/identity';
 export * from './catalog/movie-backdrop';
 export * from './catalog/query';

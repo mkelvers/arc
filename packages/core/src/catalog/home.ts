@@ -51,6 +51,7 @@ async function heroSelection(rotationStart: string, loadHomeHero: CatalogSource[
         );
         return {
             previous: selections[0] ?? [],
+            complete: selections.find((selection) => selection.length === 6) ?? [],
             recent: selections.flat(),
         };
     }
@@ -89,37 +90,39 @@ async function heroSelection(rotationStart: string, loadHomeHero: CatalogSource[
             );
         }
 
-        await db
-            .insert(homeHeroSelection)
-            .values(
+        await db.transaction(async (tx) => {
+            await tx
+                .delete(homeHeroSelection)
+                .where(eq(homeHeroSelection.rotationStart, rotationStart));
+            await tx.insert(homeHeroSelection).values(
                 selected.map(({ id }, position) => ({
                     rotationStart,
                     position,
                     anilistId: id,
                 }))
-            )
-            .onConflictDoNothing();
-
-        const stored = await selectionForRotation(rotationStart);
-        const selectedById = new Map(selected.map((anime) => [anime.id, anime]));
-        const ordered = stored.flatMap((id) => {
-            const anime = selectedById.get(id);
-            return anime ? [anime] : [];
+            );
         });
-        return stored.length === 6 && ordered.length === 6 ? ordered : hydrate(stored);
+
+        return selected;
     }
 
     const stored = await selectionForRotation(rotationStart);
     if (stored.length === 6) {
-        return hydrate(stored);
+        const hydrated = await hydrate(stored);
+        if (hydrated.length === 6) {
+            return hydrated;
+        }
     }
 
     try {
         return await buildSelection();
     } catch (cause) {
-        const { previous } = await previousSelection();
-        if (previous.length) {
-            return hydrate(previous);
+        const { complete } = await previousSelection();
+        if (complete.length === 6) {
+            const hydrated = await hydrate(complete);
+            if (hydrated.length === 6) {
+                return hydrated;
+            }
         }
         throw cause;
     }
