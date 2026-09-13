@@ -30,6 +30,8 @@
     let active = $state(0);
     let previous = $state<number | null>(null);
     let paused = $state(false);
+    let canScrollPrevious = $state(false);
+    let canScrollNext = $state(false);
 
     const plugins = $derived(
         autoplay === undefined
@@ -48,6 +50,11 @@
     function init({ detail: api }: CustomEvent<EmblaCarouselType>) {
         emblaApi = api;
 
+        function updateControls() {
+            canScrollPrevious = api.canScrollPrev();
+            canScrollNext = api.canScrollNext();
+        }
+
         const autoplayApi = api.plugins().autoplay;
         if (prefersReducedMotion.current || api.scrollSnapList().length < 2) {
             autoplayApi?.stop();
@@ -59,15 +66,26 @@
                 previous = prefersReducedMotion.current ? null : active;
                 active = next;
             }
+            updateControls();
         });
-        api.on('reInit', () => (emblaApi = api));
-        api.on('resize', () => (emblaApi = api));
-        api.on('slidesChanged', () => (emblaApi = api));
+        api.on('reInit', () => {
+            emblaApi = api;
+            updateControls();
+        });
+        api.on('resize', () => {
+            emblaApi = api;
+            updateControls();
+        });
+        api.on('slidesChanged', () => {
+            emblaApi = api;
+            updateControls();
+        });
         api.on('autoplay:play', () => (paused = false));
         api.on('autoplay:stop', () => (paused = true));
 
         paused = !autoplayApi?.isPlaying();
         active = api.selectedScrollSnap();
+        updateControls();
     }
 
     function select(index: number, instant = false) {
@@ -102,7 +120,7 @@
         })}
     </div>
 
-    {#if controls && emblaApi?.canScrollPrev()}
+    {#if controls && canScrollPrevious}
         <Button
             variant="unstyled"
             type="button"
@@ -114,7 +132,7 @@
         </Button>
     {/if}
 
-    {#if controls && emblaApi?.canScrollNext()}
+    {#if controls && canScrollNext}
         <Button
             variant="unstyled"
             type="button"
