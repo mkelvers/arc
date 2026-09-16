@@ -231,6 +231,7 @@
     "shared_start_watching": "Start watching {title}",
     "shared_play_episode": "Play E1",
     "shared_anilist_score": "AniList score",
+    "shared_average_score": "Average score: {score}%",
     "shared_score": "{provider} score: {score}%",
     "shared_score_provider_anilist": "AniList",
     "shared_score_provider_kitsu": "Kitsu",

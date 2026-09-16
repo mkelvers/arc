@@ -135,11 +135,7 @@
                     </span>
                     <span class="hidden text-border-strong sm:inline" aria-hidden="true">|</span>
                     <strong>
-                        {m.shared_score({
-                            provider:
-                                anime.scoreSource === 'Kitsu'
-                                    ? m.shared_score_provider_kitsu()
-                                    : m.shared_score_provider_anilist(),
+                        {m.shared_average_score({
                             score: anime.score,
                         })}
                     </strong>

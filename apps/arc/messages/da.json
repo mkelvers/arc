@@ -231,6 +231,7 @@
     "shared_start_watching": "Start med at se {title}",
     "shared_play_episode": "Afspil E1",
     "shared_anilist_score": "AniList-score",
+    "shared_average_score": "Gennemsnitsscore: {score}%",
     "shared_score": "{provider}-score: {score}%",
     "shared_score_provider_anilist": "AniList",
     "shared_score_provider_kitsu": "Kitsu",

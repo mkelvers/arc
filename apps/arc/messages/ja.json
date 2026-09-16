@@ -37,6 +37,7 @@
     "home_carousel_slide": "{title}、{current}/{total}スライド",
     "home_carousel_status": "現在表示中: {title}",
     "shared_score": "{provider}スコア: {score}%",
+    "shared_average_score": "平均スコア: {score}%",
     "shared_score_provider_anilist": "AniList",
     "shared_score_provider_kitsu": "Kitsu"
 }

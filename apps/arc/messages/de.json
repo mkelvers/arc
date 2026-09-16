@@ -231,6 +231,7 @@
     "shared_start_watching": "{title} ansehen",
     "shared_play_episode": "E1 abspielen",
     "shared_anilist_score": "AniList-Wertung",
+    "shared_average_score": "Durchschnittliche Wertung: {score}%",
     "shared_score": "{provider}-Wertung: {score}%",
     "shared_score_provider_anilist": "AniList",
     "shared_score_provider_kitsu": "Kitsu",
