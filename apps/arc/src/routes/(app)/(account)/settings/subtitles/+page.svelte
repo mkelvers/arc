@@ -63,7 +63,7 @@
                 <Dropdown id="subtitle-size" className="mt-2 w-48 *:p-0">
                     {#snippet trigger()}
                         <span>{subtitleSizes[settings.size].label}</span>
-                        <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
+                        <CaretDownIcon size={16} aria-hidden="true" />
                     {/snippet}
                     {#snippet children()}
                         <div role="menu" aria-label={m.player_size()}>
@@ -88,7 +88,7 @@
                 <Dropdown id="subtitle-text-color" className="mt-2 w-48 *:p-0">
                     {#snippet trigger()}
                         <span>{subtitleTextColors[settings.textColor].label}</span>
-                        <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
+                        <CaretDownIcon size={16} aria-hidden="true" />
                     {/snippet}
                     {#snippet children()}
                         <div role="menu" aria-label={m.settings_color()}>
@@ -113,7 +113,7 @@
                 <Dropdown id="subtitle-edge-style" className="mt-2 w-48 *:p-0">
                     {#snippet trigger()}
                         <span>{subtitleEdgeStyles[settings.edgeStyle].label}</span>
-                        <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
+                        <CaretDownIcon size={16} aria-hidden="true" />
                     {/snippet}
                     {#snippet children()}
                         <div role="menu" aria-label={m.settings_edge_style()}>
@@ -143,7 +143,7 @@
                 <Dropdown id="subtitle-background" className="mt-2 w-48 *:p-0">
                     {#snippet trigger()}
                         <span>{subtitleBackgrounds[settings.background].label}</span>
-                        <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
+                        <CaretDownIcon size={16} aria-hidden="true" />
                     {/snippet}
                     {#snippet children()}
                         <div role="menu" aria-label={m.settings_background()}>
@@ -168,7 +168,7 @@
                 <Dropdown id="subtitle-background-opacity" className="mt-2 w-48 *:p-0">
                     {#snippet trigger()}
                         <span>{Math.round(settings.backgroundOpacity * 100)}%</span>
-                        <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
+                        <CaretDownIcon size={16} aria-hidden="true" />
                     {/snippet}
                     {#snippet children()}
                         <div role="menu" aria-label={m.settings_opacity()}>

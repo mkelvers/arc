@@ -153,7 +153,7 @@
             aria-controls={mobileMenuOpen ? 'mobile-settings-menu' : undefined}
             onclick={() => (mobileMenuOpen = true)}
         >
-            <CaretDownIcon size={14} aria-hidden="true"></CaretDownIcon>
+            <CaretDownIcon size={14} aria-hidden="true" />
             <span>{m.settings_sections()}</span>
         </button>
     </div>
@@ -176,7 +176,7 @@
                     aria-label={m.shared_close_menu()}
                     onclick={closeMobileMenu}
                 >
-                    <XIcon size={24} aria-hidden="true"></XIcon>
+                    <XIcon size={24} aria-hidden="true" />
                 </Button>
             </header>
             <nav class="min-h-0 flex-1 overflow-y-auto px-5 py-4" aria-label={m.settings_sections()}>

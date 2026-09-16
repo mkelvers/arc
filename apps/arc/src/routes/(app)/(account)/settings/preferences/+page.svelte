@@ -32,7 +32,7 @@
                 <span>
                     {languages.find((language) => language.locale === locale.current)?.label ?? languages[0].label}
                 </span>
-                <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
+                <CaretDownIcon size={16} aria-hidden="true" />
             {/snippet}
             {#snippet children()}
                 <div role="menu">
