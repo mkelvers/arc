@@ -96,7 +96,7 @@
                 <div class="border-b border-border pb-4">
                     <Dropdown id="notification-view" alignment="left" className="w-56 *:p-0">
                         {#snippet trigger()}
-                            <CaretDownIcon size="1rem" weight="bold" aria-hidden="true"></CaretDownIcon>
+                            <CaretDownIcon size="1rem" weight="bold" aria-hidden="true" />
                             <span id="notification-view-label">
                                 {notificationView === 'read' ? 'Read Notifications' : 'Past Notifications'}
                             </span>
@@ -136,7 +136,7 @@
                         body={notificationView === 'read'
                             ? 'Notifications you have read will appear here.'
                             : 'New episodes and dub releases from your watchlist will appear here.'}
-                    ></EmptyState>
+                    />
                 {:else}
                     <div class="mt-6 space-y-6">
                         {#each selectedNotifications as entry (entry.id)}
@@ -144,7 +144,7 @@
                                 entry={entry}
                                 onOpen={openNotification}
                                 onMarkAsRead={markNotificationAsRead}
-                            ></NotificationCard>
+                            />
                         {/each}
                     </div>
                 {/if}
