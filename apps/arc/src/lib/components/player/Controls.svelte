@@ -12,7 +12,7 @@
     } from 'phosphor-svelte';
     import Settings from './Settings.svelte';
     import Timeline from './Timeline.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import Input from '$lib/components/ui/input/Input.svelte';
     import { m } from '$lib/i18n.svelte';
 
@@ -34,7 +34,6 @@
     <div class="flex items-center justify-between px-1">
         <div class="flex items-center gap-4">
             <Button
-                variant="unstyled"
                 type="button"
                 aria-label={player.media.playing ? m.player_pause() : m.player_play()}
                 disabled={player.media.loading}
@@ -47,7 +46,7 @@
                 {#if player.media.playing}
                     <PauseIcon size="1.5rem" aria-hidden="true"></PauseIcon>
                 {:else}
-                    <PlayIcon size="1.5rem" weight="fill" aria-hidden="true"></PlayIcon>
+                    <PlayIcon size="1.5rem" weight="fill" aria-hidden="true" />
                 {/if}
             </Button>
 
@@ -66,12 +65,11 @@
                             disabled={player.media.loading}
                             class="absolute inset-0 size-full cursor-pointer accent-accent [direction:rtl] [writing-mode:vertical-lr]"
                             oninput={(event) => player.media.setVolume(Number(event.currentTarget.value))}
-                        ></Input>
+                        />
                     </div>
                 </div>
 
                 <Button
-                    variant="unstyled"
                     type="button"
                     aria-label={player.media.muted ? m.player_unmute() : m.player_mute()}
                     disabled={player.media.loading}
@@ -93,7 +91,6 @@
         <div class="flex items-center gap-4">
             {#if hasMultipleEpisodes && onOpenEpisodes}
                 <Button
-                    variant="unstyled"
                     type="button"
                     aria-label={episodesOpen ? m.player_close_episodes() : m.player_episodes()}
                     aria-haspopup="dialog"
@@ -108,7 +105,6 @@
 
             <div class="relative">
                 <Button
-                    variant="unstyled"
                     type="button"
                     aria-label={m.player_settings()}
                     aria-expanded={player.settingsOpen}
@@ -126,7 +122,6 @@
             </div>
 
             <Button
-                variant="unstyled"
                 type="button"
                 aria-label={player.fullscreen ? m.player_exit_fullscreen() : m.player_fullscreen()}
                 disabled={player.media.loading}

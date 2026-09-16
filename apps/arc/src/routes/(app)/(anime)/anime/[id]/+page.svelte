@@ -3,7 +3,7 @@
 
     import AnimePageContent from './_components/AnimePageContent.svelte';
     import PageLoading from '$lib/components/ui/PageLoading.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import type { PageProps } from './$types';
     import { m } from '$lib/i18n.svelte';
 

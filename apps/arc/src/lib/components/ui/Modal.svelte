@@ -4,7 +4,7 @@
 
     import { cn } from '$lib/utils';
     import { m } from '$lib/i18n.svelte';
-    import Button from './button/button.svelte';
+    import Button from './button/Button.svelte';
 
     interface Props {
         children?: Snippet;
@@ -69,7 +69,6 @@
         </div>
         <Button
             variant="ghost"
-            size="icon-lg"
             type="button"
             class="ml-auto grid size-11 shrink-0 place-items-center transition-[background-color,transform] duration-150 hover:bg-white/8 focus-visible:outline-1 focus-visible:outline-white active:scale-95"
             aria-label={m.shared_close_menu()}

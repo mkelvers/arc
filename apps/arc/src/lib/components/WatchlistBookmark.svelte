@@ -6,7 +6,7 @@
     import { cn } from '$lib/utils';
     import { watchlist, WatchlistAuthenticationError } from '$lib/watchlist.svelte';
     import Tooltip from './ui/Tooltip.svelte';
-    import Button from './ui/button/button.svelte';
+    import Button from './ui/button/Button.svelte';
     import { m } from '$lib/i18n.svelte';
 
     interface Props {
@@ -61,7 +61,6 @@
 <Tooltip text={failed ? m.player_try_again() : added ? m.remove() : m.watchlist_add()}>
     <Button
         variant="ghost"
-        size="icon"
         type="button"
         class={cn(
             'grid shrink-0 place-items-center text-accent transition-[filter,transform] duration-150 hover:bg-transparent hover:text-accent hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-90 disabled:cursor-wait disabled:opacity-50',

@@ -4,7 +4,7 @@
     import type { AnimeSearchResult } from '@arc/core/client';
     import { cn } from '$lib/utils';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import { m } from '$lib/i18n.svelte';
 
     interface Props {
@@ -30,7 +30,6 @@
 
         {#if results.length > 6}
             <Button
-                variant="unstyled"
                 type="button"
                 class="mt-2 inline-flex min-h-9 items-center gap-2 text-xs font-bold uppercase text-subtle transition-colors hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 aria-expanded={expanded}

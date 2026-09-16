@@ -4,7 +4,7 @@
     import { prefersReducedMotion } from 'svelte/motion';
     import { cn } from '$lib/utils';
     import { m } from '$lib/i18n.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
 
     interface Props {
         message: string;
@@ -40,7 +40,6 @@
         <p class="text-center">{message}</p>
         <Button
             variant="ghost"
-            size="icon-lg"
             class="absolute inset-y-0 right-0 grid w-12 place-items-center transition-[background-color,transform] duration-150 hover:bg-black/10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-on-status active:scale-90"
             type="button"
             aria-label={m.shared_dismiss()}

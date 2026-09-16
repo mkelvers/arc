@@ -8,7 +8,7 @@
         type AnimePageOverview,
         type AnimePageEpisodeUpdates,
     } from '@arc/core/client';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
     import EpisodeInventoryPoller from './EpisodeInventoryPoller.svelte';
     import EpisodeInventoryStatus from './EpisodeInventoryStatus.svelte';
@@ -96,7 +96,6 @@
         </div>
         {#if visibleEpisodeCount < episodes.length}
             <Button
-                variant="unstyled"
                 type="button"
                 class="mx-auto mt-8 flex min-h-11 w-full max-w-5xl items-center justify-center bg-episode-action px-5 text-xs font-bold uppercase hover:bg-episode-action-hover"
                 onclick={() => (visibleEpisodeCount = Math.min(episodes.length, visibleEpisodeCount + pageSize))}

@@ -3,7 +3,7 @@
     import { enhance } from '$app/forms';
 
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import Input from '$lib/components/ui/input/Input.svelte';
     import { cn } from '$lib/utils';
     import type { PageProps } from './$types';
@@ -75,7 +75,6 @@
             <div class="flex min-w-max gap-6" role="tablist">
                 {#each [{ value: 'logo', label: m.media_logos(), count: data.artwork.logos.length }, { value: 'backdrop', label: m.media_backdrops(), count: data.artwork.backdrops.length }] as tab}
                     <Button
-                        variant="unstyled"
                         type="button"
                         role="tab"
                         class={cn(
@@ -118,7 +117,6 @@
                     <Input type="hidden" name="type" value="logo"></Input>
                     <Input type="hidden" name="filePath" value=""></Input>
                     <Button
-                        variant="unstyled"
                         type="submit"
                         aria-pressed={data.artwork.logoHidden}
                         class={cn(
@@ -134,7 +132,6 @@
                         <Input type="hidden" name="type" value="logo"></Input>
                         <Input type="hidden" name="filePath" value={image.filePath}></Input>
                         <Button
-                            variant="unstyled"
                             type="submit"
                             aria-pressed={data.artwork.selectedLogo?.filePath === image.filePath}
                             class={cn(
@@ -165,7 +162,6 @@
                         <Input type="hidden" name="type" value="backdrop"></Input>
                         <Input type="hidden" name="filePath" value={image.filePath}></Input>
                         <Button
-                            variant="unstyled"
                             type="submit"
                             aria-pressed={data.artwork.selectedBackdrop?.filePath === image.filePath}
                             class={cn(

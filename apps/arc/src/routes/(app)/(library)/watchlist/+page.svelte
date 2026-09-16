@@ -3,7 +3,6 @@
     import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
     import errorArtwork from '$lib/assets/error-state.webp';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
     import type { PageProps } from './$types';
     import { m } from '$lib/i18n.svelte';
 
@@ -48,14 +47,12 @@
                     body={m.watchlist_error_body()}
                 >
                     {#snippet action()}
-                        <Button
-                            variant="default"
-                            size="lg"
+                        <a
                             href="/watchlist"
-                            class="text-xs font-bold uppercase active:scale-[0.97]"
+                            class="inline-flex min-h-11 items-center justify-center px-4 text-xs font-bold uppercase active:scale-[0.97]"
                         >
                             {m.watchlist_retry()}
-                        </Button>
+                        </a>
                     {/snippet}
                 </EmptyState>
             </div>

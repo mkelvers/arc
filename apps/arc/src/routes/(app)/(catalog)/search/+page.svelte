@@ -7,7 +7,7 @@
     import errorArtwork from '$lib/assets/error-state.webp';
     import AnimeCardSkeleton from '$lib/components/AnimeCardSkeleton.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
     import Input from '$lib/components/ui/input/Input.svelte';
@@ -236,7 +236,6 @@
                 <div class="mb-3 flex items-center justify-between gap-6">
                     <h2 id="recent-results-title" class="text-base font-semibold">{m.search_recent()}</h2>
                     <Button
-                        variant="unstyled"
                         type="button"
                         class="min-h-9 shrink-0 text-xs font-bold uppercase text-muted transition-[color,transform] duration-150 hover:text-foreground focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
                         onclick={() => recent.clear()}
@@ -257,7 +256,6 @@
                                 {result.title}
                             </a>
                             <Button
-                                variant="unstyled"
                                 type="button"
                                 class="grid size-9 shrink-0 place-items-center border-l border-black/30 text-muted transition-colors hover:bg-white/8 hover:text-foreground focus-visible:outline-1 focus-visible:outline-accent active:scale-90"
                                 aria-label={m.search_remove_recent({ title: result.title })}

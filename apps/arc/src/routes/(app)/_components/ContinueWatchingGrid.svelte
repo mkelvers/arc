@@ -5,7 +5,7 @@
     import Card from '$lib/components/ui/card/Card.svelte';
     import CardMedia from '$lib/components/ui/card/CardMedia.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import Input from '$lib/components/ui/input/Input.svelte';
     import Carousel from '$lib/components/ui/Carousel.svelte';
     import Tooltip from '$lib/components/ui/Tooltip.svelte';
@@ -122,7 +122,6 @@
                                 <Input type="hidden" name="animeId" value={entry.animeId}></Input>
                                 <Tooltip text={m.remove()} escapeOverflow>
                                     <Button
-                                        variant="unstyled"
                                         type="submit"
                                         class="grid size-8 place-items-center text-white/75 drop-shadow-sm transition-[color,transform] duration-150 hover:text-status-error focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-90"
                                         aria-label={m.remove_continue_watching({ title: entry.title })}

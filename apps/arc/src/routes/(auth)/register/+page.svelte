@@ -4,7 +4,7 @@
     import { ApiErrorSchema } from '@arc/core/client';
     import AuthInput from '../_components/AuthInput.svelte';
     import { m } from '$lib/i18n.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import type { PageProps } from './$types';
 
     let { form }: PageProps = $props();
@@ -131,8 +131,7 @@
     </div>
 
     <Button
-        class="mt-10 w-full text-xs font-bold uppercase active:scale-[0.97]"
-        size="lg"
+        class="mt-10 min-h-11 w-full px-4 text-xs font-bold uppercase active:scale-[0.97]"
         type="submit"
         disabled={pending}
     >

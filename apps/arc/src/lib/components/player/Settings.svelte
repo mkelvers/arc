@@ -4,7 +4,7 @@
     import { subtitleSizeOrder, subtitleSizes } from '$lib/player/subtitle-settings.svelte';
     import type { SkipKind } from '@arc/core/client';
     import { cn } from '$lib/utils';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import Radio from '$lib/components/ui/snippets/Radio.svelte';
     import { CaretLeftIcon, CaretRightIcon } from 'phosphor-svelte';
     import { m } from '$lib/i18n.svelte';
@@ -25,11 +25,10 @@
     id="player-settings"
     role="menu"
     aria-label={m.player_settings()}
-    class="absolute right-0 bottom-full z-40 mb-2 w-64 origin-bottom-right overflow-hidden bg-player-panel py-2 text-left text-xs shadow-xl ring-1 ring-white/8 transition-[opacity,scale] duration-150 ease-out starting:opacity-0 starting:scale-95 motion-reduce:transition-none"
+    class="absolute right-0 bottom-full z-40 mb-2 w-64 origin-bottom-right overflow-hidden bg-player-panel text-left text-xs shadow-xl ring-1 ring-white/8 transition-[opacity,scale] duration-150 ease-out starting:opacity-0 starting:scale-95 motion-reduce:transition-none"
 >
     {#if player.settingsView === 'main'}
         <Button
-            variant="unstyled"
             type="button"
             role="menuitemcheckbox"
             aria-checked={player.media.autoplay}
@@ -56,7 +55,6 @@
         </Button>
 
         <Button
-            variant="unstyled"
             type="button"
             role="menuitem"
             class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
@@ -70,7 +68,6 @@
         </Button>
 
         <Button
-            variant="unstyled"
             type="button"
             role="menuitem"
             class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
@@ -88,7 +85,6 @@
 
         {#if player.media.qualities.length > 1}
             <Button
-                variant="unstyled"
                 type="button"
                 role="menuitem"
                 class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
@@ -107,7 +103,6 @@
 
         {#if player.segments.canEdit}
             <Button
-                variant="unstyled"
                 type="button"
                 role="menuitem"
                 class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
@@ -125,7 +120,6 @@
                   ? 'ending'
                   : null}
         <Button
-            variant="unstyled"
             type="button"
             role="menuitem"
             aria-label={player.settingsView === 'subtitle-size'
@@ -144,7 +138,6 @@
 
         {#if player.settingsView === 'quality'}
             <Button
-                variant="unstyled"
                 type="button"
                 role="menuitemradio"
                 aria-checked={player.media.quality === 'best'}
@@ -157,7 +150,6 @@
 
             {#each player.media.qualities as option}
                 <Button
-                    variant="unstyled"
                     type="button"
                     role="menuitemradio"
                     aria-checked={player.media.quality === option}
@@ -180,7 +172,6 @@
                 </h3>
                 {#each player.media.sourcesForMode(mode) as source}
                     <Button
-                        variant="unstyled"
                         type="button"
                         role="menuitemradio"
                         aria-checked={player.media.mode === mode && player.media.activeSource === source}
@@ -195,7 +186,6 @@
             {/each}
         {:else if player.settingsView === 'subtitles'}
             <Button
-                variant="unstyled"
                 type="button"
                 role="menuitem"
                 class="flex min-h-8 w-full items-center justify-between px-4 text-left font-medium hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
@@ -210,7 +200,6 @@
 
             {#each player.media.captions.options as option}
                 <Button
-                    variant="unstyled"
                     type="button"
                     role="menuitemradio"
                     aria-checked={player.media.captions.mode === option.mode}
@@ -224,7 +213,6 @@
         {:else if player.settingsView === 'subtitle-size'}
             {#each subtitleSizeOrder as option}
                 <Button
-                    variant="unstyled"
                     type="button"
                     role="menuitemradio"
                     aria-checked={player.media.captions.size === option}
@@ -239,7 +227,6 @@
             {#each ['opening', 'ending'] satisfies SkipKind[] as kind (kind)}
                 {@const interval = player.displayedSegmentTimes[kind]}
                 <Button
-                    variant="unstyled"
                     type="button"
                     role="menuitem"
                     class="flex min-h-11 w-full items-center justify-start gap-3 px-4 text-left hover:bg-white/8 focus-visible:bg-white/8 focus-visible:outline-none"
@@ -260,7 +247,6 @@
             {#each ['start', 'end'] satisfies Array<'start' | 'end'> as edge (edge)}
                 {@const edgeTime = player.displayedSegmentTimes[editingKind]?.[edge] ?? null}
                 <Button
-                    variant="unstyled"
                     type="button"
                     role="menuitem"
                     aria-label={m.player_set_position({ kind: skipLabels[editingKind], edge })}
@@ -284,7 +270,6 @@
 
             {#if Number.isSafeInteger(player.segments.episodeNumber) && player.segments.episodeNumber > 0}
                 <Button
-                    variant="unstyled"
                     type="button"
                     role="menuitem"
                     disabled={player.segments.saving}
@@ -304,7 +289,6 @@
 
             {#if player.segments.draft[editingKind].start !== null || player.segments.draft[editingKind].end !== null}
                 <Button
-                    variant="unstyled"
                     type="button"
                     role="menuitem"
                     disabled={player.segments.saving}

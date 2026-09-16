@@ -2,7 +2,7 @@
     import { page } from '$app/state';
     import { CaretDownIcon, XIcon } from 'phosphor-svelte';
     import type { LayoutProps } from './$types';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import { m } from '$lib/i18n.svelte';
 
     let { children }: LayoutProps = $props();
@@ -145,9 +145,8 @@
         <p class="text-2xl font-bold tracking-tight">
             {m.settings_account()}
         </p>
-        <Button
-            bind:ref={mobileSettingsTrigger}
-            variant="unstyled"
+        <button
+            bind:this={mobileSettingsTrigger}
             type="button"
             class="mt-8 flex min-h-11 items-center gap-3 text-xs font-bold tracking-wide text-muted uppercase transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             aria-expanded={mobileMenuOpen}
@@ -156,7 +155,7 @@
         >
             <CaretDownIcon size={14} aria-hidden="true"></CaretDownIcon>
             <span>{m.settings_sections()}</span>
-        </Button>
+        </button>
     </div>
 
     {#if mobileMenuOpen}
@@ -172,7 +171,6 @@
             <header class="flex min-h-14 shrink-0 items-center justify-between bg-[#151515] px-5">
                 <h2 class="text-base font-medium">{m.settings_account()}</h2>
                 <Button
-                    variant="unstyled"
                     type="button"
                     class="grid size-9 place-items-center text-muted transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-accent"
                     aria-label={m.shared_close_menu()}

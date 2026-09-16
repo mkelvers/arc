@@ -1,7 +1,7 @@
 <script lang="ts">
     import type { HTMLInputAttributes } from 'svelte/elements';
     import { m } from '$lib/i18n.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import Input from '$lib/components/ui/input/Input.svelte';
 
     let {
@@ -57,7 +57,6 @@
         {#if type === 'password' && value}
             <Button
                 variant="ghost"
-                size="sm"
                 class="absolute inset-y-0 right-0 min-w-12 pt-8 text-xs font-semibold text-muted uppercase transition-[color,transform] hover:text-foreground focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent active:scale-[0.97]"
                 type="button"
                 aria-label={visible ? m.player_hide_password() : m.player_show_password()}

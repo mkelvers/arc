@@ -2,7 +2,7 @@
     import { page } from '$app/state';
     import errorArtwork from '$lib/assets/error-state.webp';
     import Logo from '$lib/components/ui/Logo.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import { m } from '$lib/i18n.svelte';
 
     const error = $derived(page.status !== 404);
@@ -48,7 +48,6 @@
         <div class="mt-9 flex flex-wrap justify-center gap-3">
             {#if error}
                 <Button
-                    variant="outline"
                     type="button"
                     class="min-h-11 px-5 text-xs font-bold uppercase focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     onclick={() => location.reload()}

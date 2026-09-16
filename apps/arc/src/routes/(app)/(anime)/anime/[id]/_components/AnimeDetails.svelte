@@ -1,7 +1,7 @@
 <script lang="ts">
     import { type AnimePageDeferred } from '@arc/core/client';
 
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import { cn } from '$lib/utils';
     import { m } from '$lib/i18n.svelte';
 
@@ -93,7 +93,6 @@
         </div>
 
         <Button
-            variant="unstyled"
             type="button"
             class="min-h-11 text-xs font-semibold text-accent uppercase"
             aria-expanded={expanded}
