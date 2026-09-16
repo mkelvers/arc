@@ -40,7 +40,7 @@
         {/if}
 
         <div
-            class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end leading-none font-bold sm:mt-5 sm:mr-8 lg:mr-12"
+            class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end leading-none font-bold sm:mt-5 sm:mr-8 lg:mr-12 [&_.dropdown-trigger]:text-white"
         >
             <Dropdown id="more-options" className="w-56 *:p-0" alignment="right">
                 {#snippet trigger()}
