@@ -43,7 +43,7 @@
                 }}
             >
                 {#if player.media.playing}
-                    <PauseIcon size="1.5rem" aria-hidden="true"></PauseIcon>
+                    <PauseIcon size="1.5rem" aria-hidden="true" />
                 {:else}
                     <PlayIcon size="1.5rem" weight="fill" aria-hidden="true" />
                 {/if}
@@ -79,9 +79,9 @@
                     }}
                 >
                     {#if player.media.muted}
-                        <SpeakerSlashIcon size="1.5rem" aria-hidden="true"></SpeakerSlashIcon>
+                        <SpeakerSlashIcon size="1.5rem" aria-hidden="true" />
                     {:else}
-                        <SpeakerHighIcon size="1.5rem" aria-hidden="true"></SpeakerHighIcon>
+                        <SpeakerHighIcon size="1.5rem" aria-hidden="true" />
                     {/if}
                 </Button>
             </div>
@@ -98,11 +98,11 @@
                     class="grid size-11 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 sm:size-8"
                     onclick={onOpenEpisodes}
                 >
-                    <ArchiveIcon size="1.5rem" weight="bold" aria-hidden="true"></ArchiveIcon>
+                    <ArchiveIcon size="1.5rem" weight="bold" aria-hidden="true" />
                 </Button>
             {/if}
 
-            <Settings player={player}></Settings>
+            <Settings player={player} />
 
             <Button
                 type="button"
@@ -115,13 +115,13 @@
                 }}
             >
                 {#if player.fullscreen}
-                    <CornersInIcon size="1.5rem" weight="bold" aria-hidden="true"></CornersInIcon>
+                    <CornersInIcon size="1.5rem" weight="bold" aria-hidden="true" />
                 {:else}
-                    <CornersOutIcon size="1.5rem" weight="bold" aria-hidden="true"></CornersOutIcon>
+                    <CornersOutIcon size="1.5rem" weight="bold" aria-hidden="true" />
                 {/if}
             </Button>
         </div>
     </div>
 
-    <Timeline player={player}></Timeline>
+    <Timeline player={player} />
 </div>
