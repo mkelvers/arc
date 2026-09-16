@@ -24,7 +24,7 @@
         <h2 id={id} class="mb-3 text-xl font-bold">{title}</h2>
         <div class="grid grid-cols-1 gap-x-5 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
             {#each visibleResults as result (result.id)}
-                <AnimeCard anime={result} variant="compact" onselect={() => onselect(result)}></AnimeCard>
+                <AnimeCard anime={result} variant="compact" onselect={() => onselect(result)} />
             {/each}
         </div>
 
@@ -36,8 +36,12 @@
                 onclick={() => (expanded = !expanded)}
             >
                 {expanded ? m.shared_show_less() : m.shared_see_more()}
-                <CaretRightIcon size="1rem" weight="bold" class={cn(expanded && 'rotate-180')} aria-hidden="true"
-                ></CaretRightIcon>
+                <CaretRightIcon
+                    size="1rem"
+                    weight="bold"
+                    class={cn(expanded && 'rotate-180')}
+                    aria-hidden="true"
+                />
             </Button>
         {/if}
     </section>

@@ -141,7 +141,7 @@
             <h1 id="simulcast-title" class="text-xl font-bold sm:text-2xl">{m.simulcast_title()}</h1>
             <Dropdown id="simulcast-season" className="max-h-80 min-w-48 overflow-y-auto *:p-0">
                 {#snippet trigger()}
-                    <CaretDownIcon size="1rem" weight="bold" class="text-muted" aria-hidden="true"></CaretDownIcon>
+                    <CaretDownIcon size="1rem" weight="bold" class="text-muted" aria-hidden="true" />
                     <span>{label}</span>
                 {/snippet}
                 {#snippet children()}
@@ -170,7 +170,7 @@
                     class="grid grid-cols-2 items-start gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-4 md:grid-cols-4 lg:grid-cols-5 lg:gap-x-7.5 lg:gap-y-12 xl:grid-cols-6"
                 >
                     {#each anime as entry (entry.id)}
-                        <AnimeCard anime={entry} reserveTitleSpace={false} truncateTitle={false}></AnimeCard>
+                        <AnimeCard anime={entry} reserveTitleSpace={false} truncateTitle={false} />
                     {/each}
                 </div>
             </section>
@@ -181,13 +181,13 @@
                 artworkHeight={1254}
                 id="empty-simulcast-message"
                 body={m.simulcast_empty({ label })}
-            ></EmptyState>
+            />
         {/if}
 
         {#if nextPage !== null}
             <div bind:this={sentinel} class="flex min-h-24 items-center justify-center" aria-live="polite">
                 {#if loading}
-                    <Spinner label={m.simulcast_loading()}></Spinner>
+                    <Spinner label={m.simulcast_loading()} />
                 {:else}
                     <span class="sr-only">{m.simulcast_auto_loading()}</span>
                 {/if}

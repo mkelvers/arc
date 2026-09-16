@@ -116,7 +116,7 @@
                                             meta={`${m.release_calendar_episode({ episode: event.episode })} · ${time}`}
                                             reserveTitleSpace={false}
                                             truncateTitle={false}
-                                        ></AnimeCard>
+                                        />
                                     </div>
                                 {:else}
                                     <p
@@ -138,7 +138,7 @@
                         aria-controls="release-calendar-scroller"
                         onclick={() => scrollCalendar(-1)}
                     >
-                        <CaretLeftIcon size="1.25rem" weight="bold" aria-hidden="true"></CaretLeftIcon>
+                        <CaretLeftIcon size="1.25rem" weight="bold" aria-hidden="true" />
                     </Button>
                 {/if}
                 {#if canScrollRight}
@@ -149,7 +149,7 @@
                         aria-controls="release-calendar-scroller"
                         onclick={() => scrollCalendar(1)}
                     >
-                        <CaretRightIcon size="1.25rem" weight="bold" aria-hidden="true"></CaretRightIcon>
+                        <CaretRightIcon size="1.25rem" weight="bold" aria-hidden="true" />
                     </Button>
                 {/if}
             </div>
