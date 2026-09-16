@@ -45,7 +45,7 @@
             aria-label={m.shared_dismiss()}
             onclick={ondismiss}
         >
-            <XIcon size={20} weight="bold" aria-hidden="true"></XIcon>
+            <XIcon size={20} weight="bold" aria-hidden="true" />
         </Button>
     </div>
 {/if}

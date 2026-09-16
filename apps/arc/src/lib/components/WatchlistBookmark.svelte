@@ -71,7 +71,6 @@
         disabled={pending}
         onclick={toggle}
     >
-        <BookmarkSimpleIcon size={iconSize} weight={added ? 'fill' : 'bold'} aria-hidden="true"
-        ></BookmarkSimpleIcon>
+        <BookmarkSimpleIcon size={iconSize} weight={added ? 'fill' : 'bold'} aria-hidden="true" />
     </Button>
 </Tooltip>
