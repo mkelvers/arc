@@ -72,8 +72,14 @@
                 {m.nav_simulcast()}
             </a>
 
-            <div class="flex h-full">
-                <Dropdown id="categories-menu" alignment="left" className="w-[min(52rem,calc(100vw-2rem))] *:p-0">
+            <div
+                class="flex h-full [&_.dropdown-trigger]:hidden [&_.dropdown-trigger]:h-full [&_.dropdown-trigger]:items-center [&_.dropdown-trigger]:justify-center [&_.dropdown-trigger]:gap-2 [&_.dropdown-trigger]:py-0 [&_.dropdown-trigger]:px-4 [&_.dropdown-trigger]:text-sm [&_.dropdown-trigger]:font-medium [&_.dropdown-trigger]:normal-case [&_.dropdown-trigger]:tracking-normal [&_.dropdown-trigger]:text-muted [&_.dropdown-trigger]:transition-colors [&_.dropdown-trigger]:hover:bg-header-hover [&_.dropdown-trigger]:hover:text-foreground [&_.dropdown-trigger]:focus-visible:outline-2 [&_.dropdown-trigger]:focus-visible:outline-offset-2 [&_.dropdown-trigger]:focus-visible:outline-accent [&_.dropdown-root:has(.dropdown-menu:popover-open)_.dropdown-trigger]:bg-header-hover [&_.dropdown-root:has(.dropdown-menu:popover-open)_.dropdown-trigger]:text-foreground sm:[&_.dropdown-trigger]:inline-flex"
+            >
+                <Dropdown
+                    id="categories-menu"
+                    alignment="left"
+                    className="w-[min(52rem,calc(100vw-2rem))] bg-header-hover *:p-0"
+                >
                     {#snippet trigger()}
                         <span>Categories</span>
                         <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
