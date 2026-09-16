@@ -40,7 +40,6 @@ export class Player {
     container!: HTMLElement;
     controlsVisible = $state(true);
     fullscreen = $state(false);
-    settingsOpen = $state(false);
     settingsView = $state<SettingsView>('main');
     changingEpisode = $state(false);
     readonly media: Playback;
@@ -135,7 +134,7 @@ export class Player {
         this.controlsVisible = true;
         clearTimeout(this.hideControlsTimer);
 
-        if (this.media.playing && !this.media.scrubbing && !this.settingsOpen) {
+        if (this.media.playing && !this.media.scrubbing) {
             this.hideControlsTimer = setTimeout(() => {
                 this.controlsVisible = false;
             }, 2_000);
@@ -187,12 +186,6 @@ export class Player {
     }
 
     private handleKeydown(event: KeyboardEvent) {
-        if (event.code === 'Escape' && this.settingsOpen) {
-            event.preventDefault();
-            this.closeSettings();
-            return;
-        }
-
         const action = shortcut(event);
         if (!action) {
             return;
@@ -241,25 +234,6 @@ export class Player {
         ) {
             this.showControls();
         }
-    }
-
-    openSettings() {
-        if (!this.settingsOpen) {
-            this.settingsView = 'main';
-        }
-
-        this.settingsOpen = !this.settingsOpen;
-        this.showControls();
-    }
-
-    closeSettings() {
-        if (this.settingsView === 'main') {
-            this.settingsOpen = false;
-        } else {
-            this.settingsView = 'main';
-        }
-
-        this.showControls();
     }
 
     focus() {

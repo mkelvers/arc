@@ -4,7 +4,6 @@
         ArchiveIcon,
         CornersInIcon,
         CornersOutIcon,
-        GearIcon,
         PauseIcon,
         PlayIcon,
         SpeakerHighIcon,
@@ -103,23 +102,7 @@
                 </Button>
             {/if}
 
-            <div class="relative">
-                <Button
-                    type="button"
-                    aria-label={m.player_settings()}
-                    aria-expanded={player.settingsOpen}
-                    aria-controls="player-settings"
-                    disabled={player.media.loading}
-                    class="grid size-11 cursor-pointer place-items-center transition-[opacity,transform] duration-150 hover:opacity-75 focus-visible:outline-1 focus-visible:outline-white active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 sm:size-8"
-                    onclick={() => player.openSettings()}
-                >
-                    <GearIcon size="1.5rem" aria-hidden="true"></GearIcon>
-                </Button>
-
-                {#if player.settingsOpen}
-                    <Settings player={player}></Settings>
-                {/if}
-            </div>
+            <Settings player={player}></Settings>
 
             <Button
                 type="button"
