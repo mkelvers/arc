@@ -54,7 +54,7 @@
     <meta name="robots" content="noindex" />
 </svelte:head>
 
-<StatusBanner message={message || form?.error || ''} tone="error" ondismiss={() => (message = '')}></StatusBanner>
+<StatusBanner message={message || form?.error || ''} tone="error" ondismiss={() => (message = '')} />
 
 <form class="w-full max-w-104" method="POST" action="?/default" aria-busy={pending} onsubmit={login}>
     <h1 class="text-center text-3xl font-normal">{m.auth_login_title()}</h1>
@@ -73,7 +73,7 @@
                 pattern: '[A-Za-z0-9_]+',
             }}
             bind:value={username}
-        ></AuthInput>
+        />
         <AuthInput
             name="password"
             label={m.auth_password()}
@@ -84,7 +84,7 @@
                 maxlength: 128,
             }}
             bind:value={password}
-        ></AuthInput>
+        />
     </div>
 
     <Button
