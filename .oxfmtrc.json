@@ -16,7 +16,8 @@
         "drizzle/**",
         "node_modules/**",
         "**/generated/**",
-        "**/generated.ts"
+        "**/generated.ts",
+        "apps/arc/src/lib/components/ui/dropdown/Dropdown.svelte"
     ],
     "objectWrap": "preserve",
     "singleAttributePerLine": false,

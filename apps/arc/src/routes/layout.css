@@ -34,6 +34,9 @@
     --theme-tooltip-foreground: #ececec;
     --theme-episode-action: #213944;
     --theme-episode-action-hover: #2f5161;
+    --theme-dropdown: #272727;
+    --theme-dropdown-hover: #151515;
+    --theme-dropdown-foreground: #8c8c8c;
 
     --theme-hero-scrim-inline-start: rgb(0 0 0 / 0.58);
     --theme-hero-scrim-inline-end: rgb(48 48 48 / 0.38);
@@ -77,6 +80,9 @@
     --color-tooltip-foreground: var(--theme-tooltip-foreground);
     --color-episode-action: var(--theme-episode-action);
     --color-episode-action-hover: var(--theme-episode-action-hover);
+    --color-dropdown: var(--theme-dropdown);
+    --color-dropdown-hover: var(--theme-dropdown-hover);
+    --color-dropdown-foreground: var(--theme-dropdown-foreground);
 }
 
 @utility auto-cols-franchise {
@@ -122,7 +128,7 @@
 @layer base {
     html,
     body {
-        @apply min-w-0 bg-canvas text-foreground;
+        @apply min-h-dvh min-w-0 bg-canvas text-foreground;
     }
 
     html {
@@ -175,6 +181,10 @@
 }
 
 @layer components {
+    .dropdown-root {
+        anchor-scope: all;
+    }
+
     .home-hero-slide {
         &::before {
             content: '';

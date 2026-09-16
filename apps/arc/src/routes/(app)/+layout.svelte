@@ -14,8 +14,8 @@
     import { authClient } from '$lib/auth-client';
     import { m } from '$lib/i18n.svelte';
     import Logo from '$lib/components/ui/Logo.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
-    import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
+    import Dropdown from '$lib/components/ui/dropdown/Dropdown.svelte';
     import { cn } from '$lib/utils';
     import AccountAvatar from './_components/AccountAvatar.svelte';
     import PageLoading from '$lib/components/ui/PageLoading.svelte';
@@ -73,26 +73,13 @@
             </a>
 
             <div class="flex h-full">
-                <Dropdown id="categories-menu" modal>
-                    {#snippet trigger(triggerProps)}
-                        <Button
-                            {...triggerProps}
-                            variant="unstyled"
-                            aria-label="Categories"
-                            aria-haspopup="dialog"
-                            class="appearance-none p-0 hidden h-full items-center gap-2 px-4 text-sm font-medium text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:inline-flex"
-                        >
-                            <span>Categories</span>
-                            <CaretDownIcon size={14} weight="bold" aria-hidden="true"></CaretDownIcon>
-                        </Button>
+                <Dropdown id="categories-menu" alignment="left" className="w-[min(52rem,calc(100vw-2rem))] *:p-0">
+                    {#snippet trigger()}
+                        <span>Categories</span>
+                        <CaretDownIcon size={14} weight="bold" aria-hidden="true"></CaretDownIcon>
                     {/snippet}
-                    {#snippet content(menuProps)}
-                        <div
-                            {...menuProps}
-                            role="dialog"
-                            aria-label="Categories"
-                            class="absolute top-full left-0 z-50 w-[min(52rem,calc(100vw-2rem))] bg-header-hover shadow-2xl"
-                        >
+                    {#snippet children()}
+                        <div role="dialog" aria-label="Categories">
                             <div class="grid grid-cols-[minmax(12rem,1fr)_minmax(0,2fr)]">
                                 <div>
                                     <a
@@ -162,32 +149,19 @@
             </a>
 
             {#if data.account}
-                <Dropdown id="account-menu" modal>
-                    {#snippet trigger(triggerProps)}
-                        <Button
-                            {...triggerProps}
-                            variant="unstyled"
-                            aria-label={m.nav_account_menu()}
-                            aria-haspopup="dialog"
-                            class="appearance-none p-0 relative flex h-14 cursor-pointer items-center gap-1 px-1.5 text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:gap-2 sm:px-3"
-                        >
-                            <AccountAvatar
-                                username={data.account.username}
-                                image={data.account.image}
-                                hasUnreadNotifications={data.account.unreadNotifications > 0}
-                                class="size-8 text-sm ring-1 ring-white/20"
-                            ></AccountAvatar>
-                            <CaretDownIcon size={14} weight="bold" aria-hidden="true"></CaretDownIcon>
-                        </Button>
+                <Dropdown id="account-menu" className="w-[min(21rem,calc(100vw-1rem))] bg-panel *:p-0">
+                    {#snippet trigger()}
+                        <AccountAvatar
+                            username={data.account.username}
+                            image={data.account.image}
+                            hasUnreadNotifications={data.account.unreadNotifications > 0}
+                            class="size-8 text-sm ring-1 ring-white/20"
+                        ></AccountAvatar>
+                        <CaretDownIcon size={14} weight="bold" aria-hidden="true"></CaretDownIcon>
                     {/snippet}
 
-                    {#snippet content(menuProps)}
-                        <div
-                            {...menuProps}
-                            role="dialog"
-                            aria-label={m.nav_account_menu()}
-                            class="absolute top-full right-0 z-50 w-[min(21rem,calc(100vw-1rem))] bg-panel"
-                        >
+                    {#snippet children()}
+                        <div role="dialog" aria-label={m.nav_account_menu()}>
                             <div class="bg-panel-strong">
                                 <div class="flex min-h-20 items-center gap-3 px-5 py-3">
                                     <AccountAvatar
@@ -230,7 +204,6 @@
                             </a>
 
                             <Button
-                                variant="unstyled"
                                 type="button"
                                 class="flex min-h-14 w-full items-center justify-start gap-3 px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
                                 onclick={signOut}
@@ -254,26 +227,18 @@
         </div>
 
         <div class="pointer-events-none absolute inset-x-0 top-0 flex h-14 items-center justify-between sm:hidden">
-            <Dropdown id="mobile-navigation" closeOnSelection={false} modal>
-                {#snippet trigger(triggerProps)}
-                    <Button
-                        {...triggerProps}
-                        variant="unstyled"
-                        aria-label={m.nav_open_navigation()}
-                        aria-haspopup="dialog"
-                        class="appearance-none p-0 pointer-events-auto grid h-14 w-14 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground data-[state=open]:bg-header-hover data-[state=open]:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                    >
-                        <ListIcon size={24} aria-hidden="true"></ListIcon>
-                    </Button>
+            <Dropdown
+                id="mobile-navigation"
+                className="fixed top-14 right-0 bottom-0 left-0 z-50 h-[calc(100dvh-3.5rem)] w-screen pointer-events-auto overflow-y-auto overscroll-contain bg-header-hover *:p-0"
+            >
+                {#snippet trigger()}
+                    <span class="sr-only">{m.nav_open_navigation()}</span>
+                    <ListIcon size={24} aria-hidden="true"></ListIcon>
                 {/snippet}
 
-                {#snippet content(menuProps)}
-                    <div
-                        {...menuProps}
-                        role="dialog"
-                        class="fixed top-14 right-0 bottom-0 left-0 z-50 h-[calc(100dvh-3.5rem)] w-screen pointer-events-auto overflow-y-auto overscroll-contain bg-header-hover"
-                    >
-                        <nav class="bg-header-hover px-0" aria-label={m.nav_primary()} data-dropdown-close>
+                {#snippet children()}
+                    <div role="dialog">
+                        <nav class="bg-header-hover px-0" aria-label={m.nav_primary()}>
                             <a
                                 href="/shows/new"
                                 class="block px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
@@ -316,7 +281,6 @@
                                 id="mobile-navigation-categories"
                                 class="bg-panel-strong px-3 py-2"
                                 aria-label="Categories"
-                                data-dropdown-close
                             >
                                 {#each data.genres as genre}
                                     <a
@@ -331,10 +295,8 @@
 
                         {#if data.account}
                             <Button
-                                variant="unstyled"
                                 type="button"
                                 class="block w-full border-t border-border/60 bg-header-hover px-5 py-3 text-left text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                data-dropdown-close
                                 onclick={signOut}
                             >
                                 {m.nav_logout()}
@@ -343,7 +305,6 @@
                             <a
                                 href="/login"
                                 class="block bg-header-hover px-5 py-3 text-base text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                data-dropdown-close
                             >
                                 {m.nav_login()}
                             </a>

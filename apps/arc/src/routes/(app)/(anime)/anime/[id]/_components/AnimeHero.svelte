@@ -4,8 +4,8 @@
     import { type AnimeArtwork, type AnimePageDeferred, type AnimePageOverview } from '@arc/core/client';
     import AiringStatus from './AiringStatus.svelte';
     import ProgressiveImage from '$lib/components/ui/ProgressiveImage.svelte';
-    import Dropdown from '$lib/components/ui/Dropdown.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Dropdown from '$lib/components/ui/dropdown/Dropdown.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import WatchlistBookmark from '$lib/components/WatchlistBookmark.svelte';
     import WatchlistStatusMenu from './WatchlistStatusMenu.svelte';
     import { cn } from '$lib/utils';
@@ -42,32 +42,16 @@
         <div
             class="z-30 col-start-1 row-start-1 mt-3 mr-3 self-start justify-self-end leading-none font-bold sm:mt-5 sm:mr-8 lg:mr-12"
         >
-            <Dropdown id="more-options">
-                {#snippet trigger(triggerProps)}
-                    <Button
-                        {...triggerProps}
-                        variant="unstyled"
-                        aria-label={m.anime_more()}
-                        class="appearance-none px-3 py-0 transition-colors hover:bg-panel data-[state=open]:bg-panel"
-                    >
-                        <span class="flex min-h-11 items-center gap-3 text-sm leading-none">
-                            <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true"
-                            ></DotsThreeVerticalIcon>
-                            <span>{m.anime_more()}</span>
-                        </span>
-                    </Button>
+            <Dropdown id="more-options" className="w-56 *:p-0" alignment="right">
+                {#snippet trigger()}
+                    <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true"></DotsThreeVerticalIcon>
+                    <span>{m.anime_more()}</span>
                 {/snippet}
-                {#snippet content(menuProps)}
-                    <div
-                        {...menuProps}
-                        role="menu"
-                        aria-label={m.anime_more()}
-                        class="absolute top-full right-0 z-50 w-56 bg-panel py-2"
-                    >
+                {#snippet children()}
+                    <div role="menu" aria-label={m.anime_more()}>
                         <a
                             role="menuitem"
                             href={`/anime/${anime.id}/media`}
-                            data-dropdown-close
                             class="block px-5 py-3 text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                         >
                             {m.anime_view_media()}

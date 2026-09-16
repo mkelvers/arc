@@ -2,9 +2,9 @@
     import { goto } from '$app/navigation';
     import { CaretDownIcon } from 'phosphor-svelte';
     import { NotificationsResponseSchema, type Notification } from '@arc/core/client';
-    import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import Dropdown from '$lib/components/ui/dropdown/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import NotificationCard from '$lib/components/ui/snippets/NotificationCard.svelte';
     import errorArtwork from '$lib/assets/error-state.webp';
     import emptyArtwork from '$lib/assets/notifications-empty.webp';
@@ -94,29 +94,16 @@
 
             <section class="mt-12" aria-labelledby="notification-view-label">
                 <div class="border-b border-border pb-4">
-                    <Dropdown id="notification-view">
-                        {#snippet trigger(triggerProps)}
-                            <Button
-                                {...triggerProps}
-                                variant="unstyled"
-                                aria-labelledby="notification-view-label"
-                                class="appearance-none p-0 flex h-10 cursor-pointer items-center gap-2 text-lg font-semibold transition-colors hover:text-muted data-[state=open]:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                            >
-                                <CaretDownIcon size="1rem" weight="bold" aria-hidden="true"></CaretDownIcon>
-                                <span id="notification-view-label">
-                                    {notificationView === 'read' ? 'Read Notifications' : 'Past Notifications'}
-                                </span>
-                            </Button>
+                    <Dropdown id="notification-view" alignment="left" className="w-56 *:p-0">
+                        {#snippet trigger()}
+                            <CaretDownIcon size="1rem" weight="bold" aria-hidden="true"></CaretDownIcon>
+                            <span id="notification-view-label">
+                                {notificationView === 'read' ? 'Read Notifications' : 'Past Notifications'}
+                            </span>
                         {/snippet}
-                        {#snippet content(menuProps)}
-                            <div
-                                {...menuProps}
-                                role="menu"
-                                aria-label="Notification view"
-                                class="absolute top-full left-0 z-50 mt-2 w-56 bg-panel py-2 shadow-xl"
-                            >
+                        {#snippet children()}
+                            <div role="menu" aria-label="Notification view">
                                 <Button
-                                    variant="unstyled"
                                     type="button"
                                     role="menuitemradio"
                                     aria-checked={notificationView === 'unread'}
@@ -126,7 +113,6 @@
                                     Past Notifications
                                 </Button>
                                 <Button
-                                    variant="unstyled"
                                     type="button"
                                     role="menuitemradio"
                                     aria-checked={notificationView === 'read'}

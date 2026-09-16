@@ -5,8 +5,8 @@
     import { AnimeCardPageSchema, type AnimeCard as AnimeCardModel } from '@arc/core/client';
     import emptyArtwork from '$lib/assets/simulcast-empty.webp';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
-    import Dropdown from '$lib/components/ui/Dropdown.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Dropdown from '$lib/components/ui/dropdown/Dropdown.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import Spinner from '$lib/components/ui/Spinner.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -139,26 +139,13 @@
     <section class="mx-auto w-full max-w-264" aria-labelledby="simulcast-title">
         <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h1 id="simulcast-title" class="text-xl font-bold sm:text-2xl">{m.simulcast_title()}</h1>
-            <Dropdown id="simulcast-season">
-                {#snippet trigger(triggerProps)}
-                    <Button
-                        {...triggerProps}
-                        variant="unstyled"
-                        aria-label={m.simulcast_choose({ label })}
-                        class="appearance-none p-0 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
-                    >
-                        <CaretDownIcon size="1rem" weight="bold" class="text-muted" aria-hidden="true"
-                        ></CaretDownIcon>
-                        <span>{label}</span>
-                    </Button>
+            <Dropdown id="simulcast-season" className="max-h-80 min-w-48 overflow-y-auto *:p-0">
+                {#snippet trigger()}
+                    <CaretDownIcon size="1rem" weight="bold" class="text-muted" aria-hidden="true"></CaretDownIcon>
+                    <span>{label}</span>
                 {/snippet}
-                {#snippet content(menuProps)}
-                    <div
-                        {...menuProps}
-                        role="menu"
-                        aria-label={m.simulcast_choose({ label })}
-                        class="absolute top-full left-0 z-50 mt-2 max-h-80 min-w-48 overflow-y-auto bg-panel shadow-xl sm:right-0 sm:left-auto"
-                    >
+                {#snippet children()}
+                    <div role="menu" aria-label={m.simulcast_choose({ label })}>
                         {#each options as option}
                             <a
                                 role="menuitem"

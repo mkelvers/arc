@@ -4,8 +4,8 @@
     import emptyArtwork from '$lib/assets/watchlist-empty.webp';
     import filteredEmptyArtwork from '$lib/assets/watchlist-filter-empty.webp';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
-    import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
+    import Dropdown from '$lib/components/ui/dropdown/Dropdown.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import MenuRadio from '$lib/components/ui/snippets/MenuRadio.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -30,37 +30,25 @@
 
         <div class="mt-8 flex min-w-0 items-end border-b border-border sm:mt-10">
             <div class="min-w-0 flex-1 sm:hidden">
-                <Dropdown id="watchlist-status-mobile">
-                    {#snippet trigger(triggerProps)}
-                        <Button
-                            {...triggerProps}
-                            variant="unstyled"
-                            aria-label={m.watchlist_statuses()}
-                            class="appearance-none p-0 flex h-12 min-w-0 w-full cursor-pointer items-center justify-between gap-3 px-1 text-sm font-medium text-foreground uppercase transition-colors hover:text-accent data-[state=open]:text-accent"
-                        >
-                            <span class="truncate">
-                                {#if $watchlistFilters.state === 'all'}
-                                    {m.watchlist_all()}
-                                {:else if $watchlistFilters.state === 'watching'}
-                                    {m.watchlist_watching()}
-                                {:else if $watchlistFilters.state === 'plan_to_watch'}
-                                    {m.watchlist_plan()}
-                                {:else if $watchlistFilters.state === 'completed'}
-                                    {m.watchlist_completed()}
-                                {:else}
-                                    {m.watchlist_dropped()}
-                                {/if}
-                            </span>
-                            <CaretDownIcon class="shrink-0" size="0.8rem" weight="bold" aria-hidden="true" />
-                        </Button>
+                <Dropdown id="watchlist-status-mobile" className="w-56 *:p-0">
+                    {#snippet trigger()}
+                        <span class="truncate">
+                            {#if $watchlistFilters.state === 'all'}
+                                {m.watchlist_all()}
+                            {:else if $watchlistFilters.state === 'watching'}
+                                {m.watchlist_watching()}
+                            {:else if $watchlistFilters.state === 'plan_to_watch'}
+                                {m.watchlist_plan()}
+                            {:else if $watchlistFilters.state === 'completed'}
+                                {m.watchlist_completed()}
+                            {:else}
+                                {m.watchlist_dropped()}
+                            {/if}
+                        </span>
+                        <CaretDownIcon class="shrink-0" size="0.8rem" weight="bold" aria-hidden="true" />
                     {/snippet}
-                    {#snippet content(menuProps)}
-                        <div
-                            {...menuProps}
-                            role="menu"
-                            aria-label={m.watchlist_statuses()}
-                            class="absolute top-full left-0 z-50 mt-2 w-56 bg-panel py-2 shadow-xl"
-                        >
+                    {#snippet children()}
+                        <div role="menu" aria-label={m.watchlist_statuses()}>
                             <button
                                 type="button"
                                 role="menuitem"
@@ -185,36 +173,23 @@
             </nav>
 
             {#if data.totalEntries}
-                <Dropdown id="watchlist-filter">
-                    {#snippet trigger(triggerProps)}
-                        <Button
-                            {...triggerProps}
-                            variant="unstyled"
-                            aria-label={m.watchlist_filtering()}
-                            class="appearance-none p-0 mb-2 ml-1 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
-                        >
-                            <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
-                            <span class="hidden sm:inline">{m.watchlist_filter()}</span>
-                            {#if $watchlistFilters.language !== 'all' || $watchlistFilters.media !== 'all' || $watchlistFilters.type !== 'all'}
-                                <span class="text-accent">
-                                    {Number($watchlistFilters.language !== 'all') +
-                                        Number($watchlistFilters.media !== 'all') +
-                                        Number($watchlistFilters.type !== 'all')}
-                                </span>
-                            {/if}
-                        </Button>
+                <Dropdown id="watchlist-filter" className="mb-2 w-64 *:p-0">
+                    {#snippet trigger()}
+                        <FunnelIcon size="1.2rem" weight="bold" aria-hidden="true" />
+                        <span class="hidden sm:inline">{m.watchlist_filter()}</span>
+                        {#if $watchlistFilters.language !== 'all' || $watchlistFilters.media !== 'all' || $watchlistFilters.type !== 'all'}
+                            <span class="text-accent">
+                                {Number($watchlistFilters.language !== 'all') +
+                                    Number($watchlistFilters.media !== 'all') +
+                                    Number($watchlistFilters.type !== 'all')}
+                            </span>
+                        {/if}
                     {/snippet}
 
-                    {#snippet content(menuProps)}
-                        <div
-                            {...menuProps}
-                            role="menu"
-                            aria-label={m.watchlist_filtering()}
-                            class="absolute top-full right-0 z-50 mt-2 w-64 bg-panel py-2 shadow-xl"
-                        >
+                    {#snippet children()}
+                        <div role="menu" aria-label={m.watchlist_filtering()}>
                             {#if filterView === 'main'}
                                 <Button
-                                    variant="unstyled"
                                     type="button"
                                     role="menuitem"
                                     aria-haspopup="menu"
@@ -287,7 +262,6 @@
                                 </div>
                             {:else}
                                 <Button
-                                    variant="unstyled"
                                     type="button"
                                     role="menuitem"
                                     class="flex min-h-11 w-full items-center gap-2 px-5 text-left text-xs font-bold text-foreground uppercase hover:bg-panel-hover focus:bg-panel-hover focus:outline-none"
@@ -334,34 +308,22 @@
                     {/snippet}
                 </Dropdown>
 
-                <Dropdown id="watchlist-sort">
-                    {#snippet trigger(triggerProps)}
-                        <Button
-                            {...triggerProps}
-                            variant="unstyled"
-                            aria-label={m.watchlist_sorting()}
-                            class="appearance-none p-0 mb-2 flex h-10 shrink-0 cursor-pointer items-center gap-2 px-3 text-sm font-medium text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
-                        >
-                            <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
-                            <span class="hidden sm:inline">
-                                {#if $watchlistFilters.sort === 'updated'}
-                                    {m.watchlist_updated()}
-                                {:else if $watchlistFilters.sort === 'added'}
-                                    {m.watchlist_added()}
-                                {:else}
-                                    {m.watchlist_alphabetical()}
-                                {/if}
-                            </span>
-                        </Button>
+                <Dropdown id="watchlist-sort" className="mb-2 w-56 *:p-0">
+                    {#snippet trigger()}
+                        <ListBulletsIcon size="1.2rem" weight="bold" aria-hidden="true" />
+                        <span class="hidden sm:inline">
+                            {#if $watchlistFilters.sort === 'updated'}
+                                {m.watchlist_updated()}
+                            {:else if $watchlistFilters.sort === 'added'}
+                                {m.watchlist_added()}
+                            {:else}
+                                {m.watchlist_alphabetical()}
+                            {/if}
+                        </span>
                     {/snippet}
 
-                    {#snippet content(menuProps)}
-                        <div
-                            {...menuProps}
-                            role="menu"
-                            aria-label={m.watchlist_sorting()}
-                            class="absolute top-full right-0 z-50 mt-2 w-56 bg-panel py-2 shadow-xl"
-                        >
+                    {#snippet children()}
+                        <div role="menu" aria-label={m.watchlist_sorting()}>
                             <div role="group" aria-label={m.watchlist_sorting()}>
                                 <MenuRadio
                                     selected={$watchlistFilters.sort === 'updated'}

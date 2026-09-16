@@ -2,8 +2,8 @@
     import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
     import { DotsThreeVerticalIcon, PlayIcon } from 'phosphor-svelte';
     import type { Notification } from '@arc/core/client';
-    import Dropdown from '$lib/components/ui/Dropdown.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Dropdown from '$lib/components/ui/dropdown/Dropdown.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import { cn } from '$lib/utils';
 
     interface Props {
@@ -37,7 +37,6 @@
     class="group relative grid w-full gap-5 text-left transition-colors hover:bg-surface focus-within:bg-surface sm:grid-cols-[minmax(18rem,24rem)_minmax(0,1fr)] sm:gap-8"
 >
     <Button
-        variant="unstyled"
         type="button"
         class="grid h-auto w-full gap-5 text-left whitespace-normal sm:col-span-2 sm:grid-cols-subgrid sm:gap-8"
         onclick={() => onOpen(entry)}
@@ -84,32 +83,21 @@
         <div
             class="absolute right-3 bottom-3 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
         >
-            <Dropdown id={`notification-${entry.id}-options`}>
-                {#snippet trigger(triggerProps)}
-                    <Button
-                        {...triggerProps}
-                        variant="unstyled"
-                        aria-label="Notification options"
-                        class="appearance-none p-0 flex size-10 items-center justify-center text-muted transition-colors hover:text-foreground data-[state=open]:text-foreground"
-                    >
-                        <DotsThreeVerticalIcon size="1.25rem" weight="bold" aria-hidden="true"
-                        ></DotsThreeVerticalIcon>
-                    </Button>
+            <Dropdown id={`notification-${entry.id}-options`} className="w-48 *:p-0">
+                {#snippet trigger()}
+                    <span class="sr-only">Notification options</span>
+                    <DotsThreeVerticalIcon size="1.25rem" weight="bold" aria-hidden="true"></DotsThreeVerticalIcon>
                 {/snippet}
-                {#snippet content(menuProps)}
-                    <div {...menuProps} class="absolute top-full right-0 z-50 w-48 bg-panel py-2">
-                        <div role="menu" aria-label="Notification options">
-                            <Button
-                                variant="unstyled"
-                                type="button"
-                                role="menuitem"
-                                data-dropdown-close
-                                class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                                onclick={() => onMarkAsRead(entry)}
-                            >
-                                Mark as read
-                            </Button>
-                        </div>
+                {#snippet children()}
+                    <div role="menu" aria-label="Notification options">
+                        <Button
+                            type="button"
+                            role="menuitem"
+                            class="block w-full px-5 py-3 text-left text-sm leading-tight font-normal text-muted whitespace-nowrap hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            onclick={() => onMarkAsRead(entry)}
+                        >
+                            Mark as read
+                        </Button>
                     </div>
                 {/snippet}
             </Dropdown>

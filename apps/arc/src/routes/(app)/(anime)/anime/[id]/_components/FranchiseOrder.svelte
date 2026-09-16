@@ -5,9 +5,9 @@
     import type { FranchiseOrder as FranchiseOrderData } from '@arc/core/client';
     import { cn } from '$lib/utils';
     import AnimeCard from '$lib/components/AnimeCard.svelte';
-    import Button from '$lib/components/ui/button/button.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
     import { matchesFranchiseFilter, type FranchiseFilter } from '$lib/franchise';
-    import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import Dropdown from '$lib/components/ui/dropdown/Dropdown.svelte';
     import { m } from '$lib/i18n.svelte';
 
     interface Props {
@@ -86,30 +86,17 @@
     <div class="mb-6 flex min-h-9 items-center justify-between gap-4 px-2">
         <h2 id="franchise-order-title" class="text-lg font-semibold">{m.franchise_order()}</h2>
 
-        <Dropdown id="franchise-order-filter">
-            {#snippet trigger(triggerProps)}
-                <Button
-                    {...triggerProps}
-                    variant="unstyled"
-                    aria-label={`${m.franchise_filters()}: ${selectedFilterLabel}`}
-                    class="appearance-none p-0 flex min-h-9 cursor-pointer items-center justify-start gap-2 px-2 text-left text-xs font-semibold text-muted uppercase transition-colors hover:bg-surface hover:text-foreground data-[state=open]:bg-surface data-[state=open]:text-foreground"
-                >
-                    <ListBulletsIcon size="1rem" weight="bold" aria-hidden="true"></ListBulletsIcon>
-                    <span>{selectedFilterLabel}</span>
-                    <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true"></CaretDownIcon>
-                </Button>
+        <Dropdown id="franchise-order-filter" className="w-48 *:p-0">
+            {#snippet trigger()}
+                <ListBulletsIcon size="1rem" weight="bold" aria-hidden="true"></ListBulletsIcon>
+                <span>{selectedFilterLabel}</span>
+                <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true"></CaretDownIcon>
             {/snippet}
 
-            {#snippet content(menuProps)}
-                <div
-                    {...menuProps}
-                    role="menu"
-                    aria-label={m.franchise_filters()}
-                    class="absolute top-full right-0 z-50 mt-2 w-48 bg-panel py-2 shadow-xl"
-                >
+            {#snippet children()}
+                <div role="menu" aria-label={m.franchise_filters()}>
                     {#each filters as option}
                         <Button
-                            variant="unstyled"
                             type="button"
                             role="menuitemradio"
                             aria-checked={filter === option.value}
@@ -144,7 +131,6 @@
 
             {#if canScrollBack}
                 <Button
-                    variant="unstyled"
                     type="button"
                     class="absolute inset-y-0 left-0 z-20 my-auto hidden size-10 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid"
                     aria-label={m.shared_franchise_previous()}
@@ -156,7 +142,6 @@
 
             {#if canScrollForward}
                 <Button
-                    variant="unstyled"
                     type="button"
                     class="absolute inset-y-0 right-0 z-20 my-auto hidden size-10 place-items-center text-white drop-shadow-lg focus-visible:ring-1 focus-visible:ring-white focus-visible:outline-none md:grid"
                     aria-label={m.shared_franchise_next()}

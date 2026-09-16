@@ -16,8 +16,8 @@
         SubtitleSettings,
     } from '$lib/player/subtitle-settings.svelte';
     import { cn } from '$lib/utils';
-    import Button from '$lib/components/ui/button/button.svelte';
-    import Dropdown from '$lib/components/ui/Dropdown.svelte';
+    import Button from '$lib/components/ui/button/Button.svelte';
+    import Dropdown from '$lib/components/ui/dropdown/Dropdown.svelte';
     import { m } from '$lib/i18n.svelte';
 
     const settings = new SubtitleSettings();
@@ -60,28 +60,15 @@
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.player_size()}</span>
-                <Dropdown id="subtitle-size">
-                    {#snippet trigger(triggerProps)}
-                        <Button
-                            {...triggerProps}
-                            variant="unstyled"
-                            aria-label={m.player_size()}
-                            class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
-                        >
-                            <span>{subtitleSizes[settings.size].label}</span>
-                            <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
-                        </Button>
+                <Dropdown id="subtitle-size" className="mt-2 w-48 *:p-0">
+                    {#snippet trigger()}
+                        <span>{subtitleSizes[settings.size].label}</span>
+                        <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
                     {/snippet}
-                    {#snippet content(menuProps)}
-                        <div
-                            {...menuProps}
-                            role="menu"
-                            aria-label={m.player_size()}
-                            class="absolute top-full left-0 z-50 mt-2 w-48 bg-panel"
-                        >
+                    {#snippet children()}
+                        <div role="menu" aria-label={m.player_size()}>
                             {#each subtitleSizeOrder as option}
                                 <Button
-                                    variant="unstyled"
                                     type="button"
                                     class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                     onclick={() => {
@@ -98,28 +85,15 @@
 
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_color()}</span>
-                <Dropdown id="subtitle-text-color">
-                    {#snippet trigger(triggerProps)}
-                        <Button
-                            {...triggerProps}
-                            variant="unstyled"
-                            aria-label={m.settings_color()}
-                            class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
-                        >
-                            <span>{subtitleTextColors[settings.textColor].label}</span>
-                            <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
-                        </Button>
+                <Dropdown id="subtitle-text-color" className="mt-2 w-48 *:p-0">
+                    {#snippet trigger()}
+                        <span>{subtitleTextColors[settings.textColor].label}</span>
+                        <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
                     {/snippet}
-                    {#snippet content(menuProps)}
-                        <div
-                            {...menuProps}
-                            role="menu"
-                            aria-label={m.settings_color()}
-                            class="absolute top-full left-0 z-50 mt-2 w-48 bg-panel"
-                        >
+                    {#snippet children()}
+                        <div role="menu" aria-label={m.settings_color()}>
                             {#each subtitleTextColorOrder as option}
                                 <Button
-                                    variant="unstyled"
                                     type="button"
                                     class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                     onclick={() => {
@@ -136,28 +110,15 @@
 
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_edge_style()}</span>
-                <Dropdown id="subtitle-edge-style">
-                    {#snippet trigger(triggerProps)}
-                        <Button
-                            {...triggerProps}
-                            variant="unstyled"
-                            aria-label={m.settings_edge_style()}
-                            class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
-                        >
-                            <span>{subtitleEdgeStyles[settings.edgeStyle].label}</span>
-                            <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
-                        </Button>
+                <Dropdown id="subtitle-edge-style" className="mt-2 w-48 *:p-0">
+                    {#snippet trigger()}
+                        <span>{subtitleEdgeStyles[settings.edgeStyle].label}</span>
+                        <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
                     {/snippet}
-                    {#snippet content(menuProps)}
-                        <div
-                            {...menuProps}
-                            role="menu"
-                            aria-label={m.settings_edge_style()}
-                            class="absolute top-full left-0 z-50 mt-2 w-48 bg-panel"
-                        >
+                    {#snippet children()}
+                        <div role="menu" aria-label={m.settings_edge_style()}>
                             {#each subtitleEdgeStyleOrder as option}
                                 <Button
-                                    variant="unstyled"
                                     type="button"
                                     class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                     onclick={() => {
@@ -179,28 +140,15 @@
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_color()}</span>
-                <Dropdown id="subtitle-background">
-                    {#snippet trigger(triggerProps)}
-                        <Button
-                            {...triggerProps}
-                            variant="unstyled"
-                            aria-label={m.settings_background()}
-                            class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent"
-                        >
-                            <span>{subtitleBackgrounds[settings.background].label}</span>
-                            <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
-                        </Button>
+                <Dropdown id="subtitle-background" className="mt-2 w-48 *:p-0">
+                    {#snippet trigger()}
+                        <span>{subtitleBackgrounds[settings.background].label}</span>
+                        <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
                     {/snippet}
-                    {#snippet content(menuProps)}
-                        <div
-                            {...menuProps}
-                            role="menu"
-                            aria-label={m.settings_background()}
-                            class="absolute top-full left-0 z-50 mt-2 w-48 bg-panel"
-                        >
+                    {#snippet children()}
+                        <div role="menu" aria-label={m.settings_background()}>
                             {#each subtitleBackgroundOrder as option}
                                 <Button
-                                    variant="unstyled"
                                     type="button"
                                     class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                     onclick={() => {
@@ -217,28 +165,15 @@
 
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_opacity()}</span>
-                <Dropdown id="subtitle-background-opacity" disabled={settings.background === 'none'}>
-                    {#snippet trigger(triggerProps)}
-                        <Button
-                            {...triggerProps}
-                            variant="unstyled"
-                            aria-label={m.settings_opacity()}
-                            class="appearance-none p-0 mt-2 inline-flex min-h-11 w-full max-w-full cursor-pointer items-center justify-between border-0 border-b border-border-strong bg-transparent px-0 text-base font-semibold text-white transition-colors hover:border-input-accent hover:text-input-accent focus-visible:border-input-accent focus-visible:text-input-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent data-[state=open]:border-input-accent data-[state=open]:text-input-accent disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <span>{Math.round(settings.backgroundOpacity * 100)}%</span>
-                            <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
-                        </Button>
+                <Dropdown id="subtitle-background-opacity" className="mt-2 w-48 *:p-0">
+                    {#snippet trigger()}
+                        <span>{Math.round(settings.backgroundOpacity * 100)}%</span>
+                        <CaretDownIcon size={16} aria-hidden="true"></CaretDownIcon>
                     {/snippet}
-                    {#snippet content(menuProps)}
-                        <div
-                            {...menuProps}
-                            role="menu"
-                            aria-label={m.settings_opacity()}
-                            class="absolute top-full left-0 z-50 mt-2 w-48 bg-panel"
-                        >
+                    {#snippet children()}
+                        <div role="menu" aria-label={m.settings_opacity()}>
                             {#each subtitleBackgroundOpacities as option}
                                 <Button
-                                    variant="unstyled"
                                     type="button"
                                     class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                     onclick={() => {
@@ -257,7 +192,6 @@
 
     <div class="pt-6">
         <Button
-            variant="outline"
             type="button"
             class="h-auto min-h-10 w-full border-border-strong px-4 text-xs font-bold text-muted uppercase transition-[border-color,color,transform] duration-150 hover:border-foreground hover:bg-transparent hover:text-foreground focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] sm:w-auto"
             onclick={() => settings.reset()}
