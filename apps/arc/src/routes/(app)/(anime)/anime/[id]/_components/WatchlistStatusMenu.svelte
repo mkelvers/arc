@@ -95,7 +95,7 @@
     {#snippet trigger()}
         <span class="sr-only">{m.shared_manage_title({ title })}</span>
         <Tooltip text={m.shared_manage_watchlist()} class="size-full items-center justify-center">
-            <PencilSimpleIcon size="1.65em" weight="bold" aria-hidden="true"></PencilSimpleIcon>
+            <PencilSimpleIcon size="1.65em" weight="bold" aria-hidden="true" />
         </Tooltip>
     {/snippet}
 

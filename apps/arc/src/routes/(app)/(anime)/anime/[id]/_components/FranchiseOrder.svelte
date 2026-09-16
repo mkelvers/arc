@@ -88,9 +88,9 @@
 
         <Dropdown id="franchise-order-filter" className="w-48 *:p-0">
             {#snippet trigger()}
-                <ListBulletsIcon size="1rem" weight="bold" aria-hidden="true"></ListBulletsIcon>
+                <ListBulletsIcon size="1rem" weight="bold" aria-hidden="true" />
                 <span>{selectedFilterLabel}</span>
-                <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true"></CaretDownIcon>
+                <CaretDownIcon size="0.8rem" weight="bold" aria-hidden="true" />
             {/snippet}
 
             {#snippet children()}
@@ -124,7 +124,7 @@
             >
                 {#each visibleEntries as entry}
                     <div class="min-w-0 snap-start">
-                        <AnimeCard anime={entry} current={entry.anilistId === currentAnimeId}></AnimeCard>
+                        <AnimeCard anime={entry} current={entry.anilistId === currentAnimeId} />
                     </div>
                 {/each}
             </div>
@@ -136,7 +136,7 @@
                     aria-label={m.shared_franchise_previous()}
                     onclick={() => scrollByPage(-1)}
                 >
-                    <CaretLeftIcon size="1.75rem" weight="bold" aria-hidden="true"></CaretLeftIcon>
+                    <CaretLeftIcon size="1.75rem" weight="bold" aria-hidden="true" />
                 </Button>
             {/if}
 
@@ -147,7 +147,7 @@
                     aria-label={m.shared_franchise_next()}
                     onclick={() => scrollByPage(1)}
                 >
-                    <CaretRightIcon size="1.75rem" weight="bold" aria-hidden="true"></CaretRightIcon>
+                    <CaretRightIcon size="1.75rem" weight="bold" aria-hidden="true" />
                 </Button>
             {/if}
         </div>

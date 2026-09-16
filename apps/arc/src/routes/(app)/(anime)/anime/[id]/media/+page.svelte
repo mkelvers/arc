@@ -35,7 +35,7 @@
                 href={`/anime/${data.anime.id}`}
                 class="inline-flex items-center gap-2 text-sm font-medium text-muted uppercase transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
             >
-                <CaretLeftIcon size="1rem" weight="bold" aria-hidden="true"></CaretLeftIcon>
+                <CaretLeftIcon size="1rem" weight="bold" aria-hidden="true" />
                 {m.media_back()}
             </a>
             <h1 class="mt-3 text-3xl leading-tight font-bold sm:text-4xl">
@@ -44,13 +44,13 @@
         </div>
         {#if data.artwork}
             <form method="POST" use:enhance class="shrink-0">
-                <Input type="hidden" name="intent" value="refresh"></Input>
+                <Input type="hidden" name="intent" value="refresh" />
                 <Button
                     variant="ghost"
                     type="submit"
                     class="h-10 border-0 px-3 text-sm font-medium text-muted uppercase focus-visible:ring-0"
                 >
-                    <ArrowClockwiseIcon size="1.2rem" weight="bold" aria-hidden="true"></ArrowClockwiseIcon>
+                    <ArrowClockwiseIcon size="1.2rem" weight="bold" aria-hidden="true" />
                     {m.media_refetch()}
                 </Button>
             </form>
@@ -96,7 +96,7 @@
         <div id="media-panel-logo" role="tabpanel" aria-labelledby="media-tab-logo" hidden={activeTab !== 'logo'}>
             <div class="mb-5 flex justify-end">
                 <form method="POST" use:enhance class="flex items-center gap-4">
-                    <Input type="hidden" name="intent" value="logoSize"></Input>
+                    <Input type="hidden" name="intent" value="logoSize" />
                     <label for="logo-size" class="shrink-0 text-sm text-muted">{m.media_logo_size()}</label>
                     <Input
                         id="logo-size"
@@ -109,13 +109,13 @@
                         aria-label={m.media_logo_size()}
                         onchange={(event) => event.currentTarget.form?.requestSubmit()}
                         class="h-11 w-32 accent-accent"
-                    ></Input>
+                    />
                 </form>
             </div>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 <form method="POST" use:enhance>
-                    <Input type="hidden" name="type" value="logo"></Input>
-                    <Input type="hidden" name="filePath" value=""></Input>
+                    <Input type="hidden" name="type" value="logo" />
+                    <Input type="hidden" name="filePath" value="" />
                     <Button
                         type="submit"
                         aria-pressed={data.artwork.logoHidden}
@@ -129,8 +129,8 @@
                 </form>
                 {#each logos as image}
                     <form method="POST" use:enhance>
-                        <Input type="hidden" name="type" value="logo"></Input>
-                        <Input type="hidden" name="filePath" value={image.filePath}></Input>
+                        <Input type="hidden" name="type" value="logo" />
+                        <Input type="hidden" name="filePath" value={image.filePath} />
                         <Button
                             type="submit"
                             aria-pressed={data.artwork.selectedLogo?.filePath === image.filePath}
@@ -159,8 +159,8 @@
             <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {#each backdrops as image}
                     <form method="POST" use:enhance>
-                        <Input type="hidden" name="type" value="backdrop"></Input>
-                        <Input type="hidden" name="filePath" value={image.filePath}></Input>
+                        <Input type="hidden" name="type" value="backdrop" />
+                        <Input type="hidden" name="filePath" value={image.filePath} />
                         <Button
                             type="submit"
                             aria-pressed={data.artwork.selectedBackdrop?.filePath === image.filePath}
@@ -175,7 +175,7 @@
                                 src={image.url}
                                 alt={`${data.anime.title} backdrop`}
                                 class="aspect-video w-full"
-                            ></ProgressiveImage>
+                            />
                             <span class="block px-3 py-2 text-xs text-subtle">
                                 {image.width} × {image.height} · {image.language ?? m.media_no_language()} · {image.voteAverage.toFixed(
                                     1

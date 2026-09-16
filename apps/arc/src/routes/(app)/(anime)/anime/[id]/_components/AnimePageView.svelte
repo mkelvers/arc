@@ -30,8 +30,8 @@
         audioLabel={audioLabel}
         watchAction={watchAction}
         watchlistState={data.watchlistState}
-    ></AnimeHero>
-    <AnimeDetails anime={data.anime}></AnimeDetails>
+    />
+    <AnimeDetails anime={data.anime} />
 
     <div class="px-3 sm:px-8 lg:px-14">
         <AnimeEpisodeList
@@ -41,10 +41,10 @@
             initialEpisodeRevision={data.episodeRevision}
             initialInventory={data.episodeInventory}
             onupdate={updateHero}
-        ></AnimeEpisodeList>
+        />
 
         {#if data.franchise?.entries.length}
-            <FranchiseOrder order={data.franchise} currentAnimeId={data.anime.id}></FranchiseOrder>
+            <FranchiseOrder order={data.franchise} currentAnimeId={data.anime.id} />
         {/if}
     </div>
 </main>

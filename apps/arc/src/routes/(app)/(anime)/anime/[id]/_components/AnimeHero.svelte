@@ -35,7 +35,7 @@
                     alt={anime.title}
                     class="absolute inset-x-0 top-0 z-0 h-dvh w-full"
                     imageClass="object-[45%_0%]"
-                ></ProgressiveImage>
+                />
             </div>
         {/if}
 
@@ -44,7 +44,7 @@
         >
             <Dropdown id="more-options" className="w-56 *:p-0" alignment="right">
                 {#snippet trigger()}
-                    <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true"></DotsThreeVerticalIcon>
+                    <DotsThreeVerticalIcon size="1.5rem" weight="bold" aria-hidden="true" />
                     <span>{m.anime_more()}</span>
                 {/snippet}
                 {#snippet children()}
@@ -82,7 +82,7 @@
             </div>
 
             {#if anime.status === 'RELEASING' && anime.nextAiringEpisode}
-                <AiringStatus airingAt={anime.nextAiringEpisode.airingAt}></AiringStatus>
+                <AiringStatus airingAt={anime.nextAiringEpisode.airingAt} />
             {/if}
 
             <p
@@ -153,7 +153,7 @@
                     href={watchAction.href}
                     class="flex h-10 items-center gap-2.5 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] sm:px-6"
                 >
-                    <PlayIcon size="1.55em" weight="bold" aria-hidden="true"></PlayIcon>
+                    <PlayIcon size="1.55em" weight="bold" aria-hidden="true" />
                     {watchAction.kind === 'continue'
                         ? m.anime_continue_watching({ episode: watchAction.episode ?? '' })
                         : watchAction.kind === 'rewatch'
@@ -162,13 +162,12 @@
                             ? m.anime_start_watching({ episode: watchAction.episode ?? '' })
                             : m.anime_view_episodes()}
                 </a>
-                <WatchlistBookmark animeId={anime.id} title={anime.title} iconSize="1.65em" outlined
-                ></WatchlistBookmark>
+                <WatchlistBookmark animeId={anime.id} title={anime.title} iconSize="1.65em" outlined />
                 <WatchlistStatusMenu
                     animeId={anime.id}
                     title={anime.title}
                     initialState={watchlistState ?? undefined}
-                ></WatchlistStatusMenu>
+                />
             </div>
         </div>
     </figure>
