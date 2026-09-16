@@ -87,7 +87,9 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-4">
+        <div
+            class="flex items-center gap-4 [&_.dropdown-trigger]:transition-[opacity,transform] [&_.dropdown-trigger]:duration-150 [&_.dropdown-trigger]:hover:opacity-75 [&_.dropdown-trigger]:focus-visible:outline-1 [&_.dropdown-trigger]:focus-visible:outline-white [&_.dropdown-trigger]:active:scale-90 [&_.dropdown-trigger:hover]:bg-transparent!"
+        >
             {#if hasMultipleEpisodes && onOpenEpisodes}
                 <Button
                     type="button"
