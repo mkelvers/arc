@@ -27,7 +27,7 @@
             aria-label={m.nav_home()}
             class="focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-accent"
         >
-            <Logo alt="Arc" class="h-9"></Logo>
+            <Logo alt="Arc" class="h-9" />
         </a>
     </header>
 

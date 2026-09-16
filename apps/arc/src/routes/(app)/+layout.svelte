@@ -47,7 +47,7 @@
                     aria-label={m.nav_home()}
                     title={m.nav_home()}
                 >
-                    <Logo alt="Arc" class="transition-colors hover:text-white"></Logo>
+                    <Logo alt="Arc" class="transition-colors hover:text-white" />
                 </a>
 
                 <a
@@ -76,7 +76,7 @@
                 <Dropdown id="categories-menu" alignment="left" className="w-[min(52rem,calc(100vw-2rem))] *:p-0">
                     {#snippet trigger()}
                         <span>Categories</span>
-                        <CaretDownIcon size={14} weight="bold" aria-hidden="true"></CaretDownIcon>
+                        <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
                     {/snippet}
                     {#snippet children()}
                         <div role="dialog" aria-label="Categories">
@@ -136,7 +136,7 @@
                 aria-label={m.nav_search()}
                 title={m.nav_search()}
             >
-                <MagnifyingGlassIcon size={24} weight="regular" aria-hidden="true"></MagnifyingGlassIcon>
+                <MagnifyingGlassIcon size={24} weight="regular" aria-hidden="true" />
             </a>
 
             <a
@@ -145,7 +145,7 @@
                 aria-label={m.nav_watchlist()}
                 title={m.nav_watchlist()}
             >
-                <BookmarkSimpleIcon size={24} weight="regular" aria-hidden="true"></BookmarkSimpleIcon>
+                <BookmarkSimpleIcon size={24} weight="regular" aria-hidden="true" />
             </a>
 
             {#if data.account}
@@ -156,8 +156,8 @@
                             image={data.account.image}
                             hasUnreadNotifications={data.account.unreadNotifications > 0}
                             class="size-8 text-sm ring-1 ring-white/20"
-                        ></AccountAvatar>
-                        <CaretDownIcon size={14} weight="bold" aria-hidden="true"></CaretDownIcon>
+                        />
+                        <CaretDownIcon size={14} weight="bold" aria-hidden="true" />
                     {/snippet}
 
                     {#snippet children()}
@@ -168,7 +168,7 @@
                                         username={data.account.username}
                                         image={data.account.image}
                                         class="size-11 text-lg"
-                                    ></AccountAvatar>
+                                    />
                                     <span class="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
                                         {data.account.name}
                                     </span>
@@ -179,7 +179,7 @@
                                 href="/settings"
                                 class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
                             >
-                                <GearIcon size={21} aria-hidden="true"></GearIcon>
+                                <GearIcon size={21} aria-hidden="true" />
                                 <span>{m.nav_settings()}</span>
                             </a>
 
@@ -187,7 +187,7 @@
                                 href="/watchlist"
                                 class="flex min-h-12 w-full items-center gap-3 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
                             >
-                                <BookmarkSimpleIcon size={21} aria-hidden="true"></BookmarkSimpleIcon>
+                                <BookmarkSimpleIcon size={21} aria-hidden="true" />
                                 <span>{m.nav_watchlist()}</span>
                             </a>
 
@@ -199,7 +199,7 @@
                                         "after:ml-auto after:size-2 after:shrink-0 after:rounded-full after:bg-status-error after:content-['']"
                                 )}
                             >
-                                <BellIcon size={21} aria-hidden="true"></BellIcon>
+                                <BellIcon size={21} aria-hidden="true" />
                                 <span>Notifications</span>
                             </a>
 
@@ -208,7 +208,7 @@
                                 class="flex min-h-14 w-full items-center justify-start gap-3 px-5 text-left text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus-visible:bg-panel-hover focus-visible:text-foreground focus-visible:outline-none"
                                 onclick={signOut}
                             >
-                                <SignOutIcon size={21} aria-hidden="true"></SignOutIcon>
+                                <SignOutIcon size={21} aria-hidden="true" />
                                 <span>{m.nav_logout()}</span>
                             </Button>
                         </div>
@@ -221,7 +221,7 @@
                     aria-label={m.nav_login()}
                     title={m.nav_login()}
                 >
-                    <UserCircleIcon size={30} weight="fill" aria-hidden="true"></UserCircleIcon>
+                    <UserCircleIcon size={30} weight="fill" aria-hidden="true" />
                 </a>
             {/if}
         </div>
@@ -233,7 +233,7 @@
             >
                 {#snippet trigger()}
                     <span class="sr-only">{m.nav_open_navigation()}</span>
-                    <ListIcon size={24} aria-hidden="true"></ListIcon>
+                    <ListIcon size={24} aria-hidden="true" />
                 {/snippet}
 
                 {#snippet children()}
@@ -275,7 +275,7 @@
                                     weight="bold"
                                     class="transition-transform group-open:rotate-180"
                                     aria-hidden="true"
-                                ></CaretDownIcon>
+                                />
                             </summary>
                             <nav
                                 id="mobile-navigation-categories"
@@ -319,14 +319,14 @@
                     class="grid h-14 w-12 place-items-center text-muted hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     aria-label={m.nav_search()}
                 >
-                    <MagnifyingGlassIcon size={24} aria-hidden="true"></MagnifyingGlassIcon>
+                    <MagnifyingGlassIcon size={24} aria-hidden="true" />
                 </a>
                 <a
                     href="/watchlist"
                     class="grid h-14 w-12 place-items-center text-muted transition-colors hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     aria-label={m.nav_watchlist()}
                 >
-                    <BookmarkSimpleIcon size={24} aria-hidden="true"></BookmarkSimpleIcon>
+                    <BookmarkSimpleIcon size={24} aria-hidden="true" />
                 </a>
                 {#if data.account}
                     <a
@@ -339,7 +339,7 @@
                             image={data.account.image}
                             hasUnreadNotifications={data.account.unreadNotifications > 0}
                             class="size-8 text-sm ring-1 ring-white/20"
-                        ></AccountAvatar>
+                        />
                     </a>
                 {:else}
                     <a
@@ -347,7 +347,7 @@
                         class="grid h-14 w-12 place-items-center text-muted hover:bg-header-hover hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                         aria-label={m.nav_login()}
                     >
-                        <UserCircleIcon size={30} weight="fill" aria-hidden="true"></UserCircleIcon>
+                        <UserCircleIcon size={30} weight="fill" aria-hidden="true" />
                     </a>
                 {/if}
             </div>
@@ -357,7 +357,7 @@
 
 <div id="main-content" class="pt-14" tabindex="-1">
     {#if navigating.to}
-        <PageLoading label={m.navigation_loading()}></PageLoading>
+        <PageLoading label={m.navigation_loading()} />
     {:else}
         {@render children()}
     {/if}
