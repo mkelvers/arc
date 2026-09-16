@@ -52,7 +52,7 @@
                 <img src={entry.imageUrl} alt="" class="size-full object-cover" />
             {:else}
                 <div class="grid size-full place-items-center text-muted">
-                    <PlayIcon size={24} aria-hidden="true"></PlayIcon>
+                    <PlayIcon size={24} aria-hidden="true" />
                 </div>
             {/if}
         </div>
@@ -75,7 +75,7 @@
                 class="mt-4 inline-flex items-center gap-2 text-xs font-semibold tracking-wide text-foreground uppercase"
             >
                 Watch now
-                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true"></CaretRightIcon>
+                <CaretRightIcon size="0.85rem" weight="bold" aria-hidden="true" />
             </span>
         </div>
     </Button>
@@ -86,7 +86,7 @@
             <Dropdown id={`notification-${entry.id}-options`} className="w-48 *:p-0">
                 {#snippet trigger()}
                     <span class="sr-only">Notification options</span>
-                    <DotsThreeVerticalIcon size="1.25rem" weight="bold" aria-hidden="true"></DotsThreeVerticalIcon>
+                    <DotsThreeVerticalIcon size="1.25rem" weight="bold" aria-hidden="true" />
                 {/snippet}
                 {#snippet children()}
                     <div role="menu" aria-label="Notification options">

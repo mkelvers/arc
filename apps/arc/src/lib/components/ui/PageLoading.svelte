@@ -14,5 +14,5 @@
     aria-live="polite"
 >
     <span class="sr-only">{label}</span>
-    <Spinner size="2.25rem"></Spinner>
+    <Spinner size="2.25rem" />
 </main>
