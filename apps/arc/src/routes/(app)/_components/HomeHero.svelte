@@ -81,7 +81,7 @@
                                         onready={() => {
                                             ready.backdrops = new Set(ready.backdrops).add(anime.id);
                                         }}
-                                    ></ProgressiveImage>
+                                    />
                                 {/if}
                             </a>
                         </article>
@@ -141,7 +141,7 @@
                                         weight="bold"
                                         aria-hidden="true"
                                         class="lg:size-[1.7rem]"
-                                    ></CaretLeftIcon>
+                                    />
                                 </Button>
                             </div>
                         </div>
@@ -158,7 +158,7 @@
                                     weight="bold"
                                     aria-hidden="true"
                                     class="lg:size-[1.7rem]"
-                                ></CaretRightIcon>
+                                />
                             </Button>
                         {/if}
                     </div>
@@ -190,7 +190,7 @@
                             href={activeAnime.link}
                             class="inline-flex h-10 items-center gap-2 bg-accent px-4 text-on-accent uppercase transition-[filter,transform] duration-150 hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white active:scale-[0.97] 2xl:text-sm"
                         >
-                            <PlayIcon size="1.2rem" weight="bold" aria-hidden="true"></PlayIcon>
+                            <PlayIcon size="1.2rem" weight="bold" aria-hidden="true" />
                             {m.shared_start_watching({ title: activeAnime.episodeLabel })}
                         </a>
                         <WatchlistBookmark
@@ -198,7 +198,7 @@
                             title={activeAnime.title}
                             iconSize="1.35rem"
                             outlined
-                        ></WatchlistBookmark>
+                        />
                     </div>
 
                     {#if highlights.length > 1}
