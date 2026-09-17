@@ -208,7 +208,7 @@
     {/if}
 
     <section
-        class="min-w-0 bg-panel px-4 py-6 sm:px-7 sm:py-8 md:h-fit md:self-start md:px-10 md:py-10"
+        class="settings-panel min-w-0 bg-panel px-4 py-6 sm:px-7 sm:py-8 md:h-fit md:self-start md:px-10 md:py-10"
         aria-labelledby="settings-title"
     >
         <header class="text-left md:text-center">
@@ -224,6 +224,40 @@
 </main>
 
 <style>
+    :global(.settings-panel .dropdown-trigger) {
+        min-height: 2.75rem;
+        width: 100%;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--theme-border-strong);
+        background-color: transparent;
+        padding: 0;
+        font-size: 1rem;
+        font-weight: 600;
+        letter-spacing: normal;
+        text-transform: none;
+        color: var(--theme-foreground);
+    }
+
+    :global(.settings-panel .dropdown-trigger:hover) {
+        background-color: transparent;
+        color: var(--theme-input-accent);
+    }
+
+    :global(.settings-panel .dropdown-trigger:focus-visible),
+    :global(.settings-panel .dropdown-root:has(.dropdown-menu:popover-open) .dropdown-trigger) {
+        background-color: transparent;
+        color: var(--theme-input-accent);
+    }
+
+    :global(.settings-panel .dropdown-root:not(:has(#settings-language)) .dropdown-trigger) {
+        margin-top: 0.5rem;
+    }
+
+    :global(.settings-panel .settings-language-control .dropdown-trigger) {
+        margin-top: 1.5rem;
+        max-width: 16rem;
+    }
+
     :global(body:has(#mobile-settings-menu)) {
         overflow: hidden;
     }

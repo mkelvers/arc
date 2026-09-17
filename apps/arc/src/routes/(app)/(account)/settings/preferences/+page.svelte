@@ -27,28 +27,31 @@
             <p class="mt-1 text-sm leading-relaxed text-muted">{m.settings_language_synopsis()}</p>
         </div>
 
-        <Dropdown id="settings-language" alignment="left" className="mt-2 w-48 *:p-0">
-            {#snippet trigger()}
-                <span>
-                    {languages.find((language) => language.locale === locale.current)?.label ?? languages[0].label}
-                </span>
-                <CaretDownIcon size={16} aria-hidden="true" />
-            {/snippet}
-            {#snippet children()}
-                <div role="menu">
-                    {#each languages as language}
-                        <Button
-                            type="button"
-                            role="menuitem"
-                            aria-pressed={locale.current === language.locale}
-                            onclick={() => changeLocale(language.locale)}
-                            class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
-                        >
-                            {language.label}
-                        </Button>
-                    {/each}
-                </div>
-            {/snippet}
-        </Dropdown>
+        <div class="settings-language-control">
+            <Dropdown id="settings-language" alignment="left" className="w-48 *:p-0">
+                {#snippet trigger()}
+                    <span>
+                        {languages.find((language) => language.locale === locale.current)?.label ??
+                            languages[0].label}
+                    </span>
+                    <CaretDownIcon size={16} aria-hidden="true" />
+                {/snippet}
+                {#snippet children()}
+                    <div role="menu">
+                        {#each languages as language}
+                            <Button
+                                type="button"
+                                role="menuitem"
+                                aria-pressed={locale.current === language.locale}
+                                onclick={() => changeLocale(language.locale)}
+                                class="block w-full px-5 py-3 text-left text-sm text-muted hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
+                            >
+                                {language.label}
+                            </Button>
+                        {/each}
+                    </div>
+                {/snippet}
+            </Dropdown>
+        </div>
     </section>
 </div>

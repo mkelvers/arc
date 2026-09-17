@@ -60,7 +60,7 @@
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.player_size()}</span>
-                <Dropdown id="subtitle-size" className="mt-2 w-48 *:p-0">
+                <Dropdown id="subtitle-size" className="w-48 *:p-0" alignment="left">
                     {#snippet trigger()}
                         <span>{subtitleSizes[settings.size].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />
@@ -85,7 +85,7 @@
 
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_color()}</span>
-                <Dropdown id="subtitle-text-color" className="mt-2 w-48 *:p-0">
+                <Dropdown id="subtitle-text-color" className="w-48 *:p-0" alignment="left">
                     {#snippet trigger()}
                         <span>{subtitleTextColors[settings.textColor].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />
@@ -110,7 +110,7 @@
 
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_edge_style()}</span>
-                <Dropdown id="subtitle-edge-style" className="mt-2 w-48 *:p-0">
+                <Dropdown id="subtitle-edge-style" className="w-48 *:p-0" alignment="left">
                     {#snippet trigger()}
                         <span>{subtitleEdgeStyles[settings.edgeStyle].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />
@@ -140,7 +140,7 @@
         <div class="mt-4 grid gap-x-8 gap-y-6 sm:grid-cols-2">
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_color()}</span>
-                <Dropdown id="subtitle-background" className="mt-2 w-48 *:p-0">
+                <Dropdown id="subtitle-background" className="w-48 *:p-0" alignment="left">
                     {#snippet trigger()}
                         <span>{subtitleBackgrounds[settings.background].label}</span>
                         <CaretDownIcon size={16} aria-hidden="true" />
@@ -165,7 +165,7 @@
 
             <div class="text-sm">
                 <span class="text-xs text-muted">{m.settings_opacity()}</span>
-                <Dropdown id="subtitle-background-opacity" className="mt-2 w-48 *:p-0">
+                <Dropdown id="subtitle-background-opacity" className="w-48 *:p-0" alignment="left">
                     {#snippet trigger()}
                         <span>{Math.round(settings.backgroundOpacity * 100)}%</span>
                         <CaretDownIcon size={16} aria-hidden="true" />
@@ -193,7 +193,7 @@
     <div class="pt-6">
         <Button
             type="button"
-            class="h-auto min-h-10 w-full border-border-strong px-4 text-xs font-bold text-muted uppercase transition-[border-color,color,transform] duration-150 hover:border-foreground hover:bg-transparent hover:text-foreground focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-[0.97] sm:w-auto"
+            class="h-auto min-h-10 w-full border border-border-strong bg-transparent px-4 text-xs font-bold text-muted uppercase hover:cursor-pointer focus-visible:ring-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:w-auto"
             onclick={() => settings.reset()}
         >
             {m.settings_reset()}
