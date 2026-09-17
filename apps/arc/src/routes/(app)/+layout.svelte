@@ -9,7 +9,7 @@
     import Dropdown from '$lib/components/ui/dropdown/Dropdown.svelte';
     import { cn } from '$lib/utils';
     import AccountAvatar from './_components/AccountAvatar.svelte';
-    import PageLoading from '$lib/components/ui/PageLoading.svelte';
+    import Spinner from '$lib/components/ui/Spinner.svelte';
     import type { LayoutProps } from './$types';
 
     let { data, children }: LayoutProps = $props();
@@ -469,7 +469,14 @@
 
 <div id="main-content" class="pt-14" tabindex="-1">
     {#if navigating.to}
-        <PageLoading label={m.navigation_loading()} />
+        <main
+            class="grid min-h-[calc(100dvh-3.5rem)] place-items-center bg-canvas text-foreground"
+            aria-busy="true"
+            aria-live="polite"
+        >
+            <span class="sr-only">{m.navigation_loading()}</span>
+            <Spinner size="2.25rem" />
+        </main>
     {:else}
         {@render children()}
     {/if}

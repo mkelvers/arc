@@ -2,7 +2,6 @@
     import { invalidate } from '$app/navigation';
 
     import AnimePageContent from './_components/AnimePageContent.svelte';
-    import PageLoading from '$lib/components/ui/PageLoading.svelte';
     import Button from '$lib/components/ui/button/Button.svelte';
     import type { PageProps } from './$types';
     import { m } from '$lib/i18n.svelte';
@@ -42,9 +41,7 @@
     <meta name="description" content={description} />
 </svelte:head>
 
-{#await data.page}
-    <PageLoading label={m.anime_loading()} />
-{:then result}
+{#await data.page then result}
     {#if result.status === 'success'}
         <AnimePageContent data={result.data} />
     {:else}
