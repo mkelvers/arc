@@ -11,7 +11,6 @@
     import Button from '$lib/components/ui/button/Button.svelte';
     import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
     import EpisodeInventoryPoller from './EpisodeInventoryPoller.svelte';
-    import EpisodeInventoryStatus from './EpisodeInventoryStatus.svelte';
     import Skeleton from '$lib/components/ui/skeleton/Skeleton.svelte';
     import { m } from '$lib/i18n.svelte';
 
@@ -35,28 +34,10 @@
     let episodes = $state(initialData.episodes);
     let episodeRevision = $state(initialData.episodeRevision);
     let episodeInventory = $state(initialData.episodeInventory);
-    let retrying = $state(false);
-
     const fiveColumnGrid = new MediaQuery('min-width: 48rem');
     const sevenColumnGrid = new MediaQuery('min-width: 120rem');
     const pageSize = $derived(sevenColumnGrid.current ? 28 : fiveColumnGrid.current ? 25 : 20);
     let visibleEpisodeCount = $state(sevenColumnGrid.current ? 28 : fiveColumnGrid.current ? 25 : 20);
-
-    async function retry() {
-        retrying = true;
-        try {
-            const response = await fetch(`/v1/anime/${anime.id}/episodes/retry`, {
-                method: 'POST',
-            });
-            if (!response.ok) {
-                throw new Error(`Episode inventory retry failed with ${response.status}`);
-            }
-            window.location.reload();
-        } catch (cause) {
-            console.warn(`Episode inventory retry failed for AniList ${anime.id}`, cause);
-            retrying = false;
-        }
-    }
 
     function applyUpdate(result: AnimePageEpisodeUpdates) {
         episodeInventory = result.episodeInventory;
@@ -120,7 +101,5 @@
                 </div>
             {/each}
         </div>
-    {:else if episodeInventory.status === 'failed'}
-        <EpisodeInventoryStatus retrying={retrying} onretry={retry} />
     {/if}
 </section>
