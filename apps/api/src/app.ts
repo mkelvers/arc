@@ -1,6 +1,10 @@
 import { Hono } from 'hono';
 
-import { isAniKotoTransientError, TargetEpisodeUnavailableError } from '@arc/core/server';
+import {
+    BrowseFilterError,
+    isAniKotoTransientError,
+    TargetEpisodeUnavailableError,
+} from '@arc/core/server';
 import { GraphQLRequestError } from '@arc/shared/graphql/error';
 import { logger } from '@arc/core/server';
 import { auth } from './auth';
@@ -52,6 +56,18 @@ app.notFound((context) =>
     )
 );
 app.onError((cause, context) => {
+    if (cause instanceof BrowseFilterError) {
+        return context.json(
+            {
+                error: {
+                    code: 'INVALID_REQUEST',
+                    message: cause.message,
+                },
+            },
+            400
+        );
+    }
+
     if (cause instanceof TargetEpisodeUnavailableError) {
         logger.debug(cause.message);
         return context.json(
