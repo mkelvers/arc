@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onDestroy, untrack } from 'svelte';
-    import { CircleIcon, FunnelIcon, ListBulletsIcon, RadioButtonIcon } from 'phosphor-svelte';
+    import { FunnelIcon, ListBulletsIcon } from 'phosphor-svelte';
 
     import { browseSearchParams, type BrowseFilters } from '@arc/core/client';
     import type { AnimeCard as AnimeCardModel } from '@arc/core/client';
@@ -10,6 +10,7 @@
     import Button from '$lib/components/ui/button/Button.svelte';
     import EmptyState from '$lib/components/ui/EmptyState.svelte';
     import Spinner from '$lib/components/ui/Spinner.svelte';
+    import Radio from '$lib/components/ui/input/Radio.svelte';
     import { m } from '$lib/i18n.svelte';
     import {
         appendCatalogPage,
@@ -244,16 +245,12 @@
                                         class:text-foreground={filters[group.key] === option.value}
                                         class="flex min-h-11 items-center gap-2.5 px-5 text-sm text-muted transition-colors hover:bg-panel-hover hover:text-foreground focus:bg-panel-hover focus:text-foreground focus:outline-none"
                                     >
-                                        {#if filters[group.key] === option.value}
-                                            <RadioButtonIcon
-                                                size="1.25rem"
-                                                weight="fill"
-                                                class="text-input-accent"
-                                                aria-hidden="true"
-                                            />
-                                        {:else}
-                                            <CircleIcon size="1.25rem" aria-hidden="true" />
-                                        {/if}
+                                        <Radio
+                                            checked={filters[group.key] === option.value}
+                                            aria-hidden="true"
+                                            tabindex={-1}
+                                            class="pointer-events-none"
+                                        />
                                         {option.label}
                                     </a>
                                 {/each}

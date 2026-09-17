@@ -29,7 +29,7 @@
     --theme-watch-secondary: oklch(0.74 0.004 285);
     --theme-watch-muted: oklch(0.63 0.004 285);
     --theme-player-panel: oklch(0.18 0.012 285);
-    --theme-input-accent: var(--theme-accent);
+    --theme-input-accent: #2abdbb;
     --theme-tooltip: #414141;
     --theme-tooltip-foreground: #ececec;
     --theme-episode-action: #213944;
