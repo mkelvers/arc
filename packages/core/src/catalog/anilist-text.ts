@@ -2,6 +2,41 @@ function firstNonBlank(values: ReadonlyArray<string | null | undefined>) {
     return values.find((value) => Boolean(value?.trim())) ?? null;
 }
 
+const htmlEntities = {
+    amp: '&',
+    apos: "'",
+    bull: '•',
+    copy: '©',
+    divide: '÷',
+    gt: '>',
+    hellip: '…',
+    laquo: '«',
+    ldquo: '“',
+    lt: '<',
+    lsquo: '‘',
+    mdash: '—',
+    nbsp: ' ',
+    ndash: '–',
+    quot: '"',
+    raquo: '»',
+    rdquo: '”',
+    reg: '®',
+    rsquo: '’',
+    times: '×',
+    trade: '™',
+} as const;
+
+export function decodeHtmlEntities(value: string) {
+    return value.replace(/&(?:#(\d+)|#x([\da-f]+)|([a-z]+));/gi, (entity, decimal, hex, name) => {
+        if (name) {
+            return htmlEntities[name.toLowerCase() as keyof typeof htmlEntities] ?? entity;
+        }
+
+        const codePoint = Number.parseInt(decimal ?? hex, decimal ? 10 : 16);
+        return Number.isSafeInteger(codePoint) ? String.fromCodePoint(codePoint) : entity;
+    });
+}
+
 export function mediaTitle(media: {
     id: number;
     title?: {
@@ -40,9 +75,7 @@ export function plainText(value: string | null | undefined) {
         return '';
     }
 
-    return value
-        .replace(/<br\s*\/?>/gi, ' ')
-        .replace(/<[^>]+>/g, '')
+    return decodeHtmlEntities(value.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, ''))
         .replace(/\s*\(Source:[\s\S]*$/i, '')
         .replace(/\s*Note:[\s\S]*$/i, '')
         .replace(/\s+/g, ' ')

@@ -1,4 +1,5 @@
 import type { AniListAnimeDetailsMedia } from './anilist-types';
+import { decodeHtmlEntities } from './anilist-text';
 
 const count = new Intl.NumberFormat('en', {
     maximumFractionDigits: 1,
@@ -33,10 +34,9 @@ function formatDescription(value: string | null) {
         return '';
     }
 
-    const description = value
-        .replace(/<br\s*\/?\s*>/gi, '\n')
-        .replace(/<[^>]+>/g, '')
-        .split(/^\s*Notes:\s*$/im, 1)[0];
+    const description = decodeHtmlEntities(
+        value.replace(/<br\s*\/?\s*>/gi, '\n').replace(/<[^>]+>/g, '')
+    ).split(/^\s*Notes:\s*$/im, 1)[0];
     const paragraphs = description
         .split(/\n{2,}/)
         .map((paragraph) => paragraph.trim())
