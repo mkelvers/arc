@@ -19,27 +19,16 @@
     aria-labelledby={title ? id : undefined}
     aria-describedby={title ? undefined : id}
 >
-    <div class="flex max-w-md flex-col items-center">
-        <div class="mb-5 grid w-60 place-items-center sm:w-72">
-            <img
-                src={artwork}
-                alt=""
-                width={artworkWidth}
-                height={artworkHeight}
-                class="block h-auto w-full object-contain"
-            />
-        </div>
+    <div class="flex max-w-md flex-col items-center space-y-5">
+        <img src={artwork} alt="" width={artworkWidth} height={artworkHeight} class="h-auto w-60 sm:w-72" />
         {#if title}
             <h2 id={id} class="text-xl font-bold sm:text-2xl">{title}</h2>
         {/if}
-        <p
-            id={title ? undefined : id}
-            class="mt-2 max-w-md text-sm leading-6 text-muted sm:text-base sm:leading-7"
-        >
+        <p id={title ? undefined : id} class="text-sm leading-6 text-muted sm:text-base sm:leading-7">
             {body}
         </p>
         {#if action}
-            <div class="mt-6">
+            <div>
                 {@render action()}
             </div>
         {/if}
