@@ -623,6 +623,10 @@ export function matchesAniKotoEpisodeCount(
         return true;
     }
 
+    if (anime.format === 'MOVIE') {
+        return exactIdentity ? providerEpisodeCount > 0 : providerEpisodeCount >= anime.episodes;
+    }
+
     return (
         providerEpisodeCount >= anime.episodes ||
         // AniList can include a non-playable special in the total while AniKoto
