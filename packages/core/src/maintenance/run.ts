@@ -20,7 +20,6 @@ import { refreshReleaseCalendar } from './catalog';
 import { scheduleReleaseTargets } from './targets';
 import { schedulerPolicy, schedulerRunLease } from './policy';
 import { enqueueUnresolvedAnimeInterests, reconcileAnimeInterests } from './interests';
-import { logger } from '../application/logger';
 
 const heartbeatName = 'anime-scheduler';
 
@@ -138,11 +137,10 @@ export async function runAnimeScheduler() {
             .then(([renewed]) => {
                 if (!renewed) {
                     leaseLost = true;
-                    logger.error('Anime scheduler lost its database lease', { runId });
                 }
             })
-            .catch((cause) => {
-                logger.error('Anime scheduler lease renewal failed', { runId, error: cause });
+            .catch(() => {
+                leaseLost = true;
             });
     }, schedulerRunLease.renewalMs);
 
