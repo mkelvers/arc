@@ -70,6 +70,22 @@ async function storedAnimePage(
         return null;
     }
 
+    const storedEpisodes = getEpisodes(anime);
+    void storedEpisodes
+        .then(async (episodes) => {
+            const storedMapping = await findMapping(id);
+            const shouldDiscover =
+                episodes.length === 0 ||
+                (storedMapping &&
+                    (await needsEpisodeMetadataRefresh(id, storedMapping.externalIdId)));
+            if (shouldDiscover) {
+                await discoverEpisodeInventory(anime);
+            }
+        })
+        .catch((cause) => {
+            logger.debug(`Immediate episode inventory discovery failed for AniList ${id}`, cause);
+        });
+
     const [
         episodes,
         artwork,
@@ -81,8 +97,18 @@ async function storedAnimePage(
         episodeProgress,
         franchise,
     ] = await Promise.all([
-        getEpisodes(anime),
-        getStoredMedia(id).catch(() => null),
+        storedEpisodes,
+        getStoredMedia(id)
+            .then((media) => {
+                if (media?.artwork.selectedBackdrop) {
+                    return media.artwork;
+                }
+
+                return getArtwork(anime, { fetchMissing: true }).then(
+                    (fetchedArtwork) => fetchedArtwork ?? media?.artwork ?? null
+                );
+            })
+            .catch(() => null),
         resolveAnimeSynopsis(anime),
         getStoredAiringSchedule(id),
         getEpisodeRevision(id),
@@ -114,11 +140,7 @@ async function storedAnimePage(
         anime: details,
         episodeRevision,
         watchlistState,
-        episodes: withMovieBackdrop(
-            anime,
-            episodesWithProgress,
-            artwork?.artwork.selectedBackdrop?.url
-        ),
+        episodes: withMovieBackdrop(anime, episodesWithProgress, artwork?.selectedBackdrop?.url),
         watchAction: {
             href: target?.href ?? '#anime-episode-list',
             kind: allEpisodesCompleted
@@ -135,7 +157,7 @@ async function storedAnimePage(
         audioLabel: episodeAudioAvailabilityLabel(episodesWithProgress),
         episodeInventory,
         franchise,
-        artwork: artwork?.artwork ?? null,
+        artwork,
     };
 }
 
