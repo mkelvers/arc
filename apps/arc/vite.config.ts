@@ -4,7 +4,27 @@ import tailwindcss from '@tailwindcss/vite';
 import adapter from '@sveltejs/adapter-node';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { paraglideVitePlugin } from '@inlang/paraglide-js';
-import { defineConfig } from 'vite';
+import { createLogger, defineConfig } from 'vite';
+
+function createArcLogger() {
+    const logger = createLogger();
+    const logError = logger.error.bind(logger);
+
+    logger.error = (message, options) => {
+        const error = options?.error;
+        const code = error && 'code' in error ? error.code : undefined;
+        if (
+            message.includes('http proxy error: /v1/search') &&
+            (code === 'ECONNRESET' || error?.message === 'socket hang up')
+        ) {
+            return;
+        }
+
+        logError(message, options);
+    };
+
+    return logger;
+}
 
 export default defineConfig(({ command }) => {
     const kitOptions: Parameters<typeof sveltekit>[0] = {
@@ -53,6 +73,7 @@ export default defineConfig(({ command }) => {
     }
 
     return {
+        customLogger: createArcLogger(),
         plugins: [
             paraglideVitePlugin({
                 project: './project.inlang',
