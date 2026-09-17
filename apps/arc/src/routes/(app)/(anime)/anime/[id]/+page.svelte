@@ -3,6 +3,7 @@
 
     import AnimePageContent from './_components/AnimePageContent.svelte';
     import Button from '$lib/components/ui/button/Button.svelte';
+    import Spinner from '$lib/components/ui/Spinner.svelte';
     import type { PageProps } from './$types';
     import { m } from '$lib/i18n.svelte';
 
@@ -41,7 +42,15 @@
     <meta name="description" content={description} />
 </svelte:head>
 
-{#await data.page then result}
+{#await data.page}
+    <main
+        class="grid min-h-[calc(100dvh-3.5rem)] place-items-center bg-canvas text-foreground"
+        aria-busy="true"
+        aria-live="polite"
+    >
+        <Spinner size="2.25rem" />
+    </main>
+{:then result}
     {#if result.status === 'success'}
         <AnimePageContent data={result.data} />
     {:else}

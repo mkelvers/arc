@@ -12,6 +12,7 @@
     import EpisodeGridCard from '$lib/components/EpisodeGridCard.svelte';
     import EpisodeInventoryPoller from './EpisodeInventoryPoller.svelte';
     import EpisodeInventoryStatus from './EpisodeInventoryStatus.svelte';
+    import Skeleton from '$lib/components/ui/skeleton/Skeleton.svelte';
     import { m } from '$lib/i18n.svelte';
 
     type EpisodeUpdate = Pick<AnimePageEpisodeUpdates, 'watchAction' | 'audioLabel'>;
@@ -82,7 +83,12 @@
     onupdate={applyUpdate}
 />
 
-<section id="anime-episode-list" class="px-2 py-7 sm:pb-12 lg:pb-16" aria-labelledby="anime-episodes-title">
+<section
+    id="anime-episode-list"
+    class="px-2 py-7 sm:pb-12 lg:pb-16"
+    aria-labelledby="anime-episodes-title"
+    aria-busy={episodeInventory.status === 'pending' && episodes.length === 0}
+>
     <h2 id="anime-episodes-title" class="sr-only">{m.player_episodes()}</h2>
     {#if episodes.length}
         <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 hero:grid-cols-7">
@@ -103,6 +109,17 @@
                 {m.anime_show_more_episodes()}
             </Button>
         {/if}
+    {:else if episodeInventory.status === 'pending'}
+        <div class="grid grid-cols-1 gap-x-5 gap-y-8 md:grid-cols-5 hero:grid-cols-7" aria-hidden="true">
+            {#each Array(10) as _}
+                <div class="min-h-56">
+                    <Skeleton class="aspect-video rounded-none" />
+                    <Skeleton class="mt-3 h-3 w-3/4 rounded-none" />
+                    <Skeleton class="mt-2 h-4 w-2/5 rounded-none" />
+                    <Skeleton class="mt-3 h-3 w-1/3 rounded-none" />
+                </div>
+            {/each}
+        </div>
     {:else if episodeInventory.status === 'failed'}
         <EpisodeInventoryStatus retrying={retrying} onretry={retry} />
     {/if}
