@@ -20,6 +20,7 @@ import { refreshReleaseCalendar } from './catalog';
 import { scheduleReleaseTargets } from './targets';
 import { schedulerPolicy, schedulerRunLease } from './policy';
 import { enqueueUnresolvedAnimeInterests, reconcileAnimeInterests } from './interests';
+import { logger } from '../application/logger';
 
 const heartbeatName = 'anime-scheduler';
 
@@ -117,6 +118,12 @@ export async function runAnimeScheduler() {
         return { skipped: 'already-running' as const };
     }
 
+    let leaseLost = false;
+    const ensureLease = () => {
+        if (leaseLost) {
+            throw new Error('Anime scheduler lost its database lease');
+        }
+    };
     const leaseRenewal = setInterval(() => {
         void db
             .update(schedulerHeartbeat)
@@ -126,17 +133,30 @@ export async function runAnimeScheduler() {
                     eq(schedulerHeartbeat.name, heartbeatName),
                     eq(schedulerHeartbeat.activeRunId, runId)
                 )
-            );
+            )
+            .returning({ activeRunId: schedulerHeartbeat.activeRunId })
+            .then(([renewed]) => {
+                if (!renewed) {
+                    leaseLost = true;
+                    logger.error('Anime scheduler lost its database lease', { runId });
+                }
+            })
+            .catch((cause) => {
+                logger.error('Anime scheduler lease renewal failed', { runId, error: cause });
+            });
     }, schedulerRunLease.renewalMs);
 
     try {
         const interests = await reconcileAnimeInterests();
+        ensureLease();
         const inventoryBackfills = await enqueueUnresolvedAnimeInterests();
+        ensureLease();
         const maintenance = await drainMaintenanceTasks(runId, {
             limit: schedulerPolicy.concurrency,
             leaseDurationMs: schedulerPolicy.leaseDurationMs,
             leaseRenewalMs: schedulerPolicy.leaseRenewalMs,
         });
+        ensureLease();
         let fullReconciliation:
             | { discovered: number; releaseRequests: number; targets: number }
             | { error: string; retryAt: string }
@@ -167,6 +187,7 @@ export async function runAnimeScheduler() {
                     })
                     .where(eq(schedulerHeartbeat.name, heartbeatName));
             }
+            ensureLease();
         }
 
         let catalogRefresh: { completedAt: string } | { error: string; retryAt: string } | null =
@@ -200,6 +221,7 @@ export async function runAnimeScheduler() {
                     })
                     .where(eq(schedulerHeartbeat.name, heartbeatName));
             }
+            ensureLease();
         }
 
         let calendarRefresh:
@@ -240,10 +262,13 @@ export async function runAnimeScheduler() {
                     })
                     .where(eq(schedulerHeartbeat.name, heartbeatName));
             }
+            ensureLease();
         }
 
         const releases = await refreshDueReleases(schedulerPolicy.concurrency);
+        ensureLease();
         const episodes = await drainEpisodeTargets(runId, schedulerPolicy);
+        ensureLease();
         const completedAt = new Date();
         const stats = {
             releases,
