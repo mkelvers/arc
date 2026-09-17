@@ -1,5 +1,3 @@
-import { logger } from '@arc/core/server';
-
 const migrationRetryDelaysMs = [1_000, 2_000, 4_000, 8_000, 16_000];
 
 export async function runMigrationsWithRetry(
@@ -16,11 +14,6 @@ export async function runMigrationsWithRetry(
                 throw cause;
             }
 
-            logger.warn('Database migration attempt failed; retry scheduled', {
-                attempt: attempt + 1,
-                delayMs,
-                error: cause,
-            });
             await sleep(delayMs);
         }
     }

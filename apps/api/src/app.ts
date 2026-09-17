@@ -8,7 +8,7 @@ import {
 import { GraphQLRequestError } from '@arc/shared/graphql/error';
 import { logger } from '@arc/core/server';
 import { auth } from './auth';
-import { origin, requestLogging, type ApiEnvironment } from './http';
+import { origin } from './http';
 import { accounts } from './routes/accounts';
 import { anime } from './routes/anime';
 import { catalog } from './routes/catalog';
@@ -17,9 +17,8 @@ import { maintenance } from './routes/maintenance';
 import { notifications } from './routes/notifications';
 import { watchlist } from './routes/watchlist';
 import { isReady } from './readiness';
-const app = new Hono<ApiEnvironment>();
+const app = new Hono();
 
-app.use('*', requestLogging);
 app.get('/health', (context) => context.json({ status: 'ok' }));
 app.get('/ready', async (context) => {
     if (await isReady()) {
@@ -69,7 +68,7 @@ app.onError((cause, context) => {
     }
 
     if (cause instanceof TargetEpisodeUnavailableError) {
-        logger.debug(cause.message, { requestId: context.get('requestId') });
+        logger.debug(cause.message);
         return context.json(
             {
                 error: {
@@ -82,12 +81,10 @@ app.onError((cause, context) => {
     }
 
     if (isAniKotoTransientError(cause)) {
-        logger.error('AniKoto is temporarily unavailable', {
-            requestId: context.get('requestId'),
-            method: context.req.method,
-            path: context.req.path,
-            error: cause,
-        });
+        logger.error(
+            `${context.req.method} ${context.req.path} failed: AniKoto is temporarily unavailable`,
+            cause instanceof Error ? cause.message : String(cause)
+        );
         return context.json(
             {
                 error: {
@@ -103,12 +100,10 @@ app.onError((cause, context) => {
         cause instanceof GraphQLRequestError &&
         (cause.status === 429 || cause.status === undefined || cause.status >= 500)
     ) {
-        logger.error('AniList is temporarily unavailable', {
-            requestId: context.get('requestId'),
-            method: context.req.method,
-            path: context.req.path,
-            error: cause,
-        });
+        logger.error(
+            `${context.req.method} ${context.req.path} failed: AniList is temporarily unavailable`,
+            cause.message
+        );
         return context.json(
             {
                 error: {
@@ -120,12 +115,10 @@ app.onError((cause, context) => {
         );
     }
 
-    logger.error('Unhandled API request failure', {
-        requestId: context.get('requestId'),
-        method: context.req.method,
-        path: context.req.path,
-        error: cause,
-    });
+    logger.error(
+        `${context.req.method} ${context.req.path} failed: unhandled API request failure`,
+        cause instanceof Error ? cause.message : String(cause)
+    );
     return context.json(
         {
             error: {
