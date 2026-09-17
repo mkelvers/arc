@@ -104,7 +104,7 @@ async function storedAnimePage(
                     return media.artwork;
                 }
 
-                return getArtwork(anime, { fetchMissing: true }).then(
+                return getArtwork(anime, { refresh: true, fetchMissing: true }).then(
                     (fetchedArtwork) => fetchedArtwork ?? media?.artwork ?? null
                 );
             })
