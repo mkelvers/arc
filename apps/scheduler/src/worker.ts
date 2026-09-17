@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { logger, runAnimeMaintenance, runAnimeScheduler } from '@arc/core/server';
+import { runAnimeMaintenance, runAnimeScheduler } from '@arc/core/server';
 import { db } from '@arc/shared/db';
 
 function waitForNextRun(delayMs: number, signal: AbortSignal) {
@@ -30,24 +30,14 @@ function waitForNextRun(delayMs: number, signal: AbortSignal) {
 }
 
 async function runSchedulerLoop(
-    name: string,
     delayMs: number,
     execute: () => Promise<void>,
     signal: AbortSignal
 ) {
     while (!signal.aborted) {
-        const startedAt = performance.now();
         try {
             await execute();
-            logger.debug(`${name} cycle completed`, {
-                durationMs: Math.round(performance.now() - startedAt),
-            });
-        } catch (cause) {
-            logger.error(`${name} cycle failed`, {
-                durationMs: Math.round(performance.now() - startedAt),
-                error: cause,
-            });
-        }
+        } catch {}
 
         if (!(await waitForNextRun(delayMs, signal))) {
             return;
@@ -61,11 +51,9 @@ export async function startScheduler() {
     process.once('SIGINT', stop);
     process.once('SIGTERM', stop);
 
-    logger.info('Arc scheduler started');
     try {
         await Promise.all([
             runSchedulerLoop(
-                'Anime scheduler',
                 60 * 1_000,
                 async () => {
                     await runAnimeScheduler();
@@ -73,7 +61,6 @@ export async function startScheduler() {
                 controller.signal
             ),
             runSchedulerLoop(
-                'Anime maintenance',
                 10 * 1_000,
                 async () => {
                     await runAnimeMaintenance(`maintenance-worker:${randomUUID()}`);
@@ -84,7 +71,6 @@ export async function startScheduler() {
     } finally {
         process.removeListener('SIGINT', stop);
         process.removeListener('SIGTERM', stop);
-        logger.info('Arc scheduler stopped');
         await db.$client.end();
     }
 }
