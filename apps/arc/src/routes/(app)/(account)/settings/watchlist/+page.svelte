@@ -3,7 +3,7 @@
     import type { SubmitFunction } from '@sveltejs/kit';
 
     import StatusBanner from '$lib/components/StatusBanner.svelte';
-    import Checkbox from '$lib/components/ui/checkbox/Checkbox.svelte';
+    import Checkbox from '$lib/components/ui/input/Checkbox.svelte';
     import Input from '$lib/components/ui/input/Input.svelte';
     import { watchlist } from '$lib/watchlist.svelte';
     import { m } from '$lib/i18n.svelte';
@@ -40,7 +40,11 @@
         <div class="mt-6 grid gap-6 sm:grid-cols-[minmax(0,1fr)_9rem] sm:items-end sm:gap-x-8">
             <label class="flex cursor-pointer items-start gap-3 text-sm text-muted">
                 <span class="mt-0.5">
-                    <Checkbox bind:checked={replaceWatchlist} aria-label={m.import_replace()} />
+                    <Checkbox
+                        checked={replaceWatchlist}
+                        onchange={(event) => (replaceWatchlist = event.currentTarget.checked)}
+                        aria-label={m.import_replace()}
+                    />
                 </span>
                 <span>
                     <span class="font-medium text-foreground">{m.import_replace()}</span>

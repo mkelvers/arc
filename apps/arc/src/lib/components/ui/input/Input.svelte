@@ -1,11 +1,16 @@
 <script lang="ts">
     import type { HTMLInputAttributes } from 'svelte/elements';
+    import { cn } from '$lib/utils';
 
-    type Props = HTMLInputAttributes & {
-        ref?: HTMLInputElement | null;
-    };
+    interface Props extends HTMLInputAttributes {}
 
-    let { value = $bindable(), ref = $bindable(null), ...props }: Props = $props();
+    let { class: className, ...props }: Props = $props();
 </script>
 
-<input bind:this={ref} bind:value={value} {...props} />
+<input
+    {...props}
+    class={cn(
+        'flex h-10 w-full rounded-md border border-border bg-transparent px-3 py-2 text-sm outline-none transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-muted focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none',
+        className
+    )}
+/>

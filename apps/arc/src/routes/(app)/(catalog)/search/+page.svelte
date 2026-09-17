@@ -20,7 +20,6 @@
 
     let { data }: PageProps = $props();
     const recent = new RecentSearches();
-    let searchInput = $state<HTMLInputElement | null>(null);
     let query = $state(untrack(() => data.query));
     let pending = $state(untrack(() => data.query.length >= 2));
     let searchState: SearchState = $state({
@@ -81,7 +80,7 @@
     onMount(() => {
         recent.load();
         if (window.matchMedia('(pointer: fine)').matches) {
-            searchInput?.focus();
+            document.getElementById('anime-search')?.focus();
         }
     });
 
@@ -153,8 +152,8 @@
                 type="search"
                 placeholder={m.search_placeholder()}
                 autocomplete="off"
-                bind:ref={searchInput}
-                bind:value={query}
+                value={query}
+                oninput={(event) => (query = event.currentTarget.value)}
                 class="h-14 w-full min-w-0 max-w-full appearance-none rounded-none border-0 border-b-2 border-accent bg-transparent px-0 text-2xl text-foreground outline-none ring-0 placeholder:text-subtle focus-visible:border-accent focus-visible:ring-0 sm:text-3xl"
             />
         </form>

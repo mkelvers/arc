@@ -44,7 +44,8 @@
             autocapitalize={autocapitalize}
             spellcheck={spellcheck}
             {...constraints}
-            bind:value={value}
+            value={value}
+            oninput={(event) => (value = event.currentTarget.value)}
             aria-describedby={error ? `${name}-error` : undefined}
             aria-invalid={error ? 'true' : undefined}
         />
