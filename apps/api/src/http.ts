@@ -1,15 +1,51 @@
+import { randomUUID } from 'node:crypto';
+
 import { zValidator } from '@hono/zod-validator';
 import type { ValidationTargets } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import type { z } from 'zod';
 
+import { logger } from '@arc/core/server';
 import { auth, type AuthSession } from './auth';
 
 export type ApiEnvironment = {
     Variables: {
+        requestId: string;
         session: AuthSession;
     };
 };
+
+const slowRequestThresholdMs = 1_000;
+
+export const requestLogging = createMiddleware<ApiEnvironment>(async (context, next) => {
+    const requestId = randomUUID();
+    const startedAt = performance.now();
+    context.set('requestId', requestId);
+    context.header('X-Request-Id', requestId);
+
+    try {
+        await next();
+    } finally {
+        const durationMs = Math.round(performance.now() - startedAt);
+        const details = {
+            requestId,
+            method: context.req.method,
+            path: context.req.path,
+            status: context.res.status,
+            durationMs,
+        };
+
+        if (context.res.status >= 500) {
+            logger.error('HTTP request failed', details);
+        } else if (context.res.status >= 400) {
+            logger.warn('HTTP request returned a client error', details);
+        } else if (durationMs >= slowRequestThresholdMs) {
+            logger.warn('Slow HTTP request', details);
+        } else {
+            logger.debug('HTTP request completed', details);
+        }
+    }
+});
 
 export function validate<T extends z.ZodType, Target extends keyof ValidationTargets>(
     target: Target,

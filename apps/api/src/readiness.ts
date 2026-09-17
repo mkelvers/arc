@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 
+import { logger } from '@arc/core/server';
 import { db } from '@arc/shared/db';
 
 let migrationsReady = false;
@@ -20,7 +21,8 @@ export async function isReady() {
     try {
         await db.execute(sql`SELECT 1`);
         return true;
-    } catch {
+    } catch (cause) {
+        logger.debug('Database readiness check failed', { error: cause });
         return false;
     }
 }
