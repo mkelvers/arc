@@ -3,7 +3,6 @@ import { toAnimeDetails } from '../catalog/details';
 import { withMovieBackdrop } from '../catalog/movie-backdrop';
 import {
     getEpisodeRevision,
-    getRelatedReleaseTitles,
     getStoredAiringSchedule,
     needsEpisodeMetadataRefresh,
 } from '../catalog/episodes';
@@ -104,7 +103,7 @@ async function storedAnimePage(
                     return media.artwork;
                 }
 
-                return getArtwork(anime, { refresh: true, fetchMissing: true }).then(
+                return getArtwork(anime, { fetchMissing: true }).then(
                     (fetchedArtwork) => fetchedArtwork ?? media?.artwork ?? null
                 );
             })
@@ -519,32 +518,8 @@ export async function watchPlayback(id: number, episodeId: string) {
 
     const { anime, episodes, currentIndex } = context;
     const currentEpisode = episodes[currentIndex];
-    const release = episodes.map(({ number, title }) => ({ number, title }));
-    const specials = episodes.filter(({ number }) => number <= 0 || !Number.isInteger(number));
-    const specialIndex = specials.findIndex(({ id: candidate }) => candidate === currentEpisode.id);
-    const releaseRelations = new Set(['PARENT', 'PREQUEL', 'SEQUEL']);
-    const relatedReleases = await getRelatedReleaseTitles(
-        (anime.relations?.edges ?? []).flatMap((edge) =>
-            edge?.relationType &&
-            releaseRelations.has(edge.relationType) &&
-            edge.node?.type === 'ANIME' &&
-            edge.node.id !== id
-                ? [edge.node.id]
-                : []
-        )
-    );
-    const playbackEpisode =
-        specialIndex < 0
-            ? { ...currentEpisode, release, relatedReleases }
-            : {
-                  ...currentEpisode,
-                  release,
-                  relatedReleases,
-                  specialIndex: specialIndex + 1,
-                  specialCount: specials.length,
-              };
 
-    return episodePlayback(anime, playbackEpisode, [
+    return episodePlayback(anime, currentEpisode, [
         'sub',
         'dub',
         ...(currentEpisode.audio.includes('raw') ? (['raw'] as const) : []),
